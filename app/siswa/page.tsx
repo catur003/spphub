@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Script from "next/script";
 
 type Tagihan = {
   id: string;
@@ -57,35 +56,54 @@ export default function SiswaPortalPage() {
         return;
       }
 
-      // Pastikan objek window.snap tersedia (Midtrans script loaded)
-      if (!(window as any).snap) {
-        alert("Sistem pembayaran belum siap. Coba muat ulang halaman.");
-        setBayarLoading(null);
-        return;
-      }
+      const scriptUrl = data.isProd 
+        ? "https://app.midtrans.com/snap/snap.js"
+        : "https://app.sandbox.midtrans.com/snap/snap.js";
 
-      // Panggil Snap popup
-      (window as any).snap.pay(data.token, {
-        onSuccess: function (result: any) {
-          console.log("Success:", result);
-          alert("Pembayaran berhasil! Menunggu sistem memperbarui status...");
-          muatData();
-        },
-        onPending: function (result: any) {
-          console.log("Pending:", result);
-          alert("Menunggu pembayaran Anda.");
-          muatData();
-        },
-        onError: function (result: any) {
-          console.error("Error:", result);
-          alert("Pembayaran gagal.");
-          muatData();
-        },
-        onClose: function () {
-          // Popup ditutup oleh user
+      // Fungsi untuk memanggil snap popup
+      const panggilSnap = () => {
+        (window as any).snap.pay(data.token, {
+          onSuccess: function (result: any) {
+            console.log("Success:", result);
+            alert("Pembayaran berhasil! Menunggu sistem memperbarui status...");
+            setBayarLoading(null);
+            muatData();
+          },
+          onPending: function (result: any) {
+            console.log("Pending:", result);
+            alert("Menunggu pembayaran Anda diselesaikan.");
+            setBayarLoading(null);
+            muatData();
+          },
+          onError: function (result: any) {
+            console.error("Error:", result);
+            alert("Pembayaran gagal atau dibatalkan.");
+            setBayarLoading(null);
+            muatData();
+          },
+          onClose: function () {
+            // Popup ditutup oleh user
+            setBayarLoading(null);
+          }
+        });
+      };
+
+      // Injeksi script jika belum ada
+      if (!(window as any).snap) {
+        const script = document.createElement("script");
+        script.src = scriptUrl;
+        script.setAttribute("data-client-key", data.clientKey);
+        script.onload = () => {
+          panggilSnap();
+        };
+        script.onerror = () => {
+          alert("Gagal memuat sistem pembayaran. Coba lagi nanti.");
           setBayarLoading(null);
-        }
-      });
+        };
+        document.body.appendChild(script);
+      } else {
+        panggilSnap();
+      }
     } catch (err) {
       alert("Terjadi kesalahan sistem.");
       setBayarLoading(null);
@@ -98,13 +116,6 @@ export default function SiswaPortalPage() {
 
   return (
     <>
-      {/* Script Midtrans ditaruh global agar ready saat user klik bayar */}
-      {/* Menggunakan URL Sandbox secara default karena ini env uji coba, sebaiknya dibikin dinamis dari backend kalau mau production */}
-      <Script 
-        src="https://app.sandbox.midtrans.com/snap/snap.js" 
-        strategy="lazyOnload"
-        data-client-key="SB-Mid-client-xxxxxxxx" 
-      />
 
       <style>{`
         body { background-color: #f8fafc; }

@@ -90,7 +90,7 @@ export async function POST(
 
   try {
     const transaction = await snap.createTransaction(parameter);
-    return NextResponse.json({ token: transaction.token, clientKey });
+    return NextResponse.json({ token: transaction.token, clientKey, isProd });
   } catch (err: any) {
     console.error("Midtrans error:", err);
     return NextResponse.json({ error: "Gagal membuat transaksi ke Midtrans" }, { status: 500 });
