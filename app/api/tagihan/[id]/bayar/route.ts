@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getSnapClient } from "@/lib/midtrans";
+// @ts-ignore
+import midtransClient from "midtrans-client";
 
 export async function POST(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -15,34 +16,58 @@ export async function POST(
 
   const { id } = await params;
 
-  // Pastikan tagihan ini emang punya siswa yang lagi login (bukan siswa lain)
-  const siswa = await prisma.siswa.findUnique({ where: { akunId: session.user.id } });
-  if (!siswa) {
-    return NextResponse.json({ error: "Akun ini belum terhubung ke data siswa" }, { status: 400 });
-  }
+  const tagihan = await prisma.tagihanSpp.findUnique({
+    where: { id },
+    include: { siswa: { include: { akun: true } } },
+  });
 
-  const tagihan = await prisma.tagihanSpp.findUnique({ where: { id } });
-  if (!tagihan || tagihan.siswaId !== siswa.id) {
+  if (!tagihan) {
     return NextResponse.json({ error: "Tagihan tidak ditemukan" }, { status: 404 });
   }
-  if (tagihan.status === "lunas") {
-    return NextResponse.json({ error: "Tagihan ini udah lunas" }, { status: 400 });
-  }
-  if (tagihan.status === "menunggu_verifikasi") {
-    return NextResponse.json(
-      { error: "Tagihan ini lagi diverifikasi petugas, tunggu sebentar ya" },
-      { status: 400 }
-    );
+
+  // Cek apakah ini benar tagihan milik siswa yang sedang login
+  if (tagihan.siswa.akun?.id !== session.user.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let snap, clientKey, isProduction;
-  try {
-    ({ snap, clientKey, isProduction } = await getSnapClient());
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  if (tagihan.status === "lunas" || tagihan.status === "menunggu_verifikasi") {
+    return NextResponse.json({ error: "Tagihan ini tidak bisa dibayar (sudah lunas / proses)" }, { status: 400 });
   }
 
+  // Ambil pengaturan payment
+  const settings = await prisma.pengaturanPembayaran.findFirst();
+  if (!settings) {
+    return NextResponse.json({ error: "Sistem pembayaran belum dikonfigurasi admin" }, { status: 500 });
+  }
+
+  const isProd = settings.environment === "production";
+  const serverKey = isProd ? settings.productionServerKey : settings.sandboxServerKey;
+  const clientKey = isProd ? settings.productionClientKey : settings.sandboxClientKey;
+
+  if (!serverKey || !clientKey) {
+    return NextResponse.json({ error: "API Key Midtrans belum dikonfigurasi admin" }, { status: 500 });
+  }
+
+  const snap = new midtransClient.Snap({
+    isProduction: isProd,
+    serverKey: serverKey,
+    clientKey: clientKey,
+  });
+
+  // Buat Order ID unik (TagihanID + Timestamp)
   const orderId = `SPP-${tagihan.id}-${Date.now()}`;
+
+  // Simpan record pembayaran pending ke DB
+  await prisma.pembayaran.create({
+    data: {
+      tagihanSppId: tagihan.id,
+      siswaId: tagihan.siswaId,
+      orderId: orderId,
+      jumlah: tagihan.nominal,
+      metode: "midtrans",
+      status: "pending",
+    },
+  });
 
   const parameter = {
     transaction_details: {
@@ -50,44 +75,24 @@ export async function POST(
       gross_amount: tagihan.nominal,
     },
     customer_details: {
-      first_name: siswa.namaLengkap,
+      first_name: tagihan.siswa.namaLengkap,
+      email: tagihan.siswa.akun?.email || "",
     },
     item_details: [
       {
         id: tagihan.id,
         price: tagihan.nominal,
         quantity: 1,
-        name: `SPP ${tagihan.bulan}/${tagihan.tahun}`.slice(0, 50),
+        name: `SPP Bulan ${tagihan.bulan} / ${tagihan.tahun}`,
       },
     ],
   };
 
-  let transaction;
   try {
-    transaction = await snap.createTransaction(parameter);
-  } catch (e) {
-    return NextResponse.json(
-      { error: "Gagal membuat transaksi Midtrans: " + (e as Error).message },
-      { status: 502 }
-    );
+    const transaction = await snap.createTransaction(parameter);
+    return NextResponse.json({ token: transaction.token, clientKey });
+  } catch (err: any) {
+    console.error("Midtrans error:", err);
+    return NextResponse.json({ error: "Gagal membuat transaksi ke Midtrans" }, { status: 500 });
   }
-
-  await prisma.pembayaran.create({
-    data: {
-      tagihanSppId: tagihan.id,
-      siswaId: siswa.id,
-      orderId,
-      jumlah: tagihan.nominal,
-      metode: "midtrans_snap",
-      status: "pending",
-      rawResponse: transaction,
-    },
-  });
-
-  return NextResponse.json({
-    tagihanId: tagihan.id,
-    snapToken: transaction.token,
-    clientKey,
-    isProduction,
-  });
 }
