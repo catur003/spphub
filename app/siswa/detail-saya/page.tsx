@@ -119,7 +119,7 @@ export default function DetailSayaPage() {
     }
 
     // @ts-expect-error -- window.snap disuntik oleh script Midtrans
-    window.snap.pay(data.snapToken, {
+    window.snap.pay(data.token, {
       onSuccess: () => muatData(),
       onPending: () => muatData(),
       onError: () => setError("Pembayaran gagal, coba lagi."),
