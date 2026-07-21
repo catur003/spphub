@@ -1,1 +1,349 @@
 /* Custom override di sini, JANGAN edit file bootstrap langsung */
+
+:root {
+  --sidebar-w: 260px;
+  --sidebar-w-collapsed: 76px;
+  --topbar-h: 60px;
+
+  --accent: #4f46e5;
+  --accent-soft: #eef2ff;
+  --ink-900: #0f172a;
+  --ink-700: #334155;
+  --ink-500: #64748b;
+  --surface: #f8fafc;
+  --border-soft: #e2e8f0;
+
+  --sidebar-bg: #111827;
+  --sidebar-bg-2: #1e293b;
+  --sidebar-ink: #cbd5e1;
+  --sidebar-ink-dim: #64748b;
+  --sidebar-active: #4f46e5;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  background: var(--surface);
+  color: var(--ink-900);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Halus-in komponen bootstrap default biar gak "kaku" ---------- */
+.card {
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn {
+  border-radius: 10px;
+  font-weight: 500;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.btn-primary:hover {
+  background: #4338ca;
+  border-color: #4338ca;
+  box-shadow: var(--shadow-md);
+}
+
+.badge {
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 0.42em 0.7em;
+}
+
+.list-group-item {
+  border-color: var(--border-soft);
+}
+.list-group-item:first-child {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+.list-group-item:last-child {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.form-control, .form-select {
+  border-radius: 10px;
+  border-color: var(--border-soft);
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.15);
+}
+
+/* ================= SIDEBAR (admin) ================= */
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--surface);
+}
+
+.app-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-w);
+  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-2) 100%);
+  color: var(--sidebar-ink);
+  display: flex;
+  flex-direction: column;
+  z-index: 1040;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-lg);
+}
+
+.app-sidebar.collapsed {
+  width: var(--sidebar-w-collapsed);
+}
+
+.app-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.1rem 1.1rem;
+  min-height: var(--topbar-h);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.app-sidebar__brand-badge {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.app-sidebar__brand-text {
+  font-weight: 600;
+  color: white;
+  font-size: 0.95rem;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.app-sidebar.collapsed .app-sidebar__brand-text,
+.app-sidebar.collapsed .app-sidebar__label,
+.app-sidebar.collapsed .app-sidebar__foot-text {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+}
+
+.app-sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.9rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.app-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.62rem 0.75rem;
+  border-radius: 10px;
+  color: var(--sidebar-ink);
+  text-decoration: none;
+  font-size: 0.89rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+}
+
+.app-sidebar__link.active {
+  background: var(--sidebar-active);
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.app-sidebar__link svg {
+  flex-shrink: 0;
+  width: 19px;
+  height: 19px;
+}
+
+.app-sidebar__label {
+  transition: opacity 0.15s ease;
+}
+
+.app-sidebar__foot {
+  padding: 0.9rem 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.app-sidebar__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.app-sidebar__foot-text {
+  flex: 1;
+  min-width: 0;
+  transition: opacity 0.15s ease;
+}
+
+.app-sidebar__foot-text small {
+  color: var(--sidebar-ink-dim);
+}
+
+.app-sidebar__collapse-btn {
+  position: absolute;
+  top: 1.15rem;
+  right: -13px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  border: 2px solid var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.25s ease, background-color 0.15s ease;
+}
+.app-sidebar__collapse-btn:hover {
+  background: #4338ca;
+}
+.app-sidebar.collapsed .app-sidebar__collapse-btn svg {
+  transform: rotate(180deg);
+}
+
+.app-sidebar__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 1035;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.app-sidebar__backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-topbar {
+  display: none;
+  position: sticky;
+  top: 0;
+  height: var(--topbar-h);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  background: white;
+  border-bottom: 1px solid var(--border-soft);
+  z-index: 1020;
+}
+
+.app-topbar__menu-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-700);
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+.app-topbar__menu-btn:hover {
+  background: var(--surface);
+}
+
+.app-main {
+  margin-left: var(--sidebar-w);
+  min-height: 100vh;
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.app-main.collapsed {
+  margin-left: var(--sidebar-w-collapsed);
+}
+
+/* ---------- Mobile: sidebar jadi off-canvas drawer ---------- */
+@media (max-width: 991.98px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+    width: min(78vw, 280px);
+  }
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .app-sidebar.collapsed {
+    width: min(78vw, 280px);
+  }
+  .app-sidebar.collapsed .app-sidebar__brand-text,
+  .app-sidebar.collapsed .app-sidebar__label,
+  .app-sidebar.collapsed .app-sidebar__foot-text {
+    opacity: 1;
+    pointer-events: auto;
+    width: auto;
+  }
+  .app-sidebar__collapse-btn {
+    display: none;
+  }
+  .app-main,
+  .app-main.collapsed {
+    margin-left: 0;
+  }
+  .app-topbar {
+    display: flex;
+  }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.app-page-enter {
+  animation: fadeInUp 0.25s ease;
+}
+
