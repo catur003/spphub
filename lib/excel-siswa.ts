@@ -14,7 +14,7 @@ export const KOLOM_SISWA = [
   "Status (aktif/lulus/pindah/nonaktif)",
 ] as const;
 
-export type BarisSiswaMentah = Record<(typeof KOLOM_SISWA)[number], string | number | undefined>;
+export type BarisSiswaMentah = Record<(typeof KOLOM_SISWA)[number], string | number | Date | undefined>;
 
 export type SiswaTervalidasi = {
   namaLengkap: string;
