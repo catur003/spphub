@@ -9,7 +9,10 @@ export const auth = betterAuth({
 
   // Map nama tabel default Better Auth (user/session/account/verification)
   // ke nama tabel Indonesia yang udah didefinisiin di schema.prisma.
-  // Nama field di dalamnya TETAP default (jangan diubah).
+  // PENTING: kolom foreign key di Sesi & Kredensial namanya "akunId"
+  // (bukan default "userId"), jadi field itu WAJIB di-mapping juga lewat
+  // `fields`, kalau nggak Better Auth nulis ke field "userId" yang nggak
+  // ada di Prisma schema -> error "Argument `akun` is missing".
   user: {
     modelName: "akun",
     additionalFields: {
@@ -22,9 +25,15 @@ export const auth = betterAuth({
   },
   session: {
     modelName: "sesi",
+    fields: {
+      userId: "akunId",
+    },
   },
   account: {
     modelName: "kredensial",
+    fields: {
+      userId: "akunId",
+    },
   },
   verification: {
     modelName: "verifikasi",
