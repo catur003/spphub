@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
 
 type Siswa = {
   id: string;
@@ -46,27 +47,19 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // Pastikan script Snap.js sesuai environment (sandbox/production) cuma dimuat sekali
-function muatSnapScript(clientKey: string, isProduction: boolean): Promise<void> {
+function waitForSnap(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const existing = document.getElementById("midtrans-snap") as HTMLScriptElement | null;
-    if (existing && existing.dataset.clientKey === clientKey) {
-      resolve();
-      return;
-    }
-    if (existing) existing.remove();
-
-    const script = document.createElement("script");
-    script.id = "midtrans-snap";
-    script.src = isProduction
-      ? "https://app.midtrans.com/snap/snap.js"
-      : "https://app.sandbox.midtrans.com/snap/snap.js";
-    script.setAttribute("data-client-key", clientKey);
-    script.dataset.clientKey = clientKey;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Gagal memuat Midtrans Snap"));
-    document.body.appendChild(script);
+    if ((window as any).snap) { resolve(); return; }
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries++;
+      if ((window as any).snap) { clearInterval(iv); resolve(); }
+      else if (tries > 100) { clearInterval(iv); reject(new Error("Snap timeout")); }
+    }, 100);
   });
 }
+
+type MidtransConfig = { clientKey: string; isProd: boolean } | null;
 
 export default function DetailSayaPage() {
   const router = useRouter();
@@ -75,6 +68,13 @@ export default function DetailSayaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [bayarLoadingId, setBayarLoadingId] = useState<string | null>(null);
+  const [midtrans, setMidtrans] = useState<MidtransConfig>(null);
+
+  useEffect(() => {
+    fetch("/api/settings/midtrans-public")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setMidtrans(data); });
+  }, []);
 
   async function muatData() {
     setLoading(true);
@@ -111,9 +111,9 @@ export default function DetailSayaPage() {
     }
 
     try {
-      await muatSnapScript(data.clientKey, data.isProduction);
-    } catch (e) {
-      setError((e as Error).message);
+      await waitForSnap();
+    } catch {
+      setError("Sistem pembayaran tidak bisa dimuat (timeout). Coba refresh halaman.");
       setBayarLoadingId(null);
       return;
     }
@@ -150,6 +150,15 @@ export default function DetailSayaPage() {
 
   return (
     <div className="container py-4" style={{ maxWidth: 720 }}>
+      {midtrans && (
+        <Script
+          src={midtrans.isProd
+            ? "https://app.midtrans.com/snap/snap.js"
+            : "https://app.sandbox.midtrans.com/snap/snap.js"}
+          data-client-key={midtrans.clientKey}
+          strategy="afterInteractive"
+        />
+      )}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="h4 mb-0">Detail Saya</h1>
         <button className="btn btn-sm btn-outline-secondary" onClick={handleLogout}>Keluar</button>
