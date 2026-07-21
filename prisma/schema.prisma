@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH (Better Auth)
+// Nama tabel di-map ke Bahasa Indonesia (@@map) biar gampang
+// dibedain pas debug/liat database langsung. Nama FIELD di dalam
+// tabel ini TIDAK diubah — tetap ikut konvensi default Better Auth
+// (emailVerified, createdAt, dst), supaya adapter jalan tanpa perlu
+// config field-mapping tambahan yang rawan typo/error.
+// ============================================================
+
+enum Peran {
+  owner
+  petugas
+  siswa
+}
+
+model Akun {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  role          Peran    @default(siswa)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sesi       Sesi[]
+  kredensial Kredensial[]
+  siswa      Siswa?
+
+  @@map("akun")
+}
+
+model Sesi {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  akunId String
+  akun   Akun   @relation(fields: [akunId], references: [id], onDelete: Cascade)
+
+  @@map("sesi")
+}
+
+model Kredensial {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  akunId String
+  akun   Akun   @relation(fields: [akunId], references: [id], onDelete: Cascade)
+
+  @@map("kredensial")
+}
+
+model Verifikasi {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifikasi")
+}
+
+// ============================================================
+// DOMAIN
+// ============================================================
+
+model ProfilSekolah {
+  id                String @id @default(cuid())
+  nama              String
+  alamat            String?
+  logoUrl           String?
+  nominalSppDefault Int
+
+  @@map("profil_sekolah")
+}
+
+enum JenisKelamin {
+  L
+  P
+}
+
+enum StatusSiswa {
+  aktif
+  lulus
+  pindah
+  nonaktif
+}
+
+model Siswa {
+  id            String       @id @default(cuid())
+  akunId        String?      @unique
+  akun          Akun?        @relation(fields: [akunId], references: [id], onDelete: SetNull)
+  kelasId       String?
+  kelas         Kelas?       @relation(fields: [kelasId], references: [id], onDelete: SetNull)
+  nis           String       @unique
+  nisn          String?      @unique
+  namaLengkap   String
+  jenisKelamin  JenisKelamin
+  tanggalLahir  DateTime?
+  namaWali      String?
+  kontakWali    String?
+  fotoUrl       String?
+  status        StatusSiswa  @default(aktif)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  tagihan TagihanSpp[]
+  pembayaran Pembayaran[]
+
+  @@map("siswa")
+}
+
+model Kelas {
+  id         String  @id @default(cuid())
+  namaKelas  String
+  tingkat    Int
+
+  siswa Siswa[]
+
+  @@map("kelas")
+}
+
+model TahunAjaran {
+  id     String  @id @default(cuid())
+  nama   String
+  aktif  Boolean @default(false)
+
+  tagihan TagihanSpp[]
+
+  @@map("tahun_ajaran")
+}
+
+enum StatusTagihan {
+  belum_bayar
+  menunggu_verifikasi
+  lunas
+  terlambat
+}
+
+model TagihanSpp {
+  id            String        @id @default(cuid())
+  siswaId       String
+  siswa         Siswa         @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  tahunAjaranId String
+  tahunAjaran   TahunAjaran   @relation(fields: [tahunAjaranId], references: [id], onDelete: Restrict)
+  bulan         Int
+  tahun         Int
+  nominal       Int
+  jatuhTempo    DateTime
+  status        StatusTagihan @default(belum_bayar)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  pembayaran Pembayaran[]
+
+  @@unique([siswaId, tahunAjaranId, bulan, tahun])
+  @@map("tagihan_spp")
+}
+
+enum StatusPembayaran {
+  pending
+  success
+  failed
+  expired
+}
+
+model Pembayaran {
+  id                    String           @id @default(cuid())
+  tagihanSppId          String
+  tagihan               TagihanSpp       @relation(fields: [tagihanSppId], references: [id], onDelete: Cascade)
+  siswaId               String
+  siswa                 Siswa            @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  orderId               String           @unique
+  jumlah                Int
+  metode                String
+  midtransTransactionId String?
+  status                StatusPembayaran @default(pending)
+  rawResponse            Json?
+  paidAt                DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@map("pembayaran")
+}
+
+enum Environment {
+  sandbox
+  production
+}
+
+model PengaturanPembayaran {
+  id                   String      @id @default(cuid())
+  environment          Environment @default(sandbox)
+  sandboxClientKey     String?
+  sandboxServerKey     String?
+  productionClientKey  String?
+  productionServerKey  String?
+  updatedAt            DateTime    @updatedAt
+
+  @@map("pengaturan_pembayaran")
+}
