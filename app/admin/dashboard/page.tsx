@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from "recharts";
 
 type Transaksi = {
   id: string;
@@ -17,6 +21,8 @@ type DashboardData = {
   pendapatanBulanIni: number;
   tunggakanBulanIni: number;
   transaksiTerbaru: Transaksi[];
+  pieChartData: { name: string; value: number; color: string }[];
+  barChartData: { name: string; total: number }[];
   bulan: number;
   tahun: number;
 };
@@ -113,6 +119,68 @@ export default function DashboardPage() {
               <div className="dash-card__title">Potensi Tunggakan Bulan Ini</div>
               <div className="dash-card__value" style={{ fontSize: "1.6rem", color: "#b91c1c" }}>
                 {data.tunggakanBulanIni.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* GRAFIK ANALITIK */}
+        <div className="row g-4 mb-4">
+          <div className="col-lg-8">
+            <div className="card h-100" style={{ borderRadius: 16, border: "1px solid var(--border-soft)" }}>
+              <div className="card-header bg-white" style={{ borderBottom: "1px solid var(--border-soft)", padding: "1.25rem 1.5rem" }}>
+                <h5 className="mb-0 fw-bold" style={{ fontSize: "1rem" }}>📈 Tren Pemasukan (6 Bulan Terakhir)</h5>
+              </div>
+              <div className="card-body p-4" style={{ minHeight: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.barChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} dy={10} />
+                    <YAxis 
+                      axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} 
+                      tickFormatter={(val) => `Rp${(val / 1000000).toFixed(0)}M`}
+                    />
+                    <RechartsTooltip 
+                      cursor={{ fill: "#f1f5f9" }}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      formatter={(val: number) => [val.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }), "Pemasukan"]}
+                    />
+                    <Bar dataKey="total" fill="#4f46e5" radius={[6, 6, 0, 0]} barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-lg-4">
+            <div className="card h-100" style={{ borderRadius: 16, border: "1px solid var(--border-soft)" }}>
+              <div className="card-header bg-white" style={{ borderBottom: "1px solid var(--border-soft)", padding: "1.25rem 1.5rem" }}>
+                <h5 className="mb-0 fw-bold" style={{ fontSize: "1rem" }}>📊 Status Pembayaran Bulan Ini</h5>
+              </div>
+              <div className="card-body p-4 d-flex flex-column justify-content-center" style={{ minHeight: 300 }}>
+                {data.pieChartData.every(d => d.value === 0) ? (
+                  <div className="text-center text-muted">Belum ada data tagihan bulan ini.</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie 
+                        data={data.pieChartData} 
+                        cx="50%" cy="50%" 
+                        innerRadius={65} outerRadius={90} 
+                        paddingAngle={4} dataKey="value"
+                      >
+                        {data.pieChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip 
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        formatter={(val: number) => [`${val} Siswa`, "Total"]}
+                      />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '13px' }}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
           </div>

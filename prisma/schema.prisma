@@ -224,3 +224,18 @@ model PengaturanPembayaran {
 
   @@map("pengaturan_pembayaran")
 }
+
+// ============================================================
+// PENGUMUMAN
+// ============================================================
+
+model Pengumuman {
+  id        String   @id @default(cuid())
+  judul     String
+  isi       String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pengumuman")
+}
+

@@ -87,7 +87,7 @@ Profil sekolah (nama, logo, alamat, nominal SPP default, dll) disimpan di
 Jangan taruh nama sekolah atau nominal langsung di kode — selalu tarik dari
 tabel ini.
 
----a
+---
 
 ## 4. Skema Database (draft, disempurnakan pas mulai coding)
 

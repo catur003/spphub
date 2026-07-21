@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import {
   IconDashboard, IconUsers, IconLayers, IconCalendar, IconReceipt,
-  IconChart, IconSettings, IconLogout, IconMenu, IconX, IconChevronLeft,
+  IconChart, IconSettings, IconLogout, IconMenu, IconX, IconChevronLeft, IconMegaphone,
 } from "./icons";
 
 type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/tahun-ajaran", label: "Tahun Ajaran", icon: IconCalendar },
   { href: "/admin/tagihan", label: "Tagihan", icon: IconReceipt },
   { href: "/admin/laporan", label: "Laporan", icon: IconChart },
+  { href: "/admin/pengumuman", label: "Pengumuman", icon: IconMegaphone },
 ];
 
 interface AdminShellProps {

@@ -13,6 +13,13 @@ type Tagihan = {
   jatuhTempo: string;
 };
 
+type Pengumuman = {
+  id: string;
+  judul: string;
+  isi: string;
+  createdAt: string;
+};
+
 const BULAN_LABEL = [
   "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
@@ -42,6 +49,7 @@ type MidtransConfig = { clientKey: string; isProd: boolean } | null;
 
 export default function SiswaPortalPage() {
   const [daftar, setDaftar] = useState<Tagihan[]>([]);
+  const [pengumuman, setPengumuman] = useState<Pengumuman[]>([]);
   const [loading, setLoading] = useState(true);
   const [bayarLoading, setBayarLoading] = useState<string | null>(null);
   const [bayarError, setBayarError] = useState<string | null>(null);
@@ -59,12 +67,20 @@ export default function SiswaPortalPage() {
   async function muatData() {
     setLoading(true);
     try {
-      const res = await fetch("/api/tagihan/saya");
-      if (res.ok) {
-        setDaftar(await res.json());
+      const [resTagihan, resPengumuman] = await Promise.all([
+        fetch("/api/tagihan/saya"),
+        fetch("/api/pengumuman?limit=3")
+      ]);
+      
+      if (resPengumuman.ok) {
+        setPengumuman(await resPengumuman.json());
+      }
+
+      if (resTagihan.ok) {
+        setDaftar(await resTagihan.json());
         setPageError("");
       } else {
-        const d = await res.json();
+        const d = await resTagihan.json();
         setPageError(d.error || "Gagal memuat data tagihan.");
       }
     } catch {
@@ -181,6 +197,23 @@ export default function SiswaPortalPage() {
           <h2 className="h3 fw-bold mb-1" style={{ color: "#0f172a" }}>Halo, Siswa! 👋</h2>
           <p className="text-muted mb-4">Berikut adalah ringkasan pembayaran SPP Anda.</p>
 
+          {pengumuman.length > 0 && (
+            <div className="mb-4">
+              {pengumuman.map(p => (
+                <div key={p.id} className="alert alert-info border-0 shadow-sm mb-3" style={{ borderRadius: "12px", background: "linear-gradient(to right, #eff6ff, #dbeafe)" }}>
+                  <div className="d-flex gap-3">
+                    <div style={{ fontSize: "1.5rem" }}>📢</div>
+                    <div>
+                      <div className="fw-bold text-primary mb-1">{p.judul}</div>
+                      <div className="text-dark small mb-1" style={{ whiteSpace: "pre-wrap" }}>{p.isi}</div>
+                      <div className="text-muted" style={{ fontSize: "0.7rem" }}>{new Date(p.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="row g-4">
             <div className="col-md-6">
               <div className="stat-box">
@@ -264,9 +297,14 @@ export default function SiswaPortalPage() {
                   </div>
 
                   {t.status === "lunas" ? (
-                    <button className="btn btn-success btn-sm rounded-pill px-3 fw-semibold" disabled>
-                      ✓ Lunas
-                    </button>
+                    <div className="d-flex align-items-center gap-2">
+                      <button className="btn btn-success btn-sm rounded-pill px-3 fw-semibold" disabled>
+                        ✓ Lunas
+                      </button>
+                      <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">
+                        Kwitansi
+                      </a>
+                    </div>
                   ) : t.status === "menunggu_verifikasi" ? (
                     <button className="btn btn-warning btn-sm rounded-pill px-3 fw-semibold" disabled>
                       ⏳ Diproses
