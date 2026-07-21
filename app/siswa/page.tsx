@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import "./siswa.css";
 
 type Tagihan = {
   id: string;
@@ -155,70 +156,6 @@ export default function SiswaPortalPage() {
 
   return (
     <>
-      <style>{`
-        body { background-color: #f8fafc; }
-
-        .top-navbar {
-          background: linear-gradient(135deg, #4f46e5, #7c3aed);
-          color: white; padding: 1rem 2rem;
-          display: flex; justify-content: space-between; align-items: center;
-          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
-        }
-
-        .portal-header {
-          background: white; border-bottom: 1px solid #e2e8f0;
-          padding: 2rem; margin-bottom: 2rem;
-        }
-
-        .stat-box {
-          background: white; padding: 1.5rem; border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-          display: flex; align-items: center; gap: 1rem;
-        }
-
-        .stat-icon {
-          width: 50px; height: 50px; border-radius: 14px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1.5rem; flex-shrink: 0;
-        }
-
-        .tagihan-card {
-          background: white; border-radius: 16px; border: 1px solid #e2e8f0;
-          padding: 1.5rem; margin-bottom: 1rem;
-          display: flex; justify-content: space-between; align-items: center;
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .tagihan-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
-
-        .status-badge {
-          display: inline-flex; align-items: center; padding: 4px 12px;
-          border-radius: 20px; font-size: 0.75rem; font-weight: 600;
-        }
-
-        .toast-portal {
-          position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
-          display: flex; align-items: center; gap: 10px;
-          padding: 0.85rem 1.2rem; border-radius: 12px;
-          font-size: 0.88rem; font-weight: 500;
-          box-shadow: 0 8px 28px rgba(15,23,42,.2);
-          animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-          max-width: 340px;
-        }
-        .toast-portal--success { background: #fff; border-left: 4px solid #10b981; color: #065f46; }
-        .toast-portal--info    { background: #fff; border-left: 4px solid #3b82f6; color: #1e40af; }
-        .toast-portal--error   { background: #fff; border-left: 4px solid #ef4444; color: #991b1b; }
-        @keyframes toastIn {
-          from { opacity: 0; transform: translateY(12px) scale(0.95); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        @media (max-width: 768px) {
-          .tagihan-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
-          .tagihan-action { width: 100%; text-align: right; }
-        }
-      `}</style>
-
       {toast && (
         <div className={`toast-portal toast-portal--${toast.type}`}>
           {toast.type === "success" ? "✓" : toast.type === "info" ? "ℹ" : "✕"} {toast.msg}
