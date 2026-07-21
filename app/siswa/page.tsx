@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Script from "next/script";
 import "./siswa.css";
 
 type Tagihan = {
@@ -24,29 +25,20 @@ const STATUS_INFO: Record<string, { label: string; bg: string; color: string }> 
   terlambat:            { label: "Terlambat",            bg: "#fee2e2", color: "#991b1b" },
 };
 
-/** Muat snap.js dari Midtrans dan resolve setelah siap */
-function loadSnapScript(src: string, clientKey: string): Promise<void> {
+/** Tunggu window.snap tersedia (max 10 detik) */
+function waitForSnap(): Promise<void> {
   return new Promise((resolve, reject) => {
-    // Cek apakah snap sudah ada
-    if ((window as any).snap) {
-      resolve();
-      return;
-    }
-    // Cek apakah script sudah di-inject sebelumnya (tapi belum selesai load)
-    const existing = document.querySelector(`script[src="${src}"]`);
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Script sudah ada tapi gagal load")));
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = src;
-    script.setAttribute("data-client-key", clientKey);
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Gagal memuat script Midtrans dari: " + src));
-    document.head.appendChild(script);
+    if ((window as any).snap) { resolve(); return; }
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries++;
+      if ((window as any).snap) { clearInterval(iv); resolve(); }
+      else if (tries > 100) { clearInterval(iv); reject(new Error("Snap timeout")); }
+    }, 100);
   });
 }
+
+type MidtransConfig = { clientKey: string; isProd: boolean } | null;
 
 export default function SiswaPortalPage() {
   const [daftar, setDaftar] = useState<Tagihan[]>([]);
@@ -55,6 +47,14 @@ export default function SiswaPortalPage() {
   const [bayarError, setBayarError] = useState<string | null>(null);
   const [pageError, setPageError] = useState("");
   const [toast, setToast] = useState<{ msg: string; type: "success" | "info" | "error" } | null>(null);
+  const [midtrans, setMidtrans] = useState<MidtransConfig>(null);
+
+  // Load midtrans config saat pertama mount
+  useEffect(() => {
+    fetch("/api/settings/midtrans-public")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setMidtrans(data); });
+  }, []);
 
   async function muatData() {
     setLoading(true);
@@ -102,16 +102,11 @@ export default function SiswaPortalPage() {
         return;
       }
 
-      // 2. Muat snap.js secara dinamis
-      const snapUrl = data.isProd
-        ? "https://app.midtrans.com/snap/snap.js"
-        : "https://app.sandbox.midtrans.com/snap/snap.js";
-
+      // 2. Tunggu snap.js siap (sudah dimuat via <Script> component di render)
       try {
-        await loadSnapScript(snapUrl, data.clientKey);
-      } catch (scriptErr: any) {
-        console.error("Gagal load snap.js:", scriptErr);
-        setBayarError("Gagal memuat sistem pembayaran. Pastikan koneksi internet aktif dan coba lagi.");
+        await waitForSnap();
+      } catch {
+        setBayarError("Sistem pembayaran tidak bisa dimuat (timeout). Coba refresh halaman.");
         setBayarLoading(null);
         return;
       }
@@ -156,6 +151,17 @@ export default function SiswaPortalPage() {
 
   return (
     <>
+      {/* Midtrans Snap — dimuat oleh Next.js Script, bukan injeksi manual */}
+      {midtrans && (
+        <Script
+          src={midtrans.isProd
+            ? "https://app.midtrans.com/snap/snap.js"
+            : "https://app.sandbox.midtrans.com/snap/snap.js"}
+          data-client-key={midtrans.clientKey}
+          strategy="afterInteractive"
+        />
+      )}
+
       {toast && (
         <div className={`toast-portal toast-portal--${toast.type}`}>
           {toast.type === "success" ? "✓" : toast.type === "info" ? "ℹ" : "✕"} {toast.msg}
