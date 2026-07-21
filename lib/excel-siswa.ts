@@ -2,6 +2,7 @@ import * as XLSX from "xlsx";
 
 // Urutan kolom template import/export siswa — JANGAN diubah urutannya
 // tanpa update juga baris parseBarisSiswa di bawah.
+// Kolom Email & Password bersifat OPSIONAL — boleh dikosongkan.
 export const KOLOM_SISWA = [
   "Nama Lengkap",
   "NIS",
@@ -12,6 +13,8 @@ export const KOLOM_SISWA = [
   "Nama Wali",
   "Kontak Wali",
   "Status (aktif/lulus/pindah/nonaktif)",
+  "Email (opsional)",
+  "Password (opsional, min 8 karakter)",
 ] as const;
 
 export type BarisSiswaMentah = Record<(typeof KOLOM_SISWA)[number], string | number | Date | undefined>;
@@ -26,6 +29,8 @@ export type SiswaTervalidasi = {
   namaWali: string | null;
   kontakWali: string | null;
   status: "aktif" | "lulus" | "pindah" | "nonaktif";
+  email: string | null;
+  password: string | null;
 };
 
 /** Bikin workbook template kosong (cuma header + 1 baris contoh). */
@@ -40,6 +45,8 @@ export function buatTemplateWorkbook(): XLSX.WorkBook {
     "Nama Wali": "Nama Orang Tua",
     "Kontak Wali": "08123456789",
     "Status (aktif/lulus/pindah/nonaktif)": "aktif",
+    "Email (opsional)": "siswa@sekolah.sch.id",
+    "Password (opsional, min 8 karakter)": "password123",
   };
   const ws = XLSX.utils.json_to_sheet([contoh], { header: [...KOLOM_SISWA] });
   const wb = XLSX.utils.book_new();
@@ -59,6 +66,7 @@ export function buatExportWorkbook(
     namaWali: string | null;
     kontakWali: string | null;
     status: string;
+    akun: { email: string } | null;
   }>
 ): XLSX.WorkBook {
   const rows = daftar.map((s) => ({
@@ -73,6 +81,9 @@ export function buatExportWorkbook(
     "Nama Wali": s.namaWali || "",
     "Kontak Wali": s.kontakWali || "",
     "Status (aktif/lulus/pindah/nonaktif)": s.status,
+    "Email (opsional)": s.akun?.email || "",
+    // Password tidak di-export demi keamanan
+    "Password (opsional, min 8 karakter)": "",
   }));
   const ws = XLSX.utils.json_to_sheet(rows, { header: [...KOLOM_SISWA] });
   const wb = XLSX.utils.book_new();
@@ -92,6 +103,7 @@ const STATUS_VALID = ["aktif", "lulus", "pindah", "nonaktif"];
 /**
  * Validasi & normalisasi 1 baris mentah dari Excel.
  * Return { data } kalau valid, atau { error } kalau ada masalah.
+ * Kolom Email & Password opsional — kalau kosong, diabaikan.
  */
 export function parseBarisSiswa(
   baris: BarisSiswaMentah
@@ -107,6 +119,8 @@ export function parseBarisSiswa(
   const statusRaw = String(baris["Status (aktif/lulus/pindah/nonaktif)"] || "aktif")
     .trim()
     .toLowerCase();
+  const email = String(baris["Email (opsional)"] || "").trim().toLowerCase();
+  const password = String(baris["Password (opsional, min 8 karakter)"] || "").trim();
 
   if (!nama) return { error: "Nama Lengkap wajib diisi" };
   if (!nis) return { error: "NIS wajib diisi" };
@@ -115,6 +129,20 @@ export function parseBarisSiswa(
   }
   if (statusRaw && !STATUS_VALID.includes(statusRaw)) {
     return { error: `Status "${statusRaw}" tidak valid (harus aktif/lulus/pindah/nonaktif)` };
+  }
+
+  // Validasi email & password: keduanya harus diisi jika salah satu ada
+  if (email && !password) {
+    return { error: "Jika Email diisi, Password juga wajib diisi (min 8 karakter)" };
+  }
+  if (password && !email) {
+    return { error: "Jika Password diisi, Email juga wajib diisi" };
+  }
+  if (password && password.length < 8) {
+    return { error: "Password minimal 8 karakter" };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: `Format email "${email}" tidak valid` };
   }
 
   let tanggalLahir: Date | null = null;
@@ -137,6 +165,8 @@ export function parseBarisSiswa(
       namaWali: namaWali || null,
       kontakWali: kontakWali || null,
       status: (statusRaw || "aktif") as SiswaTervalidasi["status"],
+      email: email || null,
+      password: password || null,
     },
   };
 }

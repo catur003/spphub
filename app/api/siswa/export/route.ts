@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       ...(kelasId ? { kelasId } : {}),
       ...(status ? { status: status as never } : {}),
     },
-    include: { kelas: true },
+    include: { kelas: true, akun: { select: { email: true } } },
     orderBy: { namaLengkap: "asc" },
   });
 

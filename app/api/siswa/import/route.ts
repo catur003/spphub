@@ -70,6 +70,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ——————————————————————————————————————————
+    // Buat akun (opsional) jika email & password diisi di Excel
+    // ——————————————————————————————————————————
+    let akunId: string | null = null;
+    let pesanAkun = "";
+
+    if (data.email && data.password) {
+      try {
+        const akunSudahAda = await prisma.akun.findUnique({ where: { email: data.email } });
+        if (akunSudahAda) {
+          pesanAkun = ` (akun dilewati: email ${data.email} sudah dipakai)`;
+        } else {
+          const hasil = await auth.api.signUpEmail({
+            body: {
+              email: data.email,
+              password: data.password,
+              name: data.namaLengkap,
+            },
+          });
+          akunId = hasil.user.id;
+        }
+      } catch {
+        pesanAkun = ` (akun gagal dibuat: periksa email/password)`;
+      }
+    }
+
     try {
       await prisma.siswa.create({
         data: {
@@ -82,10 +108,15 @@ export async function POST(req: NextRequest) {
           namaWali: data.namaWali,
           kontakWali: data.kontakWali,
           status: data.status,
+          ...(akunId ? { akunId } : {}),
         },
       });
       nisDiFileIni.add(data.nis);
-      hasil.push({ baris: nomorBaris, status: "berhasil", nama: data.namaLengkap });
+      hasil.push({
+        baris: nomorBaris,
+        status: "berhasil",
+        nama: data.namaLengkap + pesanAkun,
+      });
     } catch (e) {
       hasil.push({ baris: nomorBaris, status: "gagal", alasan: "Gagal simpan ke database: " + (e as Error).message, nama: data.namaLengkap });
     }
