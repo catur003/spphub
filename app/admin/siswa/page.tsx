@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 type Kelas = { id: string; namaKelas: string };
 type Siswa = {
@@ -45,10 +46,12 @@ export default function SiswaPage() {
   const [daftar, setDaftar] = useState<Siswa[]>([]);
   const [kelasList, setKelasList] = useState<Kelas[]>([]);
   const [q, setQ] = useState("");
+  const [filterKelasId, setFilterKelasId] = useState("");
   const [form, setForm] = useState(FORM_KOSONG);
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { confirm, alertMsg, modal } = useConfirmModal();
 
   const [fileImport, setFileImport] = useState<File | null>(null);
   const [importLoading, setImportLoading] = useState(false);
@@ -56,7 +59,11 @@ export default function SiswaPage() {
   const [importError, setImportError] = useState("");
 
   async function muatData() {
-    const res = await fetch(`/api/siswa${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (filterKelasId) params.set("kelasId", filterKelasId);
+    const qs = params.toString();
+    const res = await fetch(`/api/siswa${qs ? `?${qs}` : ""}`);
     if (res.ok) setDaftar(await res.json());
   }
 
@@ -73,7 +80,7 @@ export default function SiswaPage() {
     const timeout = setTimeout(muatData, 300);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }, [q, filterKelasId]);
 
   function resetForm() {
     setForm(FORM_KOSONG);
@@ -118,11 +125,15 @@ export default function SiswaPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus siswa ini? (kalau punya riwayat tagihan, ubah status nonaktif aja)")) return;
+    const yakin = await confirm(
+      "Hapus siswa ini? (kalau punya riwayat tagihan, ubah status nonaktif aja)"
+    );
+    if (!yakin) return;
+
     const res = await fetch(`/api/siswa/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
-      alert(data.error || "Gagal menghapus");
+      await alertMsg(data.error || "Gagal menghapus");
       return;
     }
     muatData();
@@ -341,12 +352,27 @@ export default function SiswaPage() {
         </div>
 
         <div className="col-md-8">
-          <input
-            className="form-control mb-3"
-            placeholder="Cari nama / NIS / NISN..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          <div className="d-flex gap-2 mb-3">
+            <input
+              className="form-control"
+              placeholder="Cari nama / NIS / NISN..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <select
+              className="form-select"
+              style={{ maxWidth: 220 }}
+              value={filterKelasId}
+              onChange={(e) => setFilterKelasId(e.target.value)}
+            >
+              <option value="">Semua Kelas</option>
+              {kelasList.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.namaKelas}
+                </option>
+              ))}
+            </select>
+          </div>
           <table className="table table-bordered bg-white">
             <thead>
               <tr>
@@ -387,6 +413,7 @@ export default function SiswaPage() {
           </table>
         </div>
       </div>
+      {modal}
     </div>
   );
 }

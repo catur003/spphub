@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 type Kelas = {
   id: string;
@@ -16,6 +17,7 @@ export default function KelasPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { confirm, alertMsg, modal } = useConfirmModal();
 
   async function muatData() {
     const res = await fetch("/api/kelas");
@@ -63,11 +65,11 @@ export default function KelasPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus kelas ini?")) return;
+    if (!(await confirm("Hapus kelas ini?"))) return;
     const res = await fetch(`/api/kelas/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
-      alert(data.error || "Gagal menghapus");
+      await alertMsg(data.error || "Gagal menghapus");
       return;
     }
     muatData();
@@ -155,6 +157,7 @@ export default function KelasPage() {
           </table>
         </div>
       </div>
+      {modal}
     </div>
   );
 }

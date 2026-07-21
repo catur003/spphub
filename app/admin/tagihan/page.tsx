@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 type TahunAjaran = { id: string; nama: string; aktif: boolean };
 type Tagihan = {
@@ -47,6 +48,7 @@ export default function TagihanPage() {
   const [genError, setGenError] = useState("");
   const [genResult, setGenResult] = useState<{ dibuat: number; dilewati: number } | null>(null);
   const [genLoading, setGenLoading] = useState(false);
+  const { confirm, alertMsg, modal } = useConfirmModal();
 
   async function muatTahunAjaran() {
     const res = await fetch("/api/tahun-ajaran");
@@ -99,7 +101,7 @@ export default function TagihanPage() {
   }
 
   async function handleVerifikasi(id: string) {
-    if (!confirm("Tandai tagihan ini LUNAS (verifikasi manual)?")) return;
+    if (!(await confirm("Tandai tagihan ini LUNAS (verifikasi manual)?"))) return;
     const res = await fetch(`/api/tagihan/${id}/verifikasi`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -107,7 +109,7 @@ export default function TagihanPage() {
     });
     if (!res.ok) {
       const data = await res.json();
-      alert(data.error || "Gagal verifikasi");
+      await alertMsg(data.error || "Gagal verifikasi");
       return;
     }
     muatTagihan();
@@ -256,6 +258,7 @@ export default function TagihanPage() {
           )}
         </tbody>
       </table>
+      {modal}
     </div>
   );
 }

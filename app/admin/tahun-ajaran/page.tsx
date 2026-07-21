@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 type TahunAjaran = {
   id: string;
@@ -15,6 +16,7 @@ export default function TahunAjaranPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { confirm, alertMsg, modal } = useConfirmModal();
 
   async function muatData() {
     const res = await fetch("/api/tahun-ajaran");
@@ -62,11 +64,11 @@ export default function TahunAjaranPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus tahun ajaran ini?")) return;
+    if (!(await confirm("Hapus tahun ajaran ini?"))) return;
     const res = await fetch(`/api/tahun-ajaran/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
-      alert(data.error || "Gagal menghapus");
+      await alertMsg(data.error || "Gagal menghapus");
       return;
     }
     muatData();
@@ -160,6 +162,7 @@ export default function TahunAjaranPage() {
           </table>
         </div>
       </div>
+      {modal}
     </div>
   );
 }
