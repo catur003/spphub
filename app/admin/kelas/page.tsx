@@ -124,6 +124,7 @@ export default function KelasPage() {
     }
   }
 
+
   return (
     <>
       <style>{`

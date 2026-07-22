@@ -90,7 +90,7 @@ export default function TagihanPage() {
     if (filterBulan)   params.set("bulan", filterBulan);
     if (filterTahun)   params.set("tahun", filterTahun);
     if (filterKelasId) params.set("kelasId", filterKelasId);
-    
+
     try {
       const res = await fetch(`/api/tagihan?${params.toString()}`);
       if (!res.ok) {
@@ -108,7 +108,6 @@ export default function TagihanPage() {
       setLoadingData(false);
     }
   }, [filterStatus, filterBulan, filterTahun, filterKelasId]);
-
 
   useEffect(() => {
     muatTahunAjaran();
@@ -370,7 +369,7 @@ export default function TagihanPage() {
           </span>
         </div>
 
-        {/* Tabel Tagihan Spasial Rapi */}
+        {/* Tabel Tagihan */}
         <div className="card p-0 border-0 shadow-sm overflow-hidden" style={{ borderRadius: 16 }}>
           <div className="table-responsive">
             <table className="tagihan-table-clean mb-0">
@@ -488,7 +487,6 @@ export default function TagihanPage() {
                   })
                 )}
               </tbody>
-
             </table>
           </div>
         </div>
