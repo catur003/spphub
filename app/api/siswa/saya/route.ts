@@ -11,7 +11,12 @@ export async function GET() {
 
   const siswa = await prisma.siswa.findUnique({
     where: { akunId: session.user.id },
-    include: { kelas: true },
+    include: {
+      kelas: true,
+      akun: {
+        select: { email: true, name: true }
+      }
+    },
   });
 
   if (!siswa) {

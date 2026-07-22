@@ -425,16 +425,37 @@ export default function TagihanPage() {
                         </span>
                       </td>
                       <td>
-                        {t.status !== "lunas" && (
-                          <button
-                            className="btn btn-sm btn-outline-success"
-                            style={{ borderRadius: 8, fontSize: "0.78rem" }}
-                            disabled={verifyingId === t.id}
-                            onClick={() => handleVerifikasi(t.id)}>
-                            {verifyingId === t.id
-                              ? <span className="spinner-border spinner-border-sm" />
-                              : "✓ Verifikasi Lunas"}
-                          </button>
+                        {t.status === "lunas" ? (
+                          <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary" style={{ borderRadius: 8, fontSize: "0.78rem" }}>
+                            Cetak Kwitansi
+                          </a>
+                        ) : (
+                          <div className="d-flex flex-column gap-1">
+                            <button
+                              className="btn btn-sm btn-outline-success"
+                              style={{ borderRadius: 8, fontSize: "0.78rem" }}
+                              disabled={verifyingId === t.id}
+                              onClick={() => handleVerifikasi(t.id)}>
+                              {verifyingId === t.id
+                                ? <span className="spinner-border spinner-border-sm" />
+                                : "✓ Tandai Lunas"}
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-secondary"
+                              style={{ borderRadius: 8, fontSize: "0.75rem" }}
+                              onClick={async () => {
+                                const res = await fetch(`/api/tagihan/${t.id}/cek-status`);
+                                const data = await res.json();
+                                if (data.status === "lunas") {
+                                  alert("Status terverifikasi LUNAS via Midtrans!");
+                                  window.location.reload();
+                                } else {
+                                  alert(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
+                                }
+                              }}>
+                              🔄 Cek Midtrans
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

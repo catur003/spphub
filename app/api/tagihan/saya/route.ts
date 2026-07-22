@@ -17,6 +17,13 @@ export async function GET() {
   const tagihan = await prisma.tagihanSpp.findMany({
     where: { siswaId: siswa.id },
     orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
+    include: {
+      tahunAjaran: true,
+      pembayaran: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+    },
   });
 
   return NextResponse.json(tagihan);

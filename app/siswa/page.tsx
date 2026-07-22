@@ -2,7 +2,23 @@
 
 import { useEffect, useState } from "react";
 import Script from "next/script";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 import "./siswa.css";
+
+type SiswaProfile = {
+  id: string;
+  nis: string;
+  nisn: string | null;
+  namaLengkap: string;
+  jenisKelamin: "L" | "P";
+  namaWali: string | null;
+  kontakWali: string | null;
+  fotoUrl: string | null;
+  status: string;
+  kelas: { namaKelas: string } | null;
+  akun: { email: string; name: string } | null;
+};
 
 type Tagihan = {
   id: string;
@@ -11,6 +27,8 @@ type Tagihan = {
   nominal: number;
   status: string;
   jatuhTempo: string;
+  tahunAjaran?: { nama: string };
+  pembayaran?: { id: string; paidAt: string | null; metode: string; orderId: string }[];
 };
 
 type Pengumuman = {
@@ -32,7 +50,6 @@ const STATUS_INFO: Record<string, { label: string; bg: string; color: string }> 
   terlambat:            { label: "Terlambat",            bg: "#fee2e2", color: "#991b1b" },
 };
 
-/** Tunggu window.snap tersedia (max 10 detik) */
 function waitForSnap(): Promise<void> {
   return new Promise((resolve, reject) => {
     if ((window as any).snap) { resolve(); return; }
@@ -48,16 +65,20 @@ function waitForSnap(): Promise<void> {
 type MidtransConfig = { clientKey: string; isProd: boolean } | null;
 
 export default function SiswaPortalPage() {
+  const router = useRouter();
+  const [siswa, setSiswa] = useState<SiswaProfile | null>(null);
   const [daftar, setDaftar] = useState<Tagihan[]>([]);
   const [pengumuman, setPengumuman] = useState<Pengumuman[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"tagihan" | "riwayat" | "profil">("tagihan");
+  
   const [bayarLoading, setBayarLoading] = useState<string | null>(null);
+  const [cekStatusLoading, setCekStatusLoading] = useState<string | null>(null);
   const [bayarError, setBayarError] = useState<string | null>(null);
   const [pageError, setPageError] = useState("");
   const [toast, setToast] = useState<{ msg: string; type: "success" | "info" | "error" } | null>(null);
   const [midtrans, setMidtrans] = useState<MidtransConfig>(null);
 
-  // Load midtrans config saat pertama mount
   useEffect(() => {
     fetch("/api/settings/midtrans-public")
       .then(r => r.ok ? r.json() : null)
@@ -67,14 +88,14 @@ export default function SiswaPortalPage() {
   async function muatData() {
     setLoading(true);
     try {
-      const [resTagihan, resPengumuman] = await Promise.all([
+      const [resSiswa, resTagihan, resPengumuman] = await Promise.all([
+        fetch("/api/siswa/saya"),
         fetch("/api/tagihan/saya"),
         fetch("/api/pengumuman?limit=3")
       ]);
       
-      if (resPengumuman.ok) {
-        setPengumuman(await resPengumuman.json());
-      }
+      if (resSiswa.ok) setSiswa(await resSiswa.json());
+      if (resPengumuman.ok) setPengumuman(await resPengumuman.json());
 
       if (resTagihan.ok) {
         setDaftar(await resTagihan.json());
@@ -96,12 +117,41 @@ export default function SiswaPortalPage() {
     setTimeout(() => setToast(null), 4000);
   }
 
+  async function handleLogout() {
+    await authClient.signOut();
+    router.push("/login");
+  }
+
+  async function handleCekStatus(id: string) {
+    setCekStatusLoading(id);
+    try {
+      const res = await fetch(`/api/tagihan/${id}/cek-status`);
+      const data = await res.json();
+      
+      if (!res.ok) {
+        tampilToast(data.error || "Gagal mengecek status pembayaran.", "error");
+      } else if (data.status === "lunas") {
+        tampilToast("Pembayaran dikonfirmasi LUNAS! Terima kasih.", "success");
+        muatData();
+      } else if (data.updated) {
+        tampilToast(`Status diperbarui: ${data.status}`, "info");
+        muatData();
+      } else {
+        tampilToast("Pembayaran belum terdeteksi. Silakan coba beberapa saat lagi.", "info");
+      }
+    } catch (err) {
+      console.error(err);
+      tampilToast("Kesalahan jaringan saat mengecek status.", "error");
+    } finally {
+      setCekStatusLoading(null);
+    }
+  }
+
   async function handleBayar(id: string) {
     setBayarLoading(id);
     setBayarError(null);
 
     try {
-      // 1. Minta token dari backend
       const res = await fetch(`/api/tagihan/${id}/bayar`, { method: "POST" });
       const data = await res.json();
 
@@ -111,38 +161,34 @@ export default function SiswaPortalPage() {
         return;
       }
 
-      if (!data.token || !data.clientKey) {
+      if (!data.token) {
         setBayarError("Token Midtrans tidak valid. Hubungi admin.");
-        console.error("Respons API tidak lengkap:", data);
         setBayarLoading(null);
         return;
       }
 
-      // 2. Tunggu snap.js siap (sudah dimuat via <Script> component di render)
       try {
         await waitForSnap();
       } catch {
-        setBayarError("Sistem pembayaran tidak bisa dimuat (timeout). Coba refresh halaman.");
+        setBayarError("Sistem pembayaran timeout. Coba refresh halaman.");
         setBayarLoading(null);
         return;
       }
 
-      // 3. Validasi window.snap tersedia
       if (!(window as any).snap) {
-        setBayarError("Sistem pembayaran tidak bisa dimuat. Coba refresh halaman.");
+        setBayarError("Sistem pembayaran tidak bisa dimuat. Refresh halaman.");
         setBayarLoading(null);
         return;
       }
 
-      // 4. Panggil popup Snap
       (window as any).snap.pay(data.token, {
         onSuccess: () => {
-          tampilToast("Pembayaran berhasil! Status akan diperbarui.", "success");
+          tampilToast("Pembayaran berhasil diselesaikan! Menyinkronkan status...", "success");
           setBayarLoading(null);
-          muatData();
+          handleCekStatus(id);
         },
         onPending: () => {
-          tampilToast("Menunggu pembayaran diselesaikan.", "info");
+          tampilToast("Menunggu pembayaran. Selesaikan transaksi lalu klik 'Cek Status'.", "info");
           setBayarLoading(null);
           muatData();
         },
@@ -157,17 +203,28 @@ export default function SiswaPortalPage() {
       });
     } catch (err: any) {
       console.error("handleBayar error:", err);
-      setBayarError("Terjadi kesalahan tak terduga: " + (err?.message || "unknown"));
+      setBayarError("Terjadi kesalahan: " + (err?.message || "unknown"));
       setBayarLoading(null);
     }
   }
 
-  const tagihanBelumLunas = daftar.filter(t => t.status === "belum_bayar" || t.status === "terlambat");
+  const tagihanBelumLunas = daftar.filter(t => t.status === "belum_bayar" || t.status === "terlambat" || t.status === "menunggu_verifikasi");
+  const tagihanLunas = daftar.filter(t => t.status === "lunas");
+  
   const nominalTunggakan = tagihanBelumLunas.reduce((acc, curr) => acc + curr.nominal, 0);
+  const nominalLunas = tagihanLunas.reduce((acc, curr) => acc + curr.nominal, 0);
+
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const tagihanBulanIni = daftar.find(t => t.bulan === currentMonth && t.tahun === currentYear);
+
+  const initials = siswa?.namaLengkap
+    ? siswa.namaLengkap.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
+    : "S";
 
   return (
     <>
-      {/* Midtrans Snap — dimuat oleh Next.js Script, bukan injeksi manual */}
       {midtrans && (
         <Script
           src={midtrans.isProd
@@ -184,148 +241,313 @@ export default function SiswaPortalPage() {
         </div>
       )}
 
+      {/* Top Navbar */}
       <div className="top-navbar">
-        <h1 className="h5 mb-0 fw-bold">🎓 Portal Siswa</h1>
-        <button className="btn btn-sm btn-light rounded-pill px-3 fw-semibold"
-          onClick={() => window.location.href = "/"}>
-          Kembali
-        </button>
+        <div className="d-flex align-items-center gap-2">
+          <span style={{ fontSize: "1.3rem" }}>🎓</span>
+          <h1 className="h5 mb-0 fw-bold">SPP Sekolah Digital</h1>
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          <button className="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold" onClick={handleLogout}>
+            Keluar 🚪
+          </button>
+        </div>
       </div>
 
-      <div className="portal-header">
-        <div className="container" style={{ maxWidth: 900 }}>
-          <h2 className="h3 fw-bold mb-1" style={{ color: "#0f172a" }}>Halo, Siswa! 👋</h2>
-          <p className="text-muted mb-4">Berikut adalah ringkasan pembayaran SPP Anda.</p>
-
-          {pengumuman.length > 0 && (
-            <div className="mb-4">
-              {pengumuman.map(p => (
-                <div key={p.id} className="alert alert-info border-0 shadow-sm mb-3" style={{ borderRadius: "12px", background: "linear-gradient(to right, #eff6ff, #dbeafe)" }}>
-                  <div className="d-flex gap-3">
-                    <div style={{ fontSize: "1.5rem" }}>📢</div>
-                    <div>
-                      <div className="fw-bold text-primary mb-1">{p.judul}</div>
-                      <div className="text-dark small mb-1" style={{ whiteSpace: "pre-wrap" }}>{p.isi}</div>
-                      <div className="text-muted" style={{ fontSize: "0.7rem" }}>{new Date(p.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {/* Student Hero Header */}
+      <div className="student-hero">
+        <div className="container" style={{ maxWidth: 960 }}>
+          <div className="d-flex align-items-center gap-4 flex-wrap">
+            <div className="avatar-box">
+              {siswa?.fotoUrl ? (
+                <img src={siswa.fotoUrl} alt="Foto" style={{ width: "100%", height: "100%", borderRadius: "20px", objectFit: "cover" }} />
+              ) : initials}
             </div>
-          )}
-
-          <div className="row g-4">
-            <div className="col-md-6">
-              <div className="stat-box">
-                <div className="stat-icon" style={{ background: "#fee2e2", color: "#dc2626" }}>💳</div>
-                <div>
-                  <div className="text-muted small fw-semibold">Total Tunggakan</div>
-                  <div className="h3 mb-0 fw-bold" style={{ color: "#0f172a" }}>
-                    {nominalTunggakan.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
-                  </div>
-                </div>
+            <div>
+              <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <h2 className="h4 fw-bold mb-0" style={{ color: "#0f172a" }}>
+                  {siswa?.namaLengkap || "Siswa"}
+                </h2>
+                <span className="badge bg-primary rounded-pill px-3">{siswa?.kelas?.namaKelas || "Kelas -"}</span>
+                <span className="badge bg-success rounded-pill px-3">Status: Aktif</span>
               </div>
-            </div>
-            <div className="col-md-6">
-              <div className="stat-box">
-                <div className="stat-icon" style={{ background: "#eef2ff", color: "#4f46e5" }}>📋</div>
-                <div>
-                  <div className="text-muted small fw-semibold">Tagihan Belum Dibayar</div>
-                  <div className="h3 mb-0 fw-bold" style={{ color: "#0f172a" }}>
-                    {tagihanBelumLunas.length} <span className="h6 text-muted">Bulan</span>
-                  </div>
-                </div>
-              </div>
+              <p className="text-muted mb-0 small">
+                NIS: <strong>{siswa?.nis || "-"}</strong> {siswa?.nisn ? `| NISN: ${siswa.nisn}` : ""}
+              </p>
+              {siswa?.namaWali && (
+                <p className="text-muted mb-0 style-italic" style={{ fontSize: "0.82rem" }}>
+                  Wali: {siswa.namaWali} {siswa.kontakWali ? `(${siswa.kontakWali})` : ""}
+                </p>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container pb-5" style={{ maxWidth: 900 }}>
-        <h3 className="h5 fw-bold mb-3" style={{ color: "#0f172a" }}>Riwayat & Tagihan Saya</h3>
+      {/* Container Dashboard Content */}
+      <div className="container pb-5" style={{ maxWidth: 960 }}>
+        
+        {/* Ringkasan Stats Cards */}
+        <div className="row g-3 mb-4">
+          <div className="col-md-4">
+            <div className="stat-card-custom">
+              <div className="stat-icon-bg" style={{ background: "#fee2e2", color: "#dc2626" }}>💳</div>
+              <div>
+                <div className="text-muted small fw-semibold">Total Tunggakan</div>
+                <div className="h5 mb-0 fw-bold" style={{ color: "#dc2626" }}>
+                  {nominalTunggakan.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+                </div>
+                <div className="text-muted" style={{ fontSize: "0.75rem" }}>{tagihanBelumLunas.length} bulan belum lunas</div>
+              </div>
+            </div>
+          </div>
 
-        {/* Error bayar — visible banner */}
+          <div className="col-md-4">
+            <div className="stat-card-custom">
+              <div className="stat-icon-bg" style={{ background: "#dcfce7", color: "#16a34a" }}>✅</div>
+              <div>
+                <div className="text-muted small fw-semibold">SPP Terbayar</div>
+                <div className="h5 mb-0 fw-bold" style={{ color: "#16a34a" }}>
+                  {nominalLunas.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+                </div>
+                <div className="text-muted" style={{ fontSize: "0.75rem" }}>{tagihanLunas.length} bulan lunas</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-md-4">
+            <div className="stat-card-custom">
+              <div className="stat-icon-bg" style={{ background: "#e0e7ff", color: "#4338ca" }}>📅</div>
+              <div>
+                <div className="text-muted small fw-semibold">Status SPP Bulan Ini</div>
+                <div className="h6 mb-0 fw-bold mt-1">
+                  {tagihanBulanIni ? (
+                    <span className="status-badge" style={{
+                      background: STATUS_INFO[tagihanBulanIni.status]?.bg,
+                      color: STATUS_INFO[tagihanBulanIni.status]?.color
+                    }}>
+                      {STATUS_INFO[tagihanBulanIni.status]?.label}
+                    </span>
+                  ) : (
+                    <span className="text-muted small">Belum terbit</span>
+                  )}
+                </div>
+                <div className="text-muted" style={{ fontSize: "0.75rem" }}>{BULAN_LABEL[currentMonth]} {currentYear}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pengumuman Alerts */}
+        {pengumuman.length > 0 && (
+          <div className="mb-4">
+            {pengumuman.map(p => (
+              <div key={p.id} className="alert alert-info border-0 shadow-sm mb-3" style={{ borderRadius: "14px", background: "linear-gradient(to right, #eff6ff, #dbeafe)" }}>
+                <div className="d-flex gap-3">
+                  <div style={{ fontSize: "1.6rem" }}>📢</div>
+                  <div>
+                    <div className="fw-bold text-primary mb-1">{p.judul}</div>
+                    <div className="text-dark small mb-1" style={{ whiteSpace: "pre-wrap" }}>{p.isi}</div>
+                    <div className="text-muted" style={{ fontSize: "0.7rem" }}>
+                      Diterbitkan: {new Date(p.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Banner Error Pembayaran */}
         {bayarError && (
-          <div className="alert d-flex align-items-start gap-2 mb-3"
-            style={{ background: "#fff1f2", border: "1.5px solid #fecaca", borderRadius: 12, color: "#991b1b" }}>
-            <span style={{ fontSize: "1.1rem" }}>⚠️</span>
+          <div className="alert d-flex align-items-start gap-2 mb-4"
+            style={{ background: "#fff1f2", border: "1.5px solid #fecaca", borderRadius: 14, color: "#991b1b" }}>
+            <span style={{ fontSize: "1.2rem" }}>⚠️</span>
             <div>
               <strong>Pembayaran Gagal:</strong> {bayarError}
             </div>
-            <button className="btn-close btn-close-sm ms-auto"
-              style={{ fontSize: "0.7rem" }}
-              onClick={() => setBayarError(null)} />
+            <button className="btn-close btn-close-sm ms-auto" onClick={() => setBayarError(null)} />
           </div>
         )}
 
-        {loading ? (
-          <div className="text-center py-5 text-muted">
-            <div className="spinner-border text-primary mb-3" />
-            <p>Memuat data tagihan...</p>
-          </div>
-        ) : pageError ? (
-          <div className="alert alert-danger">{pageError}</div>
-        ) : daftar.length === 0 ? (
-          <div className="text-center py-5 text-muted bg-white rounded-4 border">
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🎉</div>
-            <h5>Tidak ada tagihan!</h5>
-            <p>Tidak ada tagihan SPP untuk Anda saat ini.</p>
-          </div>
-        ) : (
-          daftar.map((t) => {
-            const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
-            const isBayarLoading = bayarLoading === t.id;
-            return (
-              <div className="tagihan-card" key={t.id}>
-                <div>
-                  <div className="d-flex align-items-center gap-2 mb-1">
-                    <h4 className="h6 fw-bold mb-0" style={{ color: "#0f172a" }}>
-                      SPP Bulan {BULAN_LABEL[t.bulan]} {t.tahun}
-                    </h4>
-                    <span className="status-badge" style={{ background: info.bg, color: info.color }}>
-                      {info.label}
-                    </span>
-                  </div>
-                  <div className="text-muted small">
-                    Jatuh tempo: {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                  </div>
-                </div>
+        {/* Tab Headers */}
+        <div className="nav-tabs-custom">
+          <button 
+            className={`nav-tab-item ${activeTab === "tagihan" ? "active" : ""}`}
+            onClick={() => setActiveTab("tagihan")}
+          >
+            💳 Tagihan SPP ({tagihanBelumLunas.length})
+          </button>
+          <button 
+            className={`nav-tab-item ${activeTab === "riwayat" ? "active" : ""}`}
+            onClick={() => setActiveTab("riwayat")}
+          >
+            📑 Riwayat Lunas ({tagihanLunas.length})
+          </button>
+          <button 
+            className={`nav-tab-item ${activeTab === "profil" ? "active" : ""}`}
+            onClick={() => setActiveTab("profil")}
+          >
+            👤 Data Diri Siswa
+          </button>
+        </div>
 
-                <div className="tagihan-action d-flex align-items-center gap-3">
-                  <div className="fw-bold fs-5" style={{ color: "#0f172a" }}>
-                    Rp {t.nominal.toLocaleString("id-ID")}
-                  </div>
-
-                  {t.status === "lunas" ? (
-                    <div className="d-flex align-items-center gap-2">
-                      <button className="btn btn-success btn-sm rounded-pill px-3 fw-semibold" disabled>
-                        ✓ Lunas
-                      </button>
-                      <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">
-                        Kwitansi
-                      </a>
-                    </div>
-                  ) : t.status === "menunggu_verifikasi" ? (
-                    <button className="btn btn-warning btn-sm rounded-pill px-3 fw-semibold" disabled>
-                      ⏳ Diproses
-                    </button>
-                  ) : (
-                    <button
-                      className="btn btn-primary px-4 rounded-pill fw-semibold shadow-sm"
-                      onClick={() => handleBayar(t.id)}
-                      disabled={!!bayarLoading}
-                      style={{ minWidth: 140 }}
-                    >
-                      {isBayarLoading ? (
-                        <><span className="spinner-border spinner-border-sm me-1" /> Memuat...</>
-                      ) : "Bayar Sekarang"}
-                    </button>
-                  )}
-                </div>
+        {/* TAB 1: TAGIHAN AKTIF */}
+        {activeTab === "tagihan" && (
+          <div>
+            {loading ? (
+              <div className="text-center py-5 text-muted"><div className="spinner-border text-primary mb-2" /><p>Memuat tagihan...</p></div>
+            ) : pageError ? (
+              <div className="alert alert-danger">{pageError}</div>
+            ) : tagihanBelumLunas.length === 0 ? (
+              <div className="text-center py-5 bg-white rounded-4 border p-4">
+                <div style={{ fontSize: "3.5rem", marginBottom: "0.5rem" }}>🎉</div>
+                <h4 className="h5 fw-bold" style={{ color: "#0f172a" }}>Semua Tagihan Lunas!</h4>
+                <p className="text-muted small">Tidak ada tunggakan SPP yang perlu dibayar saat ini.</p>
               </div>
-            );
-          })
+            ) : (
+              tagihanBelumLunas.map((t) => {
+                const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
+                const isBayarLoading = bayarLoading === t.id;
+                const isCekLoading = cekStatusLoading === t.id;
+
+                return (
+                  <div className="tagihan-card-modern" key={t.id}>
+                    <div>
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <h4 className="h6 fw-bold mb-0" style={{ color: "#0f172a" }}>
+                          SPP Bulan {BULAN_LABEL[t.bulan]} {t.tahun}
+                        </h4>
+                        <span className="status-badge" style={{ background: info.bg, color: info.color }}>
+                          {info.label}
+                        </span>
+                      </div>
+                      <div className="text-muted small">
+                        Jatuh tempo: {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-3 tagihan-action-group">
+                      <div className="fw-bold fs-5" style={{ color: "#0f172a" }}>
+                        Rp {t.nominal.toLocaleString("id-ID")}
+                      </div>
+
+                      <div className="d-flex gap-2">
+                        <button
+                          className="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold"
+                          onClick={() => handleCekStatus(t.id)}
+                          disabled={isCekLoading || isBayarLoading}
+                          title="Sinkronkan status dengan server Midtrans"
+                        >
+                          {isCekLoading ? <span className="spinner-border spinner-border-sm" /> : "🔄 Cek Status"}
+                        </button>
+
+                        <button
+                          className="btn btn-primary btn-sm px-4 rounded-pill fw-semibold shadow-sm"
+                          onClick={() => handleBayar(t.id)}
+                          disabled={isBayarLoading || isCekLoading}
+                        >
+                          {isBayarLoading ? (
+                            <><span className="spinner-border spinner-border-sm me-1" /> Memuat...</>
+                          ) : "Bayar Sekarang"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         )}
+
+        {/* TAB 2: RIWAYAT LUNAS */}
+        {activeTab === "riwayat" && (
+          <div>
+            {loading ? (
+              <div className="text-center py-5 text-muted"><div className="spinner-border text-primary mb-2" /><p>Memuat riwayat...</p></div>
+            ) : tagihanLunas.length === 0 ? (
+              <div className="text-center py-5 bg-white rounded-4 border p-4">
+                <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>📜</div>
+                <h5 className="fw-bold">Belum Ada Riwayat</h5>
+                <p className="text-muted small">Belum ada transaksi pembayaran SPP yang berstatus lunas.</p>
+              </div>
+            ) : (
+              tagihanLunas.map((t) => (
+                <div className="tagihan-card-modern" key={t.id}>
+                  <div>
+                    <div className="d-flex align-items-center gap-2 mb-1">
+                      <h4 className="h6 fw-bold mb-0" style={{ color: "#0f172a" }}>
+                        SPP Bulan {BULAN_LABEL[t.bulan]} {t.tahun}
+                      </h4>
+                      <span className="status-badge" style={{ background: "#dcfce7", color: "#15803d" }}>
+                        ✓ LUNAS
+                      </span>
+                    </div>
+                    <div className="text-muted small">
+                      Nominal: <strong>Rp {t.nominal.toLocaleString("id-ID")}</strong>
+                    </div>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-2">
+                    <a
+                      href={`/kwitansi/${t.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-outline-primary btn-sm rounded-pill px-4 fw-semibold shadow-sm d-flex align-items-center gap-1"
+                    >
+                      <span>📄</span> Kwitansi PDF
+                    </a>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: PROFIL SAYA */}
+        {activeTab === "profil" && (
+          <div className="bg-white rounded-4 border p-4">
+            <h3 className="h6 fw-bold mb-3 text-uppercase text-primary" style={{ letterSpacing: "1px" }}>
+              📋 Identitas Siswa Lengkap
+            </h3>
+            
+            <div className="profile-info-grid">
+              <div className="profile-info-item">
+                <div className="label">Nama Lengkap</div>
+                <div className="value">{siswa?.namaLengkap || "-"}</div>
+              </div>
+              <div className="profile-info-item">
+                <div className="label">NIS / NISN</div>
+                <div className="value">{siswa?.nis || "-"} / {siswa?.nisn || "-"}</div>
+              </div>
+              <div className="profile-info-item">
+                <div className="label">Kelas</div>
+                <div className="value">{siswa?.kelas?.namaKelas || "-"}</div>
+              </div>
+              <div className="profile-info-item">
+                <div className="label">Jenis Kelamin</div>
+                <div className="value">{siswa?.jenisKelamin === "L" ? "Laki-Laki" : "Perempuan"}</div>
+              </div>
+              <div className="profile-info-item">
+                <div className="label">Nama Wali</div>
+                <div className="value">{siswa?.namaWali || "-"}</div>
+              </div>
+              <div className="profile-info-item">
+                <div className="label">Kontak Wali / No HP</div>
+                <div className="value">{siswa?.kontakWali || "-"}</div>
+              </div>
+              <div className="profile-info-item">
+                <div className="label">Email Akun Login</div>
+                <div className="value">{siswa?.akun?.email || "-"}</div>
+              </div>
+              <div className="profile-info-item">
+                <div className="label">Status Siswa</div>
+                <div className="value text-success">Active / Aktif</div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );

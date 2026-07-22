@@ -125,3 +125,11 @@ export function IconX(props: IconProps) {
     </svg>
   );
 }
+
+export function IconChevronLeft(props: IconProps) {
+  return (
+    <svg {...base} width={14} height={14} {...props}>
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}

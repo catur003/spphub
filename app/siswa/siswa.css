@@ -1,42 +1,82 @@
-body { background-color: #f8fafc; }
+body { background-color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; }
 
 .top-navbar {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, #1e1b4b, #4338ca);
   color: white; padding: 1rem 2rem;
   display: flex; justify-content: space-between; align-items: center;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+  box-shadow: 0 4px 20px rgba(30, 27, 75, 0.2);
 }
 
-.portal-header {
-  background: white; border-bottom: 1px solid #e2e8f0;
-  padding: 2rem; margin-bottom: 2rem;
+.student-hero {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 2.5rem 0 1.5rem 0;
+  margin-bottom: 2rem;
 }
 
-.stat-box {
-  background: white; padding: 1.5rem; border-radius: 16px;
+.avatar-box {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white; display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: 700; flex-shrink: 0;
+  box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
+}
+
+.stat-card-custom {
+  background: white; padding: 1.25rem 1.5rem; border-radius: 16px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-  display: flex; align-items: center; gap: 1rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.02);
+  display: flex; align-items: center; gap: 1.25rem;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
+.stat-card-custom:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
 
-.stat-icon {
-  width: 50px; height: 50px; border-radius: 14px;
+.stat-icon-bg {
+  width: 48px; height: 48px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; flex-shrink: 0;
+  font-size: 1.4rem; flex-shrink: 0;
 }
 
-.tagihan-card {
+.nav-tabs-custom {
+  border-bottom: 2px solid #e2e8f0;
+  display: flex; gap: 0.5rem; margin-bottom: 1.5rem;
+}
+
+.nav-tab-item {
+  padding: 0.75rem 1.25rem; font-size: 0.95rem; font-weight: 600;
+  color: #64748b; background: transparent; border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.nav-tab-item:hover { color: #4338ca; }
+.nav-tab-item.active {
+  color: #4338ca; border-bottom-color: #4338ca; background: #eef2ff;
+  border-radius: 10px 10px 0 0;
+}
+
+.tagihan-card-modern {
   background: white; border-radius: 16px; border: 1px solid #e2e8f0;
-  padding: 1.5rem; margin-bottom: 1rem;
+  padding: 1.25rem 1.5rem; margin-bottom: 1rem;
   display: flex; justify-content: space-between; align-items: center;
   transition: transform 0.2s, box-shadow 0.2s;
 }
-.tagihan-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
+.tagihan-card-modern:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
 
 .status-badge {
   display: inline-flex; align-items: center; padding: 4px 12px;
   border-radius: 20px; font-size: 0.75rem; font-weight: 600;
 }
+
+.profile-info-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+.profile-info-item {
+  background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0;
+}
+.profile-info-item .label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+.profile-info-item .value { font-size: 0.95rem; color: #0f172a; font-weight: 700; }
 
 .toast-portal {
   position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
@@ -45,7 +85,7 @@ body { background-color: #f8fafc; }
   font-size: 0.88rem; font-weight: 500;
   box-shadow: 0 8px 28px rgba(15,23,42,.2);
   animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  max-width: 340px;
+  max-width: 380px;
 }
 .toast-portal--success { background: #fff; border-left: 4px solid #10b981; color: #065f46; }
 .toast-portal--info    { background: #fff; border-left: 4px solid #3b82f6; color: #1e40af; }
@@ -56,6 +96,6 @@ body { background-color: #f8fafc; }
 }
 
 @media (max-width: 768px) {
-  .tagihan-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  .tagihan-action { width: 100%; text-align: right; }
+  .tagihan-card-modern { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .tagihan-action-group { width: 100%; justify-content: space-between; }
 }
