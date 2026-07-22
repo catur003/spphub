@@ -3,7 +3,7 @@
 // cukup untuk pola pemakaian: html2pdf().set(opt).from(element).save()
 declare module "html2pdf.js" {
   interface Html2PdfOptions {
-    margin?: number | [number, number, number, number];
+    margin?: number | number[];
     filename?: string;
     image?: { type?: string; quality?: number };
     html2canvas?: Record<string, unknown>;
