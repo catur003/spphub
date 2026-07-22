@@ -140,6 +140,7 @@ model Kelas {
   id         String  @id @default(cuid())
   namaKelas  String
   tingkat    Int
+  nominalSpp Int?    @default(0)
 
   siswa Siswa[]
 

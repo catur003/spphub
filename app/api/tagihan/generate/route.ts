@@ -26,9 +26,8 @@ export async function POST(req: NextRequest) {
   // 2. Fetch siswa aktif beserta data kelas (Billing Rules)
   const siswaAktif = await prisma.siswa.findMany({
     where: { status: "aktif" },
-    select: {
-      id: true,
-      kelas: { select: { nominalSpp: true } },
+    include: {
+      kelas: true,
     },
   });
 
@@ -47,8 +46,9 @@ export async function POST(req: NextRequest) {
   // 3. Masukkan tagihan dengan Billing Rules (Nominal spesifik kelas jika ada)
   await prisma.tagihanSpp.createMany({
     data: siswaBaru.map((s) => {
-      const nominalKelas = s.kelas?.nominalSpp && s.kelas.nominalSpp > 0
-        ? s.kelas.nominalSpp
+      const kelasObj = s.kelas as any;
+      const nominalKelas = kelasObj?.nominalSpp && Number(kelasObj.nominalSpp) > 0
+        ? Number(kelasObj.nominalSpp)
         : defaultNominal;
 
       return {
