@@ -102,7 +102,6 @@ const FORM_EDIT_KOSONG: FormEdit = {
   passwordBaru: "",
 };
 
-/** Inisial dari nama, maks 2 huruf */
 function getInisial(nama: string): string {
   return nama
     .split(" ")
@@ -111,7 +110,6 @@ function getInisial(nama: string): string {
     .join("");
 }
 
-/** Warna avatar deterministik berdasarkan nama */
 const AVATAR_COLORS = [
   "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",
   "#10b981", "#3b82f6", "#ef4444", "#14b8a6",
@@ -131,13 +129,11 @@ export default function SiswaPage() {
   const [loadingTambah, setLoadingTambah] = useState(false);
   const [errorTambah, setErrorTambah] = useState("");
 
-  // State modal edit
   const [editSiswa, setEditSiswa] = useState<Siswa | null>(null);
   const [formEdit, setFormEdit] = useState<FormEdit>(FORM_EDIT_KOSONG);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [errorEdit, setErrorEdit] = useState("");
 
-  // State modal detail siswa
   const [detailSiswa, setDetailSiswa] = useState<Siswa | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -147,6 +143,7 @@ export default function SiswaPage() {
   const [importLoading, setImportLoading] = useState(false);
   const [hasilImport, setHasilImport] = useState<HasilImport | null>(null);
   const [importError, setImportError] = useState("");
+  const [uploadingFoto, setUploadingFoto] = useState(false);
 
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
@@ -177,6 +174,46 @@ export default function SiswaPage() {
     const timeout = setTimeout(muatData, 300);
     return () => clearTimeout(timeout);
   }, [muatData]);
+
+  // Upload foto file (ke Cloudinary / Base64 fallback)
+  async function uploadFotoFile(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Gagal mengunggah foto");
+    return data.url;
+  }
+
+  async function handleFileFotoTambah(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFoto(true);
+    try {
+      const url = await uploadFotoFile(file);
+      setFormTambah((prev) => ({ ...prev, fotoUrl: url }));
+      tampilToast("Foto berhasil diunggah!");
+    } catch (err: any) {
+      await alertMsg(err.message);
+    } finally {
+      setUploadingFoto(false);
+    }
+  }
+
+  async function handleFileFotoEdit(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFoto(true);
+    try {
+      const url = await uploadFotoFile(file);
+      setFormEdit((prev) => ({ ...prev, fotoUrl: url }));
+      tampilToast("Foto berhasil diunggah!");
+    } catch (err: any) {
+      await alertMsg(err.message);
+    } finally {
+      setUploadingFoto(false);
+    }
+  }
 
   // ——— Form Tambah ———
   async function handleTambah(e: React.FormEvent) {
@@ -310,7 +347,6 @@ export default function SiswaPage() {
   return (
     <>
       <style>{`
-        /* ——— Badge status ——— */
         .badge-status {
           display: inline-flex; align-items: center; gap: 5px;
           padding: 4px 10px; border-radius: 20px;
@@ -325,16 +361,6 @@ export default function SiswaPage() {
         .badge-status--pindah  { background: #fef9c3; color: #854d0e; }
         .badge-status--nonaktif{ background: #f3f4f6; color: #6b7280; }
 
-        /* ——— Chip akun ——— */
-        .chip-akun {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 3px 10px; border-radius: 20px;
-          font-size: 0.73rem; font-weight: 500;
-        }
-        .chip-akun--ada   { background: #ede9fe; color: #5b21b6; }
-        .chip-akun--kosong{ background: #f3f4f6; color: #9ca3af; font-style: italic; }
-
-        /* ——— Avatar ——— */
         .siswa-avatar {
           width: 36px; height: 36px; border-radius: 10px;
           display: inline-flex; align-items: center; justify-content: center;
@@ -390,7 +416,7 @@ export default function SiswaPage() {
               📥 Import / Export Excel Siswa
             </h2>
             <div className="d-flex flex-wrap gap-2 mb-3">
-              <a className="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold" href="/api/siswa/template">
+              <a className="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold" href="/api/siswa/template" target="_blank" download>
                 ⬇ Download Template (.xlsx)
               </a>
               <a className="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold" href="/api/siswa/export">
@@ -415,6 +441,22 @@ export default function SiswaPage() {
                 <div className="alert alert-success py-2 small mb-2">
                   ✓ <strong>{hasilImport.berhasil}</strong> dari <strong>{hasilImport.total}</strong> baris berhasil diimport.
                 </div>
+                {hasilImport.gagal.length > 0 && (
+                  <div className="table-responsive border rounded p-2" style={{ maxHeight: 180, overflowY: "auto" }}>
+                    <table className="table table-sm mb-0 small">
+                      <thead><tr><th>Baris</th><th>Nama</th><th>Alasan</th></tr></thead>
+                      <tbody>
+                        {hasilImport.gagal.map((g, idx) => (
+                          <tr key={idx}>
+                            <td>{g.baris}</td>
+                            <td>{g.nama || "-"}</td>
+                            <td className="text-danger">{g.alasan}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -465,12 +507,28 @@ export default function SiswaPage() {
                       </select>
                     </div>
                   </div>
+
+                  {/* Upload Foto Siswa (Cloudinary / File / URL) */}
                   <div className="mb-2">
-                    <label className="form-label small fw-semibold">Foto Profile URL (Opsional)</label>
-                    <input className="form-control form-control-sm" value={formTambah.fotoUrl}
-                      onChange={(e) => setFormTambah({ ...formTambah, fotoUrl: e.target.value })}
-                      placeholder="https://link-foto-siswa.jpg" />
+                    <label className="form-label small fw-semibold">Foto Profile Siswa (Opsional)</label>
+                    <div className="d-flex align-items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="form-control form-control-sm"
+                        onChange={handleFileFotoTambah}
+                        disabled={uploadingFoto}
+                      />
+                      {uploadingFoto && <span className="spinner-border spinner-border-sm text-primary" />}
+                    </div>
+                    {formTambah.fotoUrl && (
+                      <div className="mt-2 d-flex align-items-center gap-2">
+                        <img src={formTambah.fotoUrl} alt="Preview" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
+                        <span className="text-success small fw-semibold">✓ Foto Terpilih</span>
+                      </div>
+                    )}
                   </div>
+
                   <div className="row g-2 mb-2">
                     <div className="col-6">
                       <label className="form-label small fw-semibold">Nama Wali</label>
@@ -493,7 +551,7 @@ export default function SiswaPage() {
                     </select>
                   </div>
 
-                  <button className="btn btn-primary w-100 fw-bold py-2" disabled={loadingTambah}>
+                  <button className="btn btn-primary w-100 fw-bold py-2" disabled={loadingTambah || uploadingFoto}>
                     {loadingTambah ? "Menyimpan..." : "Simpan Data Siswa"}
                   </button>
                 </form>
@@ -508,7 +566,7 @@ export default function SiswaPage() {
                 <div className="col-md-7">
                   <input
                     className="form-control form-control-sm"
-                    placeholder="🔍 Cari nama siswa / NIS / NISN..."
+                    placeholder="🔍 Cari nama siswa / NIS / NISN (Maks 20)..."
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />
@@ -762,11 +820,25 @@ export default function SiswaPage() {
                       </div>
                     </div>
 
+                    {/* Upload Foto Siswa (Cloudinary / File / URL) */}
                     <div className="mb-3">
-                      <label className="form-label small fw-semibold">Foto Profile URL (Opsional)</label>
-                      <input className="form-control" value={formEdit.fotoUrl}
-                        onChange={(e) => setFormEdit({ ...formEdit, fotoUrl: e.target.value })}
-                        placeholder="https://link-foto-siswa.jpg" />
+                      <label className="form-label small fw-semibold">Foto Profile Siswa (Opsional)</label>
+                      <div className="d-flex align-items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="form-control"
+                          onChange={handleFileFotoEdit}
+                          disabled={uploadingFoto}
+                        />
+                        {uploadingFoto && <span className="spinner-border spinner-border-sm text-primary" />}
+                      </div>
+                      {formEdit.fotoUrl && (
+                        <div className="mt-2 d-flex align-items-center gap-2">
+                          <img src={formEdit.fotoUrl} alt="Preview" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }} />
+                          <span className="text-success small fw-semibold">✓ Foto Profile Tersimpan</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="row g-2 mb-3">
@@ -785,7 +857,7 @@ export default function SiswaPage() {
 
                   <div className="modal-footer bg-light" style={{ borderRadius: "0 0 20px 20px" }}>
                     <button type="button" className="btn btn-outline-secondary rounded-pill px-4" onClick={tutupEdit}>Batal</button>
-                    <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold" disabled={loadingEdit}>
+                    <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold" disabled={loadingEdit || uploadingFoto}>
                       {loadingEdit ? "Memproses..." : "💾 Simpan Perubahan"}
                     </button>
                   </div>

@@ -1,22 +1,20 @@
 import { NextResponse } from "next/server";
-import * as XLSX from "xlsx";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { buatTemplateWorkbook } from "@/lib/excel-siswa";
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const uint8Buffer = buatTemplateWorkbook();
+
+    return new NextResponse(uint8Buffer, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": 'attachment; filename="template-import-siswa.xlsx"',
+        "Cache-Control": "no-store, max-age=0",
+      },
+    });
+  } catch (error: any) {
+    console.error("[GET /api/siswa/template] Error:", error);
+    return NextResponse.json({ error: "Gagal membuat template Excel" }, { status: 500 });
   }
-
-  const wb = buatTemplateWorkbook();
-  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-
-  return new NextResponse(buffer, {
-    headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="template-import-siswa.xlsx"',
-    },
-  });
 }

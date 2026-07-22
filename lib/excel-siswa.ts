@@ -1,8 +1,5 @@
 import * as XLSX from "xlsx";
 
-// Urutan kolom template import/export siswa — JANGAN diubah urutannya
-// tanpa update juga baris parseBarisSiswa di bawah.
-// Kolom Email & Password bersifat OPSIONAL — boleh dikosongkan.
 export const KOLOM_SISWA = [
   "Nama Lengkap",
   "NIS",
@@ -16,8 +13,6 @@ export const KOLOM_SISWA = [
   "Email (opsional)",
   "Password (opsional, min 8 karakter)",
 ] as const;
-
-export type BarisSiswaMentah = Record<(typeof KOLOM_SISWA)[number], string | number | Date | undefined>;
 
 export type SiswaTervalidasi = {
   namaLengkap: string;
@@ -33,126 +28,141 @@ export type SiswaTervalidasi = {
   password: string | null;
 };
 
-/** Bikin workbook template kosong (cuma header + 1 baris contoh). */
-export function buatTemplateWorkbook(): XLSX.WorkBook {
-  const contoh: Partial<BarisSiswaMentah> = {
-    "Nama Lengkap": "Contoh Siswa",
-    NIS: "2024001",
-    NISN: "0012345678",
-    Kelas: "7A",
-    "Jenis Kelamin (L/P)": "L",
-    "Tanggal Lahir (YYYY-MM-DD)": "2012-05-10",
-    "Nama Wali": "Nama Orang Tua",
-    "Kontak Wali": "08123456789",
-    "Status (aktif/lulus/pindah/nonaktif)": "aktif",
-    "Email (opsional)": "siswa@sekolah.sch.id",
-    "Password (opsional, min 8 karakter)": "password123",
-  };
-  const ws = XLSX.utils.json_to_sheet([contoh], { header: [...KOLOM_SISWA] });
+/** Bikin workbook template (Uint8Array binary) */
+export function buatTemplateWorkbook(): Uint8Array {
+  const contoh = [
+    {
+      "Nama Lengkap": "Ahmad Fauzi",
+      NIS: "2024001",
+      NISN: "0012345678",
+      Kelas: "10 IPA 1",
+      "Jenis Kelamin (L/P)": "L",
+      "Tanggal Lahir (YYYY-MM-DD)": "2008-05-10",
+      "Nama Wali": "Budi Santoso",
+      "Kontak Wali": "081234567890",
+      "Status (aktif/lulus/pindah/nonaktif)": "aktif",
+      "Email (opsional)": "ahmad@sekolah.sch.id",
+      "Password (opsional, min 8 karakter)": "password123",
+    },
+    {
+      "Nama Lengkap": "Siti Rahma",
+      NIS: "2024002",
+      NISN: "0012345679",
+      Kelas: "10 IPA 1",
+      "Jenis Kelamin (L/P)": "P",
+      "Tanggal Lahir (YYYY-MM-DD)": "2008-08-15",
+      "Nama Wali": "Rahmat Hidayat",
+      "Kontak Wali": "081298765432",
+      "Status (aktif/lulus/pindah/nonaktif)": "aktif",
+      "Email (opsional)": "",
+      "Password (opsional, min 8 karakter)": "",
+    },
+  ];
+  const ws = XLSX.utils.json_to_sheet(contoh, { header: [...KOLOM_SISWA] });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template Siswa");
-  return wb;
+
+  const arrayBuffer = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+  return new Uint8Array(arrayBuffer);
 }
 
-/** Bikin workbook export dari daftar siswa yang sudah ada di DB. */
-export function buatExportWorkbook(
-  daftar: Array<{
-    namaLengkap: string;
-    nis: string;
-    nisn: string | null;
-    kelas: { namaKelas: string } | null;
-    jenisKelamin: string;
-    tanggalLahir: Date | null;
-    namaWali: string | null;
-    kontakWali: string | null;
-    status: string;
-    akun: { email: string } | null;
-  }>
-): XLSX.WorkBook {
-  const rows = daftar.map((s) => ({
-    "Nama Lengkap": s.namaLengkap,
-    NIS: s.nis,
-    NISN: s.nisn || "",
-    Kelas: s.kelas?.namaKelas || "",
-    "Jenis Kelamin (L/P)": s.jenisKelamin,
-    "Tanggal Lahir (YYYY-MM-DD)": s.tanggalLahir
-      ? s.tanggalLahir.toISOString().slice(0, 10)
-      : "",
-    "Nama Wali": s.namaWali || "",
-    "Kontak Wali": s.kontakWali || "",
-    "Status (aktif/lulus/pindah/nonaktif)": s.status,
-    "Email (opsional)": s.akun?.email || "",
-    // Password tidak di-export demi keamanan
-    "Password (opsional, min 8 karakter)": "",
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows, { header: [...KOLOM_SISWA] });
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
-  return wb;
+/** Baca file Excel/CSV dengan normalisasi nama kolom fleksibel (case-insensitive) */
+export function bacaWorkbook(buffer: Buffer): Record<string, any>[] {
+  const wb = XLSX.read(buffer, { type: "buffer", cellDates: true, raw: false });
+  const sheetName = wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  const jsonRows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: "" });
+
+  return jsonRows.map((row) => {
+    const normalized: Record<string, any> = {};
+    Object.keys(row).forEach((key) => {
+      const cleanKey = key.trim().toLowerCase();
+      normalized[cleanKey] = row[key];
+    });
+    return normalized;
+  });
 }
 
-/** Baca file Excel/CSV yang diupload jadi array baris mentah. */
-export function bacaWorkbook(buffer: Buffer): BarisSiswaMentah[] {
-  const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  return XLSX.utils.sheet_to_json<BarisSiswaMentah>(sheet, { defval: "" });
-}
-
-const STATUS_VALID = ["aktif", "lulus", "pindah", "nonaktif"];
-
-/**
- * Validasi & normalisasi 1 baris mentah dari Excel.
- * Return { data } kalau valid, atau { error } kalau ada masalah.
- * Kolom Email & Password opsional — kalau kosong, diabaikan.
- */
-export function parseBarisSiswa(
-  baris: BarisSiswaMentah
-): { data: SiswaTervalidasi } | { error: string } {
-  const nama = String(baris["Nama Lengkap"] || "").trim();
-  const nis = String(baris["NIS"] || "").trim();
-  const nisn = String(baris["NISN"] || "").trim();
-  const kelas = String(baris["Kelas"] || "").trim();
-  const jkRaw = String(baris["Jenis Kelamin (L/P)"] || "").trim().toUpperCase();
-  const tglRaw = baris["Tanggal Lahir (YYYY-MM-DD)"];
-  const namaWali = String(baris["Nama Wali"] || "").trim();
-  const kontakWali = String(baris["Kontak Wali"] || "").trim();
-  const statusRaw = String(baris["Status (aktif/lulus/pindah/nonaktif)"] || "aktif")
-    .trim()
-    .toLowerCase();
-  const email = String(baris["Email (opsional)"] || "").trim().toLowerCase();
-  const password = String(baris["Password (opsional, min 8 karakter)"] || "").trim();
-
-  if (!nama) return { error: "Nama Lengkap wajib diisi" };
-  if (!nis) return { error: "NIS wajib diisi" };
-  if (jkRaw !== "L" && jkRaw !== "P") {
-    return { error: "Jenis Kelamin harus diisi L atau P" };
-  }
-  if (statusRaw && !STATUS_VALID.includes(statusRaw)) {
-    return { error: `Status "${statusRaw}" tidak valid (harus aktif/lulus/pindah/nonaktif)` };
-  }
-
-  // Validasi email & password: keduanya harus diisi jika salah satu ada
-  if (email && !password) {
-    return { error: "Jika Email diisi, Password juga wajib diisi (min 8 karakter)" };
-  }
-  if (password && !email) {
-    return { error: "Jika Password diisi, Email juga wajib diisi" };
-  }
-  if (password && password.length < 8) {
-    return { error: "Password minimal 8 karakter" };
-  }
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: `Format email "${email}" tidak valid` };
-  }
-
-  let tanggalLahir: Date | null = null;
-  if (tglRaw) {
-    const d = tglRaw instanceof Date ? tglRaw : new Date(String(tglRaw));
-    if (isNaN(d.getTime())) {
-      return { error: "Tanggal Lahir tidak valid, format harus YYYY-MM-DD" };
+function getValueFromPossibleKeys(row: Record<string, any>, possibleKeys: string[]): string {
+  for (const k of possibleKeys) {
+    const cleanKey = k.toLowerCase();
+    if (row[cleanKey] !== undefined && row[cleanKey] !== null && String(row[cleanKey]).trim() !== "") {
+      return String(row[cleanKey]).trim();
     }
-    tanggalLahir = d;
   }
+  return "";
+}
+
+/** Parse tanggal dari Excel (bisa string YYYY-MM-DD, Date object, atau Excel serial number) */
+function parseTanggalExcel(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date && !isNaN(val.getTime())) return val;
+
+  const str = String(val).trim();
+  if (!str) return null;
+
+  // Tanggal ISO/Standard: YYYY-MM-DD / YYYY/MM/DD
+  const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d));
+  }
+
+  // Tanggal Format Indonesia: DD-MM-YYYY / DD/MM/YYYY
+  const idMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (idMatch) {
+    const [, d, m, y] = idMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d));
+  }
+
+  // Excel Serial Number (misal: 42150)
+  if (!isNaN(Number(str))) {
+    const serial = Number(str);
+    const utc_days = Math.floor(serial - 25569);
+    const utc_value = utc_days * 86400;
+    const date_info = new Date(utc_value * 1000);
+    return date_info;
+  }
+
+  const parsedDate = new Date(str);
+  return isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+export function parseBarisSiswa(
+  row: Record<string, any>
+): { data: SiswaTervalidasi } | { error: string } {
+  const nama = getValueFromPossibleKeys(row, ["nama lengkap", "nama", "nama_lengkap"]);
+  const nis = getValueFromPossibleKeys(row, ["nis", "nomor induk siswa"]);
+  const nisn = getValueFromPossibleKeys(row, ["nisn"]);
+  const kelas = getValueFromPossibleKeys(row, ["kelas", "nama kelas"]);
+  const jkRaw = getValueFromPossibleKeys(row, ["jenis kelamin (l/p)", "jenis kelamin", "jk", "gender"]).toUpperCase();
+  const tglRaw = row["tanggal lahir (yyyy-mm-dd)"] || row["tanggal lahir"] || row["tgl lahir"];
+  const namaWali = getValueFromPossibleKeys(row, ["nama wali", "wali", "orang tua"]);
+  const kontakWali = getValueFromPossibleKeys(row, ["kontak wali", "no hp wali", "telepon wali", "hp wali"]);
+  const statusRaw = getValueFromPossibleKeys(row, ["status (aktif/lulus/pindah/nonaktif)", "status"]).toLowerCase() || "aktif";
+  const email = getValueFromPossibleKeys(row, ["email (opsional)", "email"]).toLowerCase();
+  const password = getValueFromPossibleKeys(row, ["password (opsional, min 8 karakter)", "password"]);
+
+  if (!nama) return { error: "Kolom Nama Lengkap wajib diisi" };
+  if (!nis) return { error: "Kolom NIS wajib diisi" };
+
+  let jenisKelamin: "L" | "P" = "L";
+  if (jkRaw.startsWith("P") || jkRaw === "PEREMPUAN") {
+    jenisKelamin = "P";
+  } else if (jkRaw.startsWith("L") || jkRaw === "LAKI-LAKI" || jkRaw === "LAKI") {
+    jenisKelamin = "L";
+  } else if (jkRaw && jkRaw !== "L" && jkRaw !== "P") {
+    return { error: `Jenis kelamin "${jkRaw}" tidak valid (harus L atau P)` };
+  }
+
+  const STATUS_VALID = ["aktif", "lulus", "pindah", "nonaktif"];
+  const statusClean = STATUS_VALID.includes(statusRaw) ? statusRaw : "aktif";
+
+  if (email && password && password.length < 6) {
+    return { error: "Password akun minimal 6 karakter" };
+  }
+
+  const tanggalLahir = parseTanggalExcel(tglRaw);
 
   return {
     data: {
@@ -160,11 +170,11 @@ export function parseBarisSiswa(
       nis,
       nisn: nisn || null,
       namaKelas: kelas || null,
-      jenisKelamin: jkRaw as "L" | "P",
+      jenisKelamin,
       tanggalLahir,
       namaWali: namaWali || null,
       kontakWali: kontakWali || null,
-      status: (statusRaw || "aktif") as SiswaTervalidasi["status"],
+      status: statusClean as SiswaTervalidasi["status"],
       email: email || null,
       password: password || null,
     },
