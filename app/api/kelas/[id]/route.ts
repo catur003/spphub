@@ -11,6 +11,87 @@ async function checkAccess() {
   return session;
 }
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await checkAccess();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+
+    const kelas = await prisma.kelas.findUnique({
+      where: { id },
+      include: {
+        siswa: {
+          select: {
+            id: true,
+            namaLengkap: true,
+            nis: true,
+            nisn: true,
+            jenisKelamin: true,
+            status: true,
+            fotoUrl: true,
+            namaWali: true,
+            kontakWali: true,
+            tagihan: {
+              select: {
+                id: true,
+                nominal: true,
+                status: true,
+              },
+            },
+          },
+          orderBy: { namaLengkap: "asc" },
+        },
+      },
+    });
+
+    if (!kelas) {
+      return NextResponse.json({ error: "Kelas tidak ditemukan" }, { status: 404 });
+    }
+
+    // Hitung Rekap Pembayaran Per Kelas
+    let totalNominalTagihan = 0;
+    let totalNominalLunas = 0;
+    let totalNominalTunggakan = 0;
+    let jumlahLunasCount = 0;
+    let jumlahBelumCount = 0;
+
+    kelas.siswa.forEach((s) => {
+      s.tagihan.forEach((t) => {
+        totalNominalTagihan += t.nominal;
+        if (t.status === "lunas") {
+          totalNominalLunas += t.nominal;
+          jumlahLunasCount++;
+        } else {
+          totalNominalTunggakan += t.nominal;
+          jumlahBelumCount++;
+        }
+      });
+    });
+
+    return NextResponse.json({
+      ...kelas,
+      rekap: {
+        totalSiswa: kelas.siswa.length,
+        totalNominalTagihan,
+        totalNominalLunas,
+        totalNominalTunggakan,
+        jumlahLunasCount,
+        jumlahBelumCount,
+      },
+    });
+  } catch (error: any) {
+    console.error("[GET /api/kelas/[id]] Error:", error);
+    return NextResponse.json(
+      { error: "Gagal mengambil detail kelas: " + (error.message || "Unknown error") },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -28,6 +109,7 @@ export async function PUT(
         ...(body.namaKelas ? { namaKelas: String(body.namaKelas).trim() } : {}),
         ...(body.tingkat ? { tingkat: Number(body.tingkat) } : {}),
         ...(body.nominalSpp !== undefined ? { nominalSpp: Number(body.nominalSpp) } : {}),
+        ...(body.waliKelas !== undefined ? { waliKelas: String(body.waliKelas).trim() } : {}),
       },
     });
     return NextResponse.json(kelas);

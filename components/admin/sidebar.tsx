@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/tagihan", label: "Tagihan", icon: IconReceipt },
   { href: "/admin/laporan", label: "Laporan", icon: IconChart },
   { href: "/admin/pengumuman", label: "Pengumuman", icon: IconMegaphone },
+  { href: "/admin/pengguna", label: "Kelola User", icon: IconUsers },
 ];
 
 interface AdminShellProps {

@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
         namaKelas: String(body.namaKelas).trim(),
         tingkat: Number(body.tingkat),
         ...(body.nominalSpp !== undefined ? { nominalSpp: Number(body.nominalSpp) } : {}),
+        ...(body.waliKelas !== undefined ? { waliKelas: String(body.waliKelas).trim() } : {}),
       },
     });
     return NextResponse.json(kelas, { status: 201 });

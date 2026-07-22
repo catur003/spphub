@@ -8,7 +8,33 @@ type Kelas = {
   namaKelas: string;
   tingkat: number;
   nominalSpp?: number;
+  waliKelas?: string | null;
   _count: { siswa: number };
+};
+
+type SiswaDetail = {
+  id: string;
+  namaLengkap: string;
+  nis: string;
+  nisn: string | null;
+  jenisKelamin: "L" | "P";
+  status: string;
+  fotoUrl: string | null;
+  namaWali: string | null;
+  kontakWali: string | null;
+  tagihan: { id: string; nominal: number; status: string }[];
+};
+
+type DetailKelasResponse = Kelas & {
+  siswa: SiswaDetail[];
+  rekap: {
+    totalSiswa: number;
+    totalNominalTagihan: number;
+    totalNominalLunas: number;
+    totalNominalTunggakan: number;
+    jumlahLunasCount: number;
+    jumlahBelumCount: number;
+  };
 };
 
 /** Warna avatar deterministik */
@@ -25,11 +51,17 @@ export default function KelasPage() {
   const [namaKelas, setNamaKelas] = useState("");
   const [tingkat, setTingkat] = useState("");
   const [nominalSpp, setNominalSpp] = useState("");
+  const [waliKelas, setWaliKelas] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const { confirm, alertMsg, modal } = useConfirmModal();
+
+  // State Modal Detail & Rekap Kelas
+  const [detailKelasData, setDetailKelasData] = useState<DetailKelasResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailTab, setDetailTab] = useState<"siswa" | "rekap">("siswa");
 
   async function muatData() {
     const res = await fetch("/api/kelas");
@@ -52,7 +84,12 @@ export default function KelasPage() {
       const res = await fetch("/api/kelas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ namaKelas, tingkat: Number(tingkat), nominalSpp: Number(nominalSpp) || 0 }),
+        body: JSON.stringify({
+          namaKelas,
+          tingkat: Number(tingkat),
+          nominalSpp: Number(nominalSpp) || 0,
+          waliKelas,
+        }),
       });
       setLoading(false);
       if (!res.ok) {
@@ -60,7 +97,7 @@ export default function KelasPage() {
         setError(data.error || `Gagal menyimpan kelas (Status ${res.status})`);
         return;
       }
-      setNamaKelas(""); setTingkat(""); setNominalSpp(""); setError("");
+      setNamaKelas(""); setTingkat(""); setNominalSpp(""); setWaliKelas(""); setError("");
       tampilToast("Kelas berhasil ditambahkan");
       muatData();
     } catch (err: any) {
@@ -74,6 +111,7 @@ export default function KelasPage() {
     setEditKelas({
       ...k,
       nominalSpp: k.nominalSpp || 0,
+      waliKelas: k.waliKelas || "",
     });
     setError("");
   }
@@ -96,6 +134,7 @@ export default function KelasPage() {
           namaKelas: editKelas.namaKelas,
           tingkat: Number(editKelas.tingkat),
           nominalSpp: Number(editKelas.nominalSpp) || 0,
+          waliKelas: editKelas.waliKelas,
         }),
       });
       setLoading(false);
@@ -130,6 +169,23 @@ export default function KelasPage() {
     } catch (err: any) {
       setDeletingId(null);
       await alertMsg("Gagal terhubung ke server: " + err.message);
+    }
+  }
+
+  // ——— Detail & Rekap Kelas ———
+  async function bukaDetail(id: string) {
+    setDetailLoading(true);
+    setDetailKelasData(null);
+    try {
+      const res = await fetch(`/api/kelas/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDetailKelasData(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDetailLoading(false);
     }
   }
 
@@ -194,7 +250,7 @@ export default function KelasPage() {
         <div className="mb-4">
           <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Data Kelas & Biaya SPP</h1>
           <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-            {daftar.length} kelas terdaftar | Bebas tentukan tingkat (1-12) dan biaya SPP per kelas
+            {daftar.length} kelas terdaftar | Atur Wali Kelas, Biaya SPP, dan Rekap Pembayaran Siswa per Kelas
           </p>
         </div>
 
@@ -210,7 +266,7 @@ export default function KelasPage() {
                     <label className="form-label small fw-semibold">Nama Kelas</label>
                     <input className="form-control" value={namaKelas}
                       onChange={(e) => setNamaKelas(e.target.value)} required
-                      placeholder="Contoh: 10 IPA 1, 11 IPS 2, 7A" />
+                      placeholder="Contoh: 10 IPA 1, 7A" />
                   </div>
                   <div className="mb-2">
                     <label className="form-label small fw-semibold">Tingkat / Jenjang</label>
@@ -224,9 +280,15 @@ export default function KelasPage() {
                       min={1}
                       max={15}
                     />
-                    <div className="form-text" style={{ fontSize: "0.74rem" }}>
-                      Bisa diisi angka tingkat fleksibel (misal SD: 1-6, SMP: 7-9, SMA/SMK: 10-12).
-                    </div>
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold">Wali Kelas (Opsional)</label>
+                    <input
+                      className="form-control"
+                      value={waliKelas}
+                      onChange={(e) => setWaliKelas(e.target.value)}
+                      placeholder="Nama Guru Wali Kelas"
+                    />
                   </div>
                   <div className="mb-3">
                     <label className="form-label small fw-semibold">Biaya SPP per Bulan (Rp)</label>
@@ -241,9 +303,6 @@ export default function KelasPage() {
                         required
                         min={0}
                       />
-                    </div>
-                    <div className="form-text" style={{ fontSize: "0.74rem" }}>
-                      Biaya ini dipakai otomatis saat generate tagihan massal.
                     </div>
                   </div>
                   <button className="btn btn-primary w-100 fw-bold" disabled={loading}>
@@ -264,10 +323,10 @@ export default function KelasPage() {
                   <thead>
                     <tr>
                       <th>Nama Kelas</th>
-                      <th>Tingkat</th>
+                      <th>Wali Kelas</th>
                       <th>Biaya SPP / Bulan</th>
                       <th>Jumlah Siswa</th>
-                      <th style={{ width: 120, textAlign: "right" }}>Aksi</th>
+                      <th style={{ width: 180, textAlign: "right" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -278,10 +337,19 @@ export default function KelasPage() {
                             <div className="kelas-badge" style={{ background: kelasColor(k.namaKelas) }}>
                               {k.namaKelas.slice(0, 2).toUpperCase()}
                             </div>
-                            <span className="fw-bold text-dark">{k.namaKelas}</span>
+                            <div>
+                              <div className="fw-bold text-dark">{k.namaKelas}</div>
+                              <span className="badge bg-light text-dark border px-2 py-0" style={{ fontSize: "0.7rem" }}>
+                                Tingkat {k.tingkat}
+                              </span>
+                            </div>
                           </div>
                         </td>
-                        <td><span className="tingkat-badge">Kelas {k.tingkat}</span></td>
+                        <td>
+                          <div className="fw-semibold text-dark" style={{ fontSize: "0.85rem" }}>
+                            {k.waliKelas || <span className="text-muted fst-italic">Belum diatur</span>}
+                          </div>
+                        </td>
                         <td>
                           <div className="fw-bold text-success">
                             {(k.nominalSpp || 0).toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
@@ -294,14 +362,16 @@ export default function KelasPage() {
                         </td>
                         <td className="text-end">
                           <div className="d-flex gap-1 justify-content-end">
-                            <button className="btn btn-sm btn-outline-primary rounded-pill px-3"
+                            <button className="btn btn-sm btn-outline-info rounded-pill px-2 fw-semibold" style={{ fontSize: "0.75rem" }}
+                              onClick={() => bukaDetail(k.id)}>
+                              👥 Detail & Rekap
+                            </button>
+                            <button className="btn btn-sm btn-outline-primary rounded-pill px-2 fw-semibold" style={{ fontSize: "0.75rem" }}
                               onClick={() => bukaEdit(k)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger rounded-pill px-3"
+                            <button className="btn btn-sm btn-outline-danger rounded-pill px-2 fw-semibold" style={{ fontSize: "0.75rem" }}
                               disabled={deletingId === k.id}
                               onClick={() => handleDelete(k.id)}>
-                              {deletingId === k.id
-                                ? <span className="spinner-border spinner-border-sm" />
-                                : "Hapus"}
+                              {deletingId === k.id ? "..." : "Hapus"}
                             </button>
                           </div>
                         </td>
@@ -328,15 +398,14 @@ export default function KelasPage() {
         <>
           <div className="modal-backdrop fade show" />
           <div className="modal fade show d-block modal-edit" tabIndex={-1} role="dialog" onClick={tutupEdit}>
-            <div className="modal-dialog modal-dialog-centered" role="document"
-              onClick={(e) => e.stopPropagation()}>
+            <div className="modal-dialog modal-dialog-centered" role="document" onClick={(e) => e.stopPropagation()}>
               <div className="modal-content">
                 <div className="modal-header">
                   <div className="d-flex align-items-center gap-3">
                     <div className="kelas-badge" style={{ background: kelasColor(editKelas.namaKelas) }}>
                       {editKelas.namaKelas.slice(0, 2).toUpperCase()}
                     </div>
-                    <h5 className="modal-title">Edit Kelas & Biaya SPP</h5>
+                    <h5 className="modal-title">Edit Kelas & Wali Kelas</h5>
                   </div>
                   <button type="button" className="btn-close" onClick={tutupEdit} />
                 </div>
@@ -346,46 +415,176 @@ export default function KelasPage() {
                     <div className="mb-3">
                       <label className="form-label small fw-semibold">Nama Kelas</label>
                       <input className="form-control" value={editKelas.namaKelas}
-                        onChange={(e) => setEditKelas({ ...editKelas, namaKelas: e.target.value })}
-                        required />
+                        onChange={(e) => setEditKelas({ ...editKelas, namaKelas: e.target.value })} required />
                     </div>
                     <div className="mb-3">
                       <label className="form-label small fw-semibold">Tingkat / Jenjang</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={editKelas.tingkat}
-                        onChange={(e) => setEditKelas({ ...editKelas, tingkat: Number(e.target.value) })}
-                        placeholder="Contoh: 10, 11, 12"
-                        required
-                        min={1}
-                        max={15}
-                      />
+                      <input type="number" className="form-control" value={editKelas.tingkat}
+                        onChange={(e) => setEditKelas({ ...editKelas, tingkat: Number(e.target.value) })} required min={1} max={15} />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label small fw-semibold">Wali Kelas</label>
+                      <input className="form-control" value={editKelas.waliKelas || ""}
+                        onChange={(e) => setEditKelas({ ...editKelas, waliKelas: e.target.value })}
+                        placeholder="Nama Guru Wali Kelas" />
                     </div>
                     <div className="mb-2">
                       <label className="form-label small fw-semibold">Biaya SPP per Bulan (Rp)</label>
                       <div className="input-group">
                         <span className="input-group-text bg-light text-muted fw-semibold">Rp</span>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={editKelas.nominalSpp || 0}
-                          onChange={(e) => setEditKelas({ ...editKelas, nominalSpp: Number(e.target.value) })}
-                          required
-                          min={0}
-                        />
+                        <input type="number" className="form-control" value={editKelas.nominalSpp || 0}
+                          onChange={(e) => setEditKelas({ ...editKelas, nominalSpp: Number(e.target.value) })} required min={0} />
                       </div>
                     </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn btn-outline-secondary" onClick={tutupEdit}>Batal</button>
                     <button type="submit" className="btn btn-primary px-4 fw-bold" disabled={loading}>
-                      {loading
-                        ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
-                        : "💾 Simpan Perubahan"}
+                      {loading ? "Menyimpan..." : "💾 Simpan Perubahan"}
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Modal Detail & Rekap Kelas */}
+      {(detailLoading || detailKelasData) && (
+        <>
+          <div className="modal-backdrop fade show" />
+          <div className="modal fade show d-block" tabIndex={-1} role="dialog" onClick={() => setDetailKelasData(null)}>
+            <div className="modal-dialog modal-lg modal-dialog-centered" role="document" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 20 }}>
+                {detailLoading ? (
+                  <div className="p-5 text-center text-muted">
+                    <div className="spinner-border text-primary mb-2" />
+                    <p className="mb-0 fw-semibold">Memuat detail & rekap pembayaran kelas...</p>
+                  </div>
+                ) : detailKelasData && (
+                  <>
+                    <div className="modal-header bg-dark text-white" style={{ borderRadius: "20px 20px 0 0", padding: "1.2rem 1.6rem" }}>
+                      <div>
+                        <h5 className="modal-title fw-bold text-white mb-1">
+                          🏫 Detail Kelas {detailKelasData.namaKelas} (Tingkat {detailKelasData.tingkat})
+                        </h5>
+                        <p className="mb-0 text-white-50 small">
+                          Wali Kelas: <strong>{detailKelasData.waliKelas || "Belum diatur"}</strong> | Biaya SPP: <strong>Rp {(detailKelasData.nominalSpp || 0).toLocaleString("id-ID")}</strong>
+                        </p>
+                      </div>
+                      <button type="button" className="btn-close btn-close-white" onClick={() => setDetailKelasData(null)} />
+                    </div>
+                    <div className="modal-body p-4">
+                      {/* Nav Tab Detail */}
+                      <ul className="nav nav-pills mb-3 gap-2">
+                        <li className="nav-item">
+                          <button
+                            className={`nav-link fw-bold px-3 py-2 ${detailTab === "siswa" ? "active bg-primary" : "bg-light text-dark"}`}
+                            onClick={() => setDetailTab("siswa")}>
+                            👥 Daftar Siswa ({detailKelasData.siswa.length})
+                          </button>
+                        </li>
+                        <li className="nav-item">
+                          <button
+                            className={`nav-link fw-bold px-3 py-2 ${detailTab === "rekap" ? "active bg-primary" : "bg-light text-dark"}`}
+                            onClick={() => setDetailTab("rekap")}>
+                            📊 Rekap Pembayaran Kelas
+                          </button>
+                        </li>
+                      </ul>
+
+                      {detailTab === "siswa" ? (
+                        <div className="table-responsive" style={{ maxHeight: 380 }}>
+                          <table className="table table-hover align-middle mb-0" style={{ fontSize: "0.86rem" }}>
+                            <thead className="table-light">
+                              <tr>
+                                <th>No</th>
+                                <th>Nama Siswa</th>
+                                <th>NIS / NISN</th>
+                                <th>Gender</th>
+                                <th>Orang Tua / Wali</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {detailKelasData.siswa.map((s, idx) => (
+                                <tr key={s.id}>
+                                  <td>{idx + 1}</td>
+                                  <td>
+                                    <div className="fw-bold text-dark">{s.namaLengkap}</div>
+                                  </td>
+                                  <td>
+                                    <div style={{ fontFamily: "monospace" }}>NIS: {s.nis}</div>
+                                    {s.nisn && <div className="text-muted small">NISN: {s.nisn}</div>}
+                                  </td>
+                                  <td>{s.jenisKelamin === "L" ? "Laki-laki" : "Perempuan"}</td>
+                                  <td>{s.namaWali || "-"} ({s.kontakWali || "-"})</td>
+                                  <td>
+                                    <span className={`badge ${s.status === "aktif" ? "bg-success-subtle text-success" : "bg-secondary"}`}>
+                                      {s.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                              {detailKelasData.siswa.length === 0 && (
+                                <tr>
+                                  <td colSpan={6} className="text-center text-muted py-4">Belum ada siswa terdaftar di kelas ini.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="row g-3 mb-4">
+                            <div className="col-md-4">
+                              <div className="p-3 bg-light rounded-3 text-center border">
+                                <div className="text-muted small fw-semibold">Total Tagihan Kelas</div>
+                                <div className="h5 fw-bold mb-0 text-dark">
+                                  {detailKelasData.rekap.totalNominalTagihan.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="p-3 bg-success-subtle rounded-3 text-center border border-success">
+                                <div className="text-success small fw-semibold">Total Terbayar (Lunas)</div>
+                                <div className="h5 fw-bold mb-0 text-success">
+                                  {detailKelasData.rekap.totalNominalLunas.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="p-3 bg-danger-subtle rounded-3 text-center border border-danger">
+                                <div className="text-danger small fw-semibold">Total Tunggakan</div>
+                                <div className="h5 fw-bold mb-0 text-danger">
+                                  {detailKelasData.rekap.totalNominalTunggakan.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-3 bg-white border rounded-3">
+                            <h6 className="fw-bold mb-2">Ringkasan Tagihan Siswa</h6>
+                            <div className="d-flex justify-content-between text-muted small py-1 border-bottom">
+                              <span>Jumlah Tagihan Lunas</span>
+                              <strong className="text-success">{detailKelasData.rekap.jumlahLunasCount} transaksi</strong>
+                            </div>
+                            <div className="d-flex justify-content-between text-muted small py-1">
+                              <span>Jumlah Tagihan Belum/Terlambat</span>
+                              <strong className="text-danger">{detailKelasData.rekap.jumlahBelumCount} transaksi</strong>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="modal-footer bg-light" style={{ borderRadius: "0 0 20px 20px" }}>
+                      <button className="btn btn-secondary px-4 rounded-pill" onClick={() => setDetailKelasData(null)}>
+                        Tutup
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

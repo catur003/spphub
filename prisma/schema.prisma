@@ -141,6 +141,7 @@ model Kelas {
   namaKelas  String
   tingkat    Int
   nominalSpp Int?    @default(0)
+  waliKelas  String?
 
   siswa Siswa[]
 
