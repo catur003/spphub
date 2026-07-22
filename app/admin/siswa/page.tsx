@@ -175,10 +175,41 @@ export default function SiswaPage() {
     return () => clearTimeout(timeout);
   }, [muatData]);
 
+  function kompresGambar(file: File, maxPx = 400): Promise<Blob> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let w = img.width;
+          let h = img.height;
+          if (w > maxPx || h > maxPx) {
+            if (w > h) {
+              h = Math.round((h * maxPx) / w);
+              w = maxPx;
+            } else {
+              w = Math.round((w * maxPx) / h);
+              h = maxPx;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, w, h);
+          canvas.toBlob((blob) => resolve(blob || file), "image/jpeg", 0.82);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // Upload foto file (ke Cloudinary / Base64 fallback)
   async function uploadFotoFile(file: File): Promise<string> {
+    const blobKompres = await kompresGambar(file);
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", blobKompres, "foto_siswa.jpg");
     const res = await fetch("/api/upload", { method: "POST", body: formData });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Gagal mengunggah foto");
