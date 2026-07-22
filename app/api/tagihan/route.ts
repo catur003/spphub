@@ -13,16 +13,27 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status") || undefined;
   const bulan = searchParams.get("bulan");
   const tahun = searchParams.get("tahun");
+  const kelasId = searchParams.get("kelasId") || undefined;
 
   const tagihan = await prisma.tagihanSpp.findMany({
     where: {
       ...(status ? { status: status as never } : {}),
       ...(bulan ? { bulan: Number(bulan) } : {}),
       ...(tahun ? { tahun: Number(tahun) } : {}),
+      ...(kelasId ? { siswa: { kelasId } } : {}),
     },
-    include: { siswa: { select: { namaLengkap: true, nis: true } } },
+    include: {
+      siswa: {
+        select: {
+          id: true,
+          namaLengkap: true,
+          nis: true,
+          kelas: { select: { id: true, namaKelas: true } },
+        },
+      },
+    },
     orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
-    take: 200,
+    take: 300,
   });
 
   return NextResponse.json(tagihan);

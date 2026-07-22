@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 type TahunAjaran = { id: string; nama: string; aktif: boolean };
+type KelasOption = { id: string; namaKelas: string };
 type Tagihan = {
   id: string;
   bulan: number;
@@ -11,7 +12,7 @@ type Tagihan = {
   nominal: number;
   status: string;
   jatuhTempo: string;
-  siswa: { namaLengkap: string; nis: string };
+  siswa: { namaLengkap: string; nis: string; kelas: { id: string; namaKelas: string } | null };
 };
 
 const BULAN_LABEL = [
@@ -29,7 +30,6 @@ const STATUS_INFO: Record<string, { label: string; bg: string; color: string }> 
 const TAHUN_SEKARANG = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 5 }, (_, i) => TAHUN_SEKARANG - 1 + i);
 
-/** Warna avatar deterministik */
 const AVATAR_COLORS = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"];
 function getAvatarColor(nama: string) {
   let h = 0;
@@ -42,12 +42,14 @@ function getInisial(nama: string) {
 
 export default function TagihanPage() {
   const [tahunAjaranList, setTahunAjaranList] = useState<TahunAjaran[]>([]);
+  const [kelasList, setKelasList] = useState<KelasOption[]>([]);
   const [daftar, setDaftar] = useState<Tagihan[]>([]);
 
   // Filter tabel
   const [filterStatus, setFilterStatus] = useState("");
   const [filterBulan, setFilterBulan] = useState("");
   const [filterTahun, setFilterTahun] = useState("");
+  const [filterKelasId, setFilterKelasId] = useState("");
 
   // Form generate
   const [gen, setGen] = useState({
@@ -73,17 +75,30 @@ export default function TagihanPage() {
     }
   }
 
+  async function muatKelas() {
+    const res = await fetch("/api/kelas");
+    if (res.ok) setKelasList(await res.json());
+  }
+
   const muatTagihan = useCallback(async () => {
     const params = new URLSearchParams();
-    if (filterStatus) params.set("status", filterStatus);
-    if (filterBulan)  params.set("bulan", filterBulan);
-    if (filterTahun)  params.set("tahun", filterTahun);
+    if (filterStatus)  params.set("status", filterStatus);
+    if (filterBulan)   params.set("bulan", filterBulan);
+    if (filterTahun)   params.set("tahun", filterTahun);
+    if (filterKelasId) params.set("kelasId", filterKelasId);
+    
     const res = await fetch(`/api/tagihan?${params.toString()}`);
     if (res.ok) setDaftar(await res.json());
-  }, [filterStatus, filterBulan, filterTahun]);
+  }, [filterStatus, filterBulan, filterTahun, filterKelasId]);
 
-  useEffect(() => { muatTahunAjaran(); }, []);
-  useEffect(() => { muatTagihan(); }, [muatTagihan]);
+  useEffect(() => {
+    muatTahunAjaran();
+    muatKelas();
+  }, []);
+
+  useEffect(() => {
+    muatTagihan();
+  }, [muatTagihan]);
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
@@ -103,132 +118,121 @@ export default function TagihanPage() {
   }
 
   async function handleVerifikasi(id: string) {
-    if (!(await confirm("Tandai tagihan ini sebagai LUNAS (verifikasi manual)?",
-      { confirmLabel: "Ya, Tandai Lunas", variant: "primary" }))) return;
+    if (!(await confirm("Tandai tagihan ini sebagai LUNAS (pembayaran tunai manual)?", { confirmLabel: "Ya, Tandai Lunas" }))) return;
     setVerifyingId(id);
-    const res = await fetch(`/api/tagihan/${id}/verifikasi`, {
-      method: "POST",
+    const res = await fetch(`/api/tagihan/${id}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ metode: "transfer_bank" }),
+      body: JSON.stringify({ status: "lunas" }),
     });
     setVerifyingId(null);
     if (!res.ok) {
       const data = await res.json();
-      await alertMsg(data.error || "Gagal verifikasi");
+      await alertMsg(data.error || "Gagal memperbarui status");
       return;
     }
     muatTagihan();
   }
 
-  const totalTagihan   = daftar.length;
-  const totalLunas     = daftar.filter((t) => t.status === "lunas").length;
-  const totalBelum     = daftar.filter((t) => t.status === "belum_bayar" || t.status === "terlambat").length;
-  const totalNominal   = daftar.reduce((s, t) => s + t.nominal, 0);
+  async function handleBatalkan(id: string) {
+    if (!(await confirm("Batalkan status lunas? Tagihan akan kembali ke status Belum Bayar.", { confirmLabel: "Ya, Batalkan Lunas" }))) return;
+    setVerifyingId(id);
+    const res = await fetch(`/api/tagihan/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "belum_bayar" }),
+    });
+    setVerifyingId(null);
+    if (!res.ok) {
+      const data = await res.json();
+      await alertMsg(data.error || "Gagal membatalkan status lunas");
+      return;
+    }
+    muatTagihan();
+  }
+
+  const totalTagihan = daftar.length;
+  const totalLunas   = daftar.filter((t) => t.status === "lunas").length;
+  const totalBelum   = daftar.filter((t) => t.status === "belum_bayar" || t.status === "terlambat").length;
+  const totalNominal = daftar.reduce((acc, t) => acc + t.nominal, 0);
 
   return (
     <>
       <style>{`
-        /* ——— Stats cards ——— */
         .stat-card {
-          border-radius: 14px; padding: 1rem 1.2rem;
-          border: 1px solid var(--border-soft); background: white;
-          box-shadow: var(--shadow-sm);
+          background: white; border-radius: 14px; padding: 1.1rem;
+          border: 1px solid var(--border-soft); box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
         .stat-card__icon {
-          width: 38px; height: 38px; border-radius: 10px;
+          width: 36px; height: 36px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
           font-size: 1.1rem; margin-bottom: 0.5rem;
         }
-        .stat-card__value { font-size: 1.45rem; font-weight: 800; color: var(--ink-900); line-height: 1; }
-        .stat-card__label { font-size: 0.75rem; color: var(--ink-500); margin-top: 3px; }
+        .stat-card__value { font-size: 1.4rem; font-weight: 800; color: var(--ink-900); }
+        .stat-card__label { font-size: 0.76rem; color: var(--ink-500); font-weight: 500; }
 
-        /* ——— Generate form card ——— */
-        .gen-card { border-radius: 14px; border: 1px solid var(--border-soft); overflow: hidden; }
-        .gen-card__header {
-          background: linear-gradient(135deg,#4f46e5,#7c3aed);
-          padding: 0.9rem 1.2rem; display: flex; align-items: center; gap: 0.6rem;
+        .gen-card {
+          background: white; border-radius: 16px; border: 1px solid var(--border-soft);
+          padding: 1.25rem 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
-        .gen-card__header h2 { color: #fff; font-size: 0.92rem; margin: 0; font-weight: 700; }
-        .gen-card__body { padding: 1.2rem; background: white; }
 
-        /* ——— Generate result ——— */
-        .gen-result {
-          display: flex; align-items: flex-start; gap: 0.85rem;
-          padding: 1rem 1.1rem; border-radius: 12px;
-          border: 1.5px solid #86efac; background: #f0fdf4; margin-bottom: 1rem;
+        .class-tab-bar {
+          display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.5rem;
+          margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0;
         }
-        .gen-result__icon {
-          width: 36px; height: 36px; border-radius: 50%; background: #15803d;
-          display: flex; align-items: center; justify-content: center;
-          color: white; font-size: 1rem; flex-shrink: 0;
+        .class-tab-btn {
+          padding: 0.5rem 1.1rem; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+          border: 1px solid #e2e8f0; background: white; color: #64748b;
+          white-space: nowrap; cursor: pointer; transition: all 0.2s;
         }
-        .gen-result__count {
-          font-size: 1.4rem; font-weight: 800; color: #15803d; line-height: 1;
+        .class-tab-btn:hover { background: #f8fafc; color: #4338ca; border-color: #cbd5e1; }
+        .class-tab-btn.active {
+          background: #4338ca; color: white; border-color: #4338ca; shadow: 0 4px 12px rgba(67, 56, 202, 0.2);
         }
-        .gen-result__label { font-size: 0.78rem; color: #166534; }
 
-        /* ——— Filter bar ——— */
-        .filter-bar {
-          display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-          padding: 0.75rem 1rem; background: white;
-          border: 1px solid var(--border-soft); border-radius: 12px;
-          margin-bottom: 1rem;
+        .tagihan-table-clean {
+          width: 100%; border-collapse: separate; border-spacing: 0;
         }
-        .filter-bar label { font-size: 0.75rem; font-weight: 600; color: var(--ink-500); white-space: nowrap; }
-
-        /* ——— Tagihan table ——— */
-        .tagihan-table th {
-          font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em;
-          color: var(--ink-500); font-weight: 600; background: var(--surface);
-          padding: 0.65rem 0.9rem; border-bottom: 2px solid var(--border-soft);
+        .tagihan-table-clean th {
+          font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+          color: #64748b; font-weight: 700; background: #f8fafc;
+          padding: 0.9rem 1.2rem; border-bottom: 2px solid #e2e8f0;
         }
-        .tagihan-table td { padding: 0.7rem 0.9rem; vertical-align: middle; font-size: 0.86rem; }
-        .tagihan-table tbody tr { transition: background 0.12s ease; }
-        .tagihan-table tbody tr:hover { background: #f5f7ff; }
+        .tagihan-table-clean td {
+          padding: 1rem 1.2rem; vertical-align: middle; border-bottom: 1px solid #f1f5f9;
+          font-size: 0.88rem; background: white;
+        }
+        .tagihan-table-clean tr:last-child td { border-bottom: none; }
+        .tagihan-table-clean tr:hover td { background: #faf5ff; }
 
-        /* ——— Status badge ——— */
         .status-chip {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 3px 10px; border-radius: 20px;
-          font-size: 0.73rem; font-weight: 600;
+          display: inline-flex; align-items: center; padding: 4px 12px;
+          border-radius: 20px; font-size: 0.75rem; font-weight: 600;
         }
-        .status-chip::before {
-          content:''; width:6px; height:6px; border-radius:50%; background:currentColor; opacity:0.65;
-        }
-
-        /* ——— Periode badge ——— */
-        .periode-badge {
-          display: inline-flex; align-items: center; gap: 4px;
-          padding: 3px 8px; border-radius: 8px;
-          background: #eef2ff; color: #4338ca;
-          font-size: 0.75rem; font-weight: 600;
-        }
-
-        /* ——— Avatar ——— */
         .siswa-avatar-sm {
-          width:30px; height:30px; border-radius:8px;
-          display:inline-flex; align-items:center; justify-content:center;
-          font-size:0.68rem; font-weight:700; color:white; flex-shrink:0;
+          width: 34px; height: 34px; border-radius: 10px;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 0.75rem; font-weight: 700; color: white; flex-shrink: 0;
         }
-
-        .nominal-text { font-family: monospace; font-weight: 600; font-size: 0.85rem; }
       `}</style>
+
+      {modal}
 
       <div className="container-fluid p-4">
         <div className="mb-4">
-          <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Kelola Tagihan</h1>
+          <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Kelola Tagihan SPP</h1>
           <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-            Generate dan pantau tagihan SPP siswa
+            Generate tagihan massal berdasar Billing Rules kelas & penuhi monitoring pembayaran.
           </p>
         </div>
 
-        {/* ——— Stats ——— */}
+        {/* Stats */}
         <div className="row g-3 mb-4">
           <div className="col-6 col-md-3">
             <div className="stat-card">
               <div className="stat-card__icon" style={{ background: "#eef2ff" }}>📋</div>
               <div className="stat-card__value">{totalTagihan}</div>
-              <div className="stat-card__label">Total Tagihan</div>
+              <div className="stat-card__label">Total Tagihan (Tampil)</div>
             </div>
           </div>
           <div className="col-6 col-md-3">
@@ -256,135 +260,126 @@ export default function TagihanPage() {
           </div>
         </div>
 
-        {/* ——— Generate Form ——— */}
+        {/* Generate Form */}
         <div className="gen-card mb-4">
-          <div className="gen-card__header">
-            <h2>⚡ Generate Tagihan Bulanan</h2>
-          </div>
-          <div className="gen-card__body">
-            {genError && <div className="alert alert-danger py-2 small mb-3">{genError}</div>}
-
-            {genResult && (
-              <div className="gen-result mb-3">
-                <div className="gen-result__icon">✓</div>
-                <div>
-                  <div className="d-flex align-items-baseline gap-3">
-                    <div>
-                      <div className="gen-result__count">{genResult.dibuat}</div>
-                      <div className="gen-result__label">tagihan dibuat</div>
-                    </div>
-                    <div>
-                      <div className="gen-result__count" style={{ color: "#6b7280" }}>{genResult.dilewati}</div>
-                      <div className="gen-result__label" style={{ color: "#6b7280" }}>dilewati (sudah ada)</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleGenerate}>
-              <div className="row g-2">
-                <div className="col-md-3">
-                  <label className="form-label small fw-semibold">Tahun Ajaran</label>
-                  <select className="form-select form-select-sm" value={gen.tahunAjaranId}
-                    onChange={(e) => setGen({ ...gen, tahunAjaranId: e.target.value })} required>
-                    <option value="">— Pilih —</option>
-                    {tahunAjaranList.map((t) => (
-                      <option key={t.id} value={t.id}>{t.nama}{t.aktif ? " ✓" : ""}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-2">
-                  <label className="form-label small fw-semibold">Bulan</label>
-                  <select className="form-select form-select-sm" value={gen.bulan}
-                    onChange={(e) => setGen({ ...gen, bulan: e.target.value })}>
-                    {BULAN_LABEL.slice(1).map((b, i) => (
-                      <option key={i + 1} value={i + 1}>{b}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-2">
-                  <label className="form-label small fw-semibold">Tahun</label>
-                  <select className="form-select form-select-sm" value={gen.tahun}
-                    onChange={(e) => setGen({ ...gen, tahun: e.target.value })}>
-                    {TAHUN_OPTIONS.map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-2">
-                  <label className="form-label small fw-semibold">Nominal (Rp)</label>
-                  <input type="number" className="form-control form-control-sm" value={gen.nominal}
-                    onChange={(e) => setGen({ ...gen, nominal: e.target.value })}
-                    placeholder="500000" required />
-                </div>
-                <div className="col-md-2">
-                  <label className="form-label small fw-semibold">Jatuh Tempo</label>
-                  <input type="date" className="form-control form-control-sm" value={gen.jatuhTempo}
-                    onChange={(e) => setGen({ ...gen, jatuhTempo: e.target.value })} required />
-                </div>
-                <div className="col-md-1 d-flex align-items-end">
-                  <button className="btn btn-primary btn-sm w-100" disabled={genLoading}>
-                    {genLoading
-                      ? <span className="spinner-border spinner-border-sm" />
-                      : "Generate"}
-                  </button>
-                </div>
-              </div>
-              <p className="text-muted mt-2 mb-0" style={{ fontSize: "0.75rem" }}>
-                Otomatis melewati siswa yang sudah punya tagihan di periode yang sama.
-              </p>
-            </form>
-          </div>
+          <h2 className="h6 mb-3 fw-bold" style={{ color: "var(--ink-900)" }}>
+            ⚡ Generate Tagihan Massal (Billing Rules Otomatis)
+          </h2>
+          {genError && <div className="alert alert-danger py-2 small mb-3">{genError}</div>}
+          {genResult && (
+            <div className="alert alert-success py-2 small mb-3">
+              🎉 Berhasil membuat <strong>{genResult.dibuat}</strong> tagihan baru ({genResult.dilewati} siswa dilewati).
+            </div>
+          )}
+          <form onSubmit={handleGenerate} className="row g-2 align-items-end">
+            <div className="col-12 col-sm-6 col-md-2">
+              <label className="form-label small fw-semibold text-muted">Bulan</label>
+              <select className="form-select form-select-sm" value={gen.bulan}
+                onChange={(e) => setGen({ ...gen, bulan: e.target.value })}>
+                {BULAN_LABEL.slice(1).map((lbl, i) => (
+                  <option key={i + 1} value={i + 1}>{lbl}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-sm-6 col-md-2">
+              <label className="form-label small fw-semibold text-muted">Tahun</label>
+              <select className="form-select form-select-sm" value={gen.tahun}
+                onChange={(e) => setGen({ ...gen, tahun: e.target.value })}>
+                {TAHUN_OPTIONS.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-sm-6 col-md-3">
+              <label className="form-label small fw-semibold text-muted">Tahun Ajaran</label>
+              <select className="form-select form-select-sm" value={gen.tahunAjaranId}
+                onChange={(e) => setGen({ ...gen, tahunAjaranId: e.target.value })} required>
+                <option value="">-- Pilih --</option>
+                {tahunAjaranList.map((t) => (
+                  <option key={t.id} value={t.id}>{t.nama}{t.aktif ? " (Aktif)" : ""}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-sm-6 col-md-3">
+              <label className="form-label small fw-semibold text-muted">Jatuh Tempo</label>
+              <input type="date" className="form-control form-control-sm" value={gen.jatuhTempo}
+                onChange={(e) => setGen({ ...gen, jatuhTempo: e.target.value })} required />
+            </div>
+            <div className="col-12 col-md-2">
+              <button type="submit" className="btn btn-primary btn-sm w-100 fw-bold" disabled={genLoading}>
+                {genLoading ? "Memproses..." : "⚡ Generate Massal"}
+              </button>
+            </div>
+          </form>
         </div>
 
-        {/* ——— Filter Bar ——— */}
-        <div className="filter-bar">
-          <label>Filter:</label>
-          <select className="form-select form-select-sm" style={{ maxWidth: 150 }}
+        {/* Tab Navigasi Per Kelas */}
+        <div className="class-tab-bar">
+          <button
+            className={`class-tab-btn ${filterKelasId === "" ? "active" : ""}`}
+            onClick={() => setFilterKelasId("")}
+          >
+            🏫 Semua Kelas
+          </button>
+          {kelasList.map((k) => (
+            <button
+              key={k.id}
+              className={`class-tab-btn ${filterKelasId === k.id ? "active" : ""}`}
+              onClick={() => setFilterKelasId(k.id)}
+            >
+              Kelas {k.namaKelas}
+            </button>
+          ))}
+        </div>
+
+        {/* Sub-filters (Bulan, Tahun, Status) */}
+        <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+          <select className="form-select form-select-sm" style={{ maxWidth: 140 }}
             value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)}>
             <option value="">Semua Bulan</option>
-            {BULAN_LABEL.slice(1).map((b, i) => (
-              <option key={i + 1} value={i + 1}>{b}</option>
+            {BULAN_LABEL.slice(1).map((lbl, i) => (
+              <option key={i + 1} value={i + 1}>{lbl}</option>
             ))}
           </select>
-          <select className="form-select form-select-sm" style={{ maxWidth: 120 }}
+          <select className="form-select form-select-sm" style={{ maxWidth: 130 }}
             value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)}>
             <option value="">Semua Tahun</option>
             {TAHUN_OPTIONS.map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
-          <select className="form-select form-select-sm" style={{ maxWidth: 180 }}
+          <select className="form-select form-select-sm" style={{ maxWidth: 170 }}
             value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="">Semua Status</option>
             {Object.entries(STATUS_INFO).map(([val, info]) => (
               <option key={val} value={val}>{info.label}</option>
             ))}
           </select>
-          {(filterBulan || filterTahun || filterStatus) && (
+
+          {(filterBulan || filterTahun || filterStatus || filterKelasId) && (
             <button className="btn btn-sm btn-outline-secondary" style={{ borderRadius: 8, fontSize: "0.78rem" }}
-              onClick={() => { setFilterBulan(""); setFilterTahun(""); setFilterStatus(""); }}>
-              ✕ Reset
+              onClick={() => { setFilterBulan(""); setFilterTahun(""); setFilterStatus(""); setFilterKelasId(""); }}>
+              ✕ Reset Filter
             </button>
           )}
-          <span className="ms-auto text-muted" style={{ fontSize: "0.78rem" }}>
-            {daftar.length} tagihan
+
+          <span className="ms-auto text-muted small fw-semibold">
+            {daftar.length} data tagihan ditemukan
           </span>
         </div>
 
-        {/* ——— Tabel Tagihan ——— */}
-        <div className="card p-0 overflow-hidden">
+        {/* Tabel Tagihan Spasial Rapi */}
+        <div className="card p-0 border-0 shadow-sm overflow-hidden" style={{ borderRadius: 16 }}>
           <div className="table-responsive">
-            <table className="table tagihan-table mb-0">
+            <table className="tagihan-table-clean mb-0">
               <thead>
                 <tr>
-                  <th>Siswa</th>
-                  <th>Periode</th>
-                  <th>Nominal</th>
-                  <th>Jatuh Tempo</th>
-                  <th>Status</th>
-                  <th style={{ width: 140 }}></th>
+                  <th style={{ width: "30%" }}>Identitas Siswa</th>
+                  <th style={{ width: "15%" }}>Kelas</th>
+                  <th style={{ width: "18%" }}>Periode Tagihan</th>
+                  <th style={{ width: "15%" }}>Nominal SPP</th>
+                  <th style={{ width: "12%" }}>Status</th>
+                  <th style={{ width: "10%", textAlign: "right" }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -393,67 +388,68 @@ export default function TagihanPage() {
                   return (
                     <tr key={t.id}>
                       <td>
-                        <div className="d-flex align-items-center gap-2">
+                        <div className="d-flex align-items-center gap-3">
                           <div className="siswa-avatar-sm" style={{ background: getAvatarColor(t.siswa.namaLengkap) }}>
                             {getInisial(t.siswa.namaLengkap)}
                           </div>
                           <div>
-                            <div className="fw-semibold" style={{ fontSize: "0.86rem" }}>{t.siswa.namaLengkap}</div>
-                            <div style={{ fontSize: "0.73rem", color: "var(--ink-500)", fontFamily: "monospace" }}>
-                              {t.siswa.nis}
-                            </div>
+                            <div className="fw-bold text-dark">{t.siswa.namaLengkap}</div>
+                            <div className="text-muted small" style={{ fontFamily: "monospace" }}>NIS: {t.siswa.nis}</div>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span className="periode-badge">
+                        <span className="badge bg-light text-dark border px-2 py-1">
+                          {t.siswa.kelas?.namaKelas || "-"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="fw-semibold text-primary">
                           {BULAN_LABEL[t.bulan]} {t.tahun}
-                        </span>
+                        </div>
+                        <div className="text-muted" style={{ fontSize: "0.75rem" }}>
+                          Tempo: {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                        </div>
                       </td>
                       <td>
-                        <span className="nominal-text">
+                        <div className="fw-bold" style={{ color: "#0f172a" }}>
                           Rp {t.nominal.toLocaleString("id-ID")}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: "0.82rem", color: "var(--ink-500)" }}>
-                        {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                        </div>
                       </td>
                       <td>
-                        <span className="status-chip"
-                          style={{ background: info.bg, color: info.color }}>
+                        <span className="status-chip" style={{ background: info.bg, color: info.color }}>
                           {info.label}
                         </span>
                       </td>
-                      <td>
+                      <td className="text-end">
                         {t.status === "lunas" ? (
-                          <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary" style={{ borderRadius: 8, fontSize: "0.78rem" }}>
-                            Cetak Kwitansi
+                          <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            Kwitansi
                           </a>
                         ) : (
-                          <div className="d-flex flex-column gap-1">
+                          <div className="d-flex gap-1 justify-content-end">
                             <button
-                              className="btn btn-sm btn-outline-success"
-                              style={{ borderRadius: 8, fontSize: "0.78rem" }}
+                              className="btn btn-sm btn-success rounded-pill px-2 fw-semibold"
+                              style={{ fontSize: "0.75rem" }}
                               disabled={verifyingId === t.id}
                               onClick={() => handleVerifikasi(t.id)}>
-                              {verifyingId === t.id
-                                ? <span className="spinner-border spinner-border-sm" />
-                                : "✓ Tandai Lunas"}
+                              ✓ Tandai Lunas
                             </button>
                             <button
-                              className="btn btn-sm btn-outline-secondary"
-                              style={{ borderRadius: 8, fontSize: "0.75rem" }}
+                              className="btn btn-sm btn-outline-secondary rounded-circle"
+                              style={{ width: 30, height: 30, padding: 0 }}
+                              title="Cek Status Midtrans"
                               onClick={async () => {
                                 const res = await fetch(`/api/tagihan/${t.id}/cek-status`);
                                 const data = await res.json();
                                 if (data.status === "lunas") {
                                   alert("Status terverifikasi LUNAS via Midtrans!");
-                                  window.location.reload();
+                                  muatTagihan();
                                 } else {
                                   alert(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
                                 }
                               }}>
-                              🔄 Cek Midtrans
+                              🔄
                             </button>
                           </div>
                         )}
@@ -464,8 +460,8 @@ export default function TagihanPage() {
                 {daftar.length === 0 && (
                   <tr>
                     <td colSpan={6} className="text-center text-muted py-5">
-                      <div style={{ fontSize: "2rem", marginBottom: 8 }}>📄</div>
-                      Belum ada tagihan{filterBulan || filterTahun || filterStatus ? " untuk filter ini" : ""}.
+                      <div style={{ fontSize: "2.5rem", marginBottom: 8 }}>📄</div>
+                      Belum ada data tagihan untuk filter kelas ini.
                     </td>
                   </tr>
                 )}
@@ -474,7 +470,6 @@ export default function TagihanPage() {
           </div>
         </div>
       </div>
-      {modal}
     </>
   );
 }

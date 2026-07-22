@@ -12,16 +12,24 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { bulan, tahun, nominal, tahunAjaranId, jatuhTempo } = body;
 
-  if (!bulan || !tahun || !nominal || !tahunAjaranId || !jatuhTempo) {
+  if (!bulan || !tahun || !tahunAjaranId || !jatuhTempo) {
     return NextResponse.json(
-      { error: "bulan, tahun, nominal, tahunAjaranId, dan jatuhTempo wajib diisi" },
+      { error: "bulan, tahun, tahunAjaranId, dan jatuhTempo wajib diisi" },
       { status: 400 }
     );
   }
 
+  // 1. Fetch profil sekolah untuk nominal SPP default
+  const profil = await prisma.profilSekolah.findFirst();
+  const defaultNominal = Number(nominal) || profil?.nominalSppDefault || 0;
+
+  // 2. Fetch siswa aktif beserta data kelas (Billing Rules)
   const siswaAktif = await prisma.siswa.findMany({
     where: { status: "aktif" },
-    select: { id: true },
+    select: {
+      id: true,
+      kelas: { select: { nominalSpp: true } },
+    },
   });
 
   const existing = await prisma.tagihanSpp.findMany({
@@ -36,16 +44,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ dibuat: 0, dilewati: siswaAktif.length });
   }
 
+  // 3. Masukkan tagihan dengan Billing Rules (Nominal spesifik kelas jika ada)
   await prisma.tagihanSpp.createMany({
-    data: siswaBaru.map((s) => ({
-      siswaId: s.id,
-      tahunAjaranId,
-      bulan: Number(bulan),
-      tahun: Number(tahun),
-      nominal: Number(nominal),
-      jatuhTempo: new Date(jatuhTempo),
-      status: "belum_bayar" as const,
-    })),
+    data: siswaBaru.map((s) => {
+      const nominalKelas = s.kelas?.nominalSpp && s.kelas.nominalSpp > 0
+        ? s.kelas.nominalSpp
+        : defaultNominal;
+
+      return {
+        siswaId: s.id,
+        tahunAjaranId,
+        bulan: Number(bulan),
+        tahun: Number(tahun),
+        nominal: nominalKelas,
+        jatuhTempo: new Date(jatuhTempo),
+        status: "belum_bayar" as const,
+      };
+    }),
   });
 
   return NextResponse.json({
