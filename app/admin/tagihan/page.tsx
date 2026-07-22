@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import Link from "next/link";
 
 type TahunAjaran = { id: string; nama: string; aktif: boolean };
 type KelasOption = { id: string; namaKelas: string; nominalSpp?: number };
@@ -157,6 +158,8 @@ export default function TagihanPage() {
   const totalBelum   = daftar.filter((t) => t.status === "belum_bayar" || t.status === "terlambat").length;
   const totalNominal = daftar.reduce((acc, t) => acc + t.nominal, 0);
 
+  const kelasBelumSet = kelasList.filter((k) => !k.nominalSpp || k.nominalSpp === 0);
+
   return (
     <>
       <style>{`
@@ -276,6 +279,17 @@ export default function TagihanPage() {
             Nominal tagihan setiap siswa akan diambil otomatis dari Biaya SPP Kelas siswa yang diatur pada menu <strong>Data Kelas</strong>.
           </p>
 
+          {kelasBelumSet.length > 0 && (
+            <div className="alert alert-warning py-2 px-3 small mb-3 border-warning d-flex align-items-center justify-content-between flex-wrap gap-2" style={{ borderRadius: 10 }}>
+              <div>
+                <strong>⚠️ Peringatan:</strong> Ada <strong>{kelasBelumSet.length} kelas</strong> ({kelasBelumSet.slice(0, 3).map((k) => k.namaKelas).join(", ")}) yang biaya SPP-nya belum diatur (masih Rp 0).
+              </div>
+              <Link href="/admin/kelas" className="btn btn-sm btn-warning fw-bold py-1 px-3 text-dark" style={{ fontSize: "0.76rem" }}>
+                👉 Atur Biaya SPP per Kelas
+              </Link>
+            </div>
+          )}
+
           {genError && <div className="alert alert-danger py-2 small mb-3">{genError}</div>}
           {genResult && (
             <div className="alert alert-success py-2 small mb-3">
@@ -343,7 +357,11 @@ export default function TagihanPage() {
                 <span className="badge rounded-pill" style={{ background: filterKelasId === k.id ? "rgba(255,255,255,0.25)" : "#f1f5f9", color: filterKelasId === k.id ? "#fff" : "#475569", fontSize: "0.7rem" }}>
                   Rp {(k.nominalSpp / 1000).toFixed(0)}k
                 </span>
-              ) : null}
+              ) : (
+                <span className="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning" style={{ fontSize: "0.68rem" }}>
+                  ⚠️ Rp 0
+                </span>
+              )}
             </button>
           ))}
         </div>

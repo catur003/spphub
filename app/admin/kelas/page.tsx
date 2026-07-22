@@ -189,6 +189,8 @@ export default function KelasPage() {
     }
   }
 
+  const kelasBelumSet = daftar.filter((k) => !k.nominalSpp || k.nominalSpp === 0);
+
   return (
     <>
       <style>{`
@@ -232,12 +234,6 @@ export default function KelasPage() {
           background: #eef2ff; color: #4338ca; border-radius: 20px;
           padding: 3px 10px; font-size: 0.78rem; font-weight: 600;
         }
-        .tingkat-badge {
-          display: inline-flex; align-items: center; justify-content: center;
-          min-width: 28px; height: 28px; border-radius: 8px; padding: 0 8px;
-          background: #f0fdf4; color: #15803d;
-          font-size: 0.8rem; font-weight: 700;
-        }
       `}</style>
 
       {toast && (
@@ -250,9 +246,19 @@ export default function KelasPage() {
         <div className="mb-4">
           <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Data Kelas & Biaya SPP</h1>
           <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-            {daftar.length} kelas terdaftar | Atur Wali Kelas, Biaya SPP, dan Rekap Pembayaran Siswa per Kelas
+            {daftar.length} kelas terdaftar | Atur Biaya SPP per kelas untuk generate tagihan massal presisi
           </p>
         </div>
+
+        {/* Top Warning Banner untuk Kelas yang Belum Set SPP */}
+        {kelasBelumSet.length > 0 && (
+          <div className="alert alert-warning border-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4" style={{ borderRadius: 14 }}>
+            <div>
+              <strong className="text-dark">⚠️ Peringatan SPP:</strong> Terdapat <strong>{kelasBelumSet.length} kelas</strong> ({kelasBelumSet.slice(0, 3).map((k) => k.namaKelas).join(", ")}) yang biaya SPP-nya belum diatur (masih Rp 0).
+              <div className="small text-muted">Klik tombol <strong>Edit</strong> di sebelah kanan baris kelas untuk mengatur tarif SPP agar tagihan massal akurat.</div>
+            </div>
+          </div>
+        )}
 
         <div className="row">
           {/* Form Tambah */}
@@ -351,9 +357,15 @@ export default function KelasPage() {
                           </div>
                         </td>
                         <td>
-                          <div className="fw-bold text-success">
-                            {(k.nominalSpp || 0).toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
-                          </div>
+                          {!k.nominalSpp || k.nominalSpp === 0 ? (
+                            <span className="badge bg-warning-subtle text-warning-emphasis border border-warning px-2 py-1" style={{ fontSize: "0.78rem" }}>
+                              ⚠️ Rp 0 (Belum Diatur)
+                            </span>
+                          ) : (
+                            <div className="fw-bold text-success">
+                              {k.nominalSpp.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+                            </div>
+                          )}
                         </td>
                         <td>
                           <span className="siswa-count-badge">
@@ -367,7 +379,9 @@ export default function KelasPage() {
                               👥 Detail & Rekap
                             </button>
                             <button className="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
-                              onClick={() => bukaEdit(k)}>Edit</button>
+                              onClick={() => bukaEdit(k)}>
+                              {!k.nominalSpp || k.nominalSpp === 0 ? "✏️ Set SPP" : "Edit"}
+                            </button>
                             <button className="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               disabled={deletingId === k.id}
                               onClick={() => handleDelete(k.id)}>
@@ -405,13 +419,24 @@ export default function KelasPage() {
                     <div className="kelas-badge" style={{ background: kelasColor(editKelas.namaKelas) }}>
                       {editKelas.namaKelas.slice(0, 2).toUpperCase()}
                     </div>
-                    <h5 className="modal-title">Edit Kelas & Wali Kelas</h5>
+                    <h5 className="modal-title">Edit Biaya SPP & Kelas {editKelas.namaKelas}</h5>
                   </div>
                   <button type="button" className="btn-close" onClick={tutupEdit} />
                 </div>
                 <form onSubmit={handleSimpanEdit}>
                   <div className="modal-body">
                     {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
+                    <div className="mb-3">
+                      <label className="form-label small fw-semibold">Biaya SPP per Bulan (Rp)</label>
+                      <div className="input-group">
+                        <span className="input-group-text bg-light text-muted fw-semibold">Rp</span>
+                        <input type="number" className="form-control form-control-lg fw-bold text-success" value={editKelas.nominalSpp || 0}
+                          onChange={(e) => setEditKelas({ ...editKelas, nominalSpp: Number(e.target.value) })} required min={0} placeholder="Contoh: 350000" />
+                      </div>
+                      <div className="form-text text-muted" style={{ fontSize: "0.78rem" }}>
+                        Nominal ini akan otomatis dipakai saat generate tagihan massal untuk siswa di kelas ini.
+                      </div>
+                    </div>
                     <div className="mb-3">
                       <label className="form-label small fw-semibold">Nama Kelas</label>
                       <input className="form-control" value={editKelas.namaKelas}
@@ -422,25 +447,17 @@ export default function KelasPage() {
                       <input type="number" className="form-control" value={editKelas.tingkat}
                         onChange={(e) => setEditKelas({ ...editKelas, tingkat: Number(e.target.value) })} required min={1} max={15} />
                     </div>
-                    <div className="mb-3">
+                    <div className="mb-2">
                       <label className="form-label small fw-semibold">Wali Kelas</label>
                       <input className="form-control" value={editKelas.waliKelas || ""}
                         onChange={(e) => setEditKelas({ ...editKelas, waliKelas: e.target.value })}
                         placeholder="Nama Guru Wali Kelas" />
                     </div>
-                    <div className="mb-2">
-                      <label className="form-label small fw-semibold">Biaya SPP per Bulan (Rp)</label>
-                      <div className="input-group">
-                        <span className="input-group-text bg-light text-muted fw-semibold">Rp</span>
-                        <input type="number" className="form-control" value={editKelas.nominalSpp || 0}
-                          onChange={(e) => setEditKelas({ ...editKelas, nominalSpp: Number(e.target.value) })} required min={0} />
-                      </div>
-                    </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn btn-outline-secondary" onClick={tutupEdit}>Batal</button>
                     <button type="submit" className="btn btn-primary px-4 fw-bold" disabled={loading}>
-                      {loading ? "Menyimpan..." : "💾 Simpan Perubahan"}
+                      {loading ? "Menyimpan..." : "💾 Simpan Biaya SPP & Kelas"}
                     </button>
                   </div>
                 </form>
