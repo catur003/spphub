@@ -46,20 +46,25 @@ export default function KelasPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const res = await fetch("/api/kelas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ namaKelas, tingkat }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || "Gagal menyimpan");
-      return;
+    try {
+      const res = await fetch("/api/kelas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ namaKelas, tingkat }),
+      });
+      setLoading(false);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || `Gagal menyimpan kelas (Status ${res.status})`);
+        return;
+      }
+      setNamaKelas(""); setTingkat(""); setError("");
+      tampilToast("Kelas berhasil ditambahkan");
+      muatData();
+    } catch (err: any) {
+      setLoading(false);
+      setError("Gagal terhubung ke server: " + err.message);
     }
-    setNamaKelas(""); setTingkat(""); setError("");
-    tampilToast("Kelas berhasil ditambahkan");
-    muatData();
   }
 
   // ——— Edit (modal) ———
@@ -78,35 +83,45 @@ export default function KelasPage() {
     if (!editKelas) return;
     setError("");
     setLoading(true);
-    const res = await fetch(`/api/kelas/${editKelas.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ namaKelas: editKelas.namaKelas, tingkat: editKelas.tingkat }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || "Gagal menyimpan");
-      return;
+    try {
+      const res = await fetch(`/api/kelas/${editKelas.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ namaKelas: editKelas.namaKelas, tingkat: editKelas.tingkat }),
+      });
+      setLoading(false);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || `Gagal memperbarui kelas (Status ${res.status})`);
+        return;
+      }
+      tutupEdit();
+      tampilToast("Kelas berhasil diperbarui");
+      muatData();
+    } catch (err: any) {
+      setLoading(false);
+      setError("Gagal terhubung ke server: " + err.message);
     }
-    tutupEdit();
-    tampilToast("Kelas berhasil diperbarui");
-    muatData();
   }
 
   // ——— Hapus ———
   async function handleDelete(id: string) {
     if (!(await confirm("Hapus kelas ini? Siswa yang terdaftar tidak akan ikut terhapus.", { confirmLabel: "Ya, Hapus" }))) return;
     setDeletingId(id);
-    const res = await fetch(`/api/kelas/${id}`, { method: "DELETE" });
-    setDeletingId(null);
-    if (!res.ok) {
-      const data = await res.json();
-      await alertMsg(data.error || "Gagal menghapus");
-      return;
+    try {
+      const res = await fetch(`/api/kelas/${id}`, { method: "DELETE" });
+      setDeletingId(null);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        await alertMsg(data.error || `Gagal menghapus kelas (Status ${res.status})`);
+        return;
+      }
+      tampilToast("Kelas berhasil dihapus");
+      muatData();
+    } catch (err: any) {
+      setDeletingId(null);
+      await alertMsg("Gagal terhubung ke server: " + err.message);
     }
-    tampilToast("Kelas berhasil dihapus");
-    muatData();
   }
 
   return (
