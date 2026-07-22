@@ -10,9 +10,14 @@ type Siswa = {
   nisn: string | null;
   namaLengkap: string;
   jenisKelamin: "L" | "P";
+  tanggalLahir?: string | null;
+  namaWali?: string | null;
+  kontakWali?: string | null;
+  fotoUrl?: string | null;
   status: string;
   kelas: Kelas | null;
   akun: { email: string } | null;
+  tagihan?: { id: string; bulan: number; tahun: number; nominal: number; status: string; updatedAt: string }[];
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -29,6 +34,11 @@ const STATUS_COLOR: Record<string, string> = {
   nonaktif: "badge-status--nonaktif",
 };
 
+const BULAN_LABEL = [
+  "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
 type HasilImport = {
   total: number;
   berhasil: number;
@@ -41,8 +51,10 @@ const FORM_TAMBAH_KOSONG = {
   nisn: "",
   jenisKelamin: "L",
   kelasId: "",
+  tanggalLahir: "",
   namaWali: "",
   kontakWali: "",
+  fotoUrl: "",
   status: "aktif",
   buatAkun: false,
   email: "",
@@ -55,8 +67,10 @@ type FormEdit = {
   nisn: string;
   jenisKelamin: string;
   kelasId: string;
+  tanggalLahir: string;
   namaWali: string;
   kontakWali: string;
+  fotoUrl: string;
   status: string;
   // Manajemen akun
   buatAkun: boolean;
@@ -74,8 +88,10 @@ const FORM_EDIT_KOSONG: FormEdit = {
   nisn: "",
   jenisKelamin: "L",
   kelasId: "",
+  tanggalLahir: "",
   namaWali: "",
   kontakWali: "",
+  fotoUrl: "",
   status: "aktif",
   buatAkun: false,
   email: "",
@@ -120,6 +136,10 @@ export default function SiswaPage() {
   const [formEdit, setFormEdit] = useState<FormEdit>(FORM_EDIT_KOSONG);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [errorEdit, setErrorEdit] = useState("");
+
+  // State modal detail siswa
+  const [detailSiswa, setDetailSiswa] = useState<Siswa | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -189,6 +209,10 @@ export default function SiswaPage() {
       nisn: s.nisn || "",
       jenisKelamin: s.jenisKelamin,
       kelasId: s.kelas?.id || "",
+      tanggalLahir: s.tanggalLahir ? new Date(s.tanggalLahir).toISOString().slice(0, 10) : "",
+      namaWali: s.namaWali || "",
+      kontakWali: s.kontakWali || "",
+      fotoUrl: s.fotoUrl || "",
       status: s.status,
     });
     setErrorEdit("");
@@ -222,6 +246,22 @@ export default function SiswaPage() {
     tutupEdit();
     tampilToast("Data siswa berhasil disimpan");
     muatData();
+  }
+
+  // ——— Modal Detail Siswa ———
+  async function bukaDetailSiswa(id: string) {
+    setLoadingDetail(true);
+    setDetailSiswa(null);
+    try {
+      const res = await fetch(`/api/siswa/${id}`);
+      if (res.ok) {
+        setDetailSiswa(await res.json());
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDetail(false);
+    }
   }
 
   // ——— Hapus ———
@@ -267,8 +307,6 @@ export default function SiswaPage() {
     muatData();
   }
 
-  const sudahPunyaAkun = !!editSiswa?.akun;
-
   return (
     <>
       <style>{`
@@ -298,127 +336,64 @@ export default function SiswaPage() {
 
         /* ——— Avatar ——— */
         .siswa-avatar {
-          width: 34px; height: 34px; border-radius: 10px;
+          width: 36px; height: 36px; border-radius: 10px;
           display: inline-flex; align-items: center; justify-content: center;
-          font-size: 0.72rem; font-weight: 700; color: white;
-          flex-shrink: 0;
-        }
-
-        /* ——— Modal Edit ——— */
-        .modal-edit .modal-content {
-          border: none; border-radius: 18px;
-          box-shadow: 0 24px 60px rgba(15,23,42,.18);
-        }
-        .modal-edit .modal-header {
-          background: linear-gradient(135deg,#4f46e5,#7c3aed);
-          border-radius: 18px 18px 0 0; padding: 1.1rem 1.4rem;
-          border-bottom: none;
-        }
-        .modal-edit .modal-title { color: #fff; font-weight: 700; font-size: 1.05rem; }
-        .modal-edit .btn-close { filter: invert(1) brightness(2); opacity: .85; }
-        .modal-edit .modal-body { padding: 1.4rem; max-height: 75vh; overflow-y: auto; }
-        .modal-edit .modal-footer {
-          border-top: 1px solid var(--border-soft);
-          padding: 0.9rem 1.4rem; border-radius: 0 0 18px 18px;
-        }
-
-        /* ——— Section akun dalam modal ——— */
-        .akun-section {
-          border: 1.5px dashed #c4b5fd; border-radius: 12px;
-          padding: 1rem 1.1rem; background: #faf5ff; margin-top: 0.5rem;
-        }
-        .akun-section--ada {
-          border-color: #a5b4fc; background: #eef2ff;
-        }
-        .akun-section__label {
-          font-size: 0.78rem; font-weight: 600; color: #6d28d9;
-          text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem;
-          display: flex; align-items: center; gap: 6px;
-        }
-        .akun-section--ada .akun-section__label { color: #4338ca; }
-
-        /* ——— Toggle switch ——— */
-        .toggle-row {
-          display: flex; align-items: center; justify-content: space-between;
-          gap: 0.5rem; cursor: pointer; user-select: none;
-        }
-        .toggle-row input[type="checkbox"] { cursor: pointer; }
-
-        /* ——— Field collapse animasi ——— */
-        .field-group-collapse {
+          font-size: 0.78rem; font-weight: 700; color: white; flex-shrink: 0;
           overflow: hidden;
-          transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
-          max-height: 0; opacity: 0;
         }
-        .field-group-collapse.open { max-height: 300px; opacity: 1; }
 
-        /* ——— Toast ——— */
+        .siswa-table th {
+          font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+          color: var(--ink-500); font-weight: 600; background: var(--surface);
+          padding: 0.75rem 0.9rem; border-bottom: 2px solid var(--border-soft);
+        }
+        .siswa-table td { padding: 0.75rem 0.9rem; vertical-align: middle; }
+
         .toast-snack {
           position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
           display: flex; align-items: center; gap: 10px;
           padding: 0.75rem 1.1rem; border-radius: 12px;
           font-size: 0.88rem; font-weight: 500;
           box-shadow: 0 8px 24px rgba(15,23,42,.18);
-          animation: toastIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
         }
-        .toast-snack--success { background: #fff; border-left: 4px solid #10b981; color: #065f46; }
-        .toast-snack--error   { background: #fff; border-left: 4px solid #ef4444; color: #991b1b; }
-        @keyframes toastIn {
-          from { opacity: 0; transform: translateY(12px) scale(0.95); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
+        .toast-snack--success { background:#fff; border-left:4px solid #10b981; color:#065f46; }
 
-        /* ——— Tabel siswa ——— */
-        .siswa-table th {
-          font-size: 0.76rem; text-transform: uppercase;
-          letter-spacing: 0.05em; color: var(--ink-500);
-          font-weight: 600; background: var(--surface);
-          padding: 0.65rem 0.85rem; border-bottom: 2px solid var(--border-soft);
-        }
-        .siswa-table td { padding: 0.7rem 0.85rem; vertical-align: middle; font-size: 0.88rem; }
-        .siswa-table tbody tr { transition: background 0.12s ease; }
-        .siswa-table tbody tr:hover { background: #f5f7ff; }
-
-        /* ——— Card form tambah ——— */
         .card-form-tambah .card-header {
-          background: linear-gradient(135deg,#4f46e5,#7c3aed);
+          background: linear-gradient(135deg, #4f46e5, #7c3aed);
           border-radius: 14px 14px 0 0; padding: 0.9rem 1.1rem; border-bottom: none;
         }
         .card-form-tambah .card-header h2 { color: #fff; font-size: 0.92rem; margin: 0; font-weight: 700; }
-
-        /* ——— Import result ——— */
-        .import-result-success { background:#f0fdf4; border:1.5px solid #86efac; color:#166534; border-radius:10px; padding:0.65rem 1rem; font-size:0.85rem; }
-        .import-result-table   { border-radius:10px; overflow:hidden; font-size:0.82rem; }
       `}</style>
 
-      {/* ——— Toast ——— */}
+      {modal}
+
       {toast && (
         <div className={`toast-snack toast-snack--${toast.type}`}>
-          {toast.type === "success" ? "✓" : "✕"} {toast.msg}
+          ✓ {toast.msg}
         </div>
       )}
 
       <div className="container-fluid p-4">
-        <div className="d-flex align-items-center justify-content-between mb-4">
+        <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
           <div>
             <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Data Siswa</h1>
             <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-              {daftar.length} siswa ditemukan
+              {daftar.length} siswa ditampilkan (Cari untuk melihat hasil spesifik)
             </p>
           </div>
         </div>
 
         {/* ——— Import / Export ——— */}
-        <div className="card mb-4">
-          <div className="card-body">
-            <h2 className="h6 fw-semibold mb-3" style={{ color: "var(--ink-700)" }}>
-              📥 Import / Export Excel
+        <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: 16 }}>
+          <div className="card-body p-4">
+            <h2 className="h6 fw-bold mb-3" style={{ color: "var(--ink-800)" }}>
+              📥 Import / Export Excel Siswa
             </h2>
             <div className="d-flex flex-wrap gap-2 mb-3">
-              <a className="btn btn-sm btn-outline-secondary" href="/api/siswa/template">
-                ⬇ Download Template
+              <a className="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold" href="/api/siswa/template">
+                ⬇ Download Template (.xlsx)
               </a>
-              <a className="btn btn-sm btn-outline-secondary" href="/api/siswa/export">
+              <a className="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold" href="/api/siswa/export">
                 ⬇ Export Data Siswa (.xlsx)
               </a>
             </div>
@@ -430,47 +405,29 @@ export default function SiswaPage() {
                 style={{ maxWidth: 320 }}
                 onChange={(e) => setFileImport(e.target.files?.[0] || null)}
               />
-              <button className="btn btn-sm btn-primary" disabled={!fileImport || importLoading}>
-                {importLoading ? (
-                  <><span className="spinner-border spinner-border-sm me-1" />Mengimpor...</>
-                ) : "Import"}
+              <button className="btn btn-sm btn-primary rounded-pill px-4 fw-bold" disabled={!fileImport || importLoading}>
+                {importLoading ? "Mengimpor..." : "Import Siswa"}
               </button>
             </form>
             {importError && <div className="alert alert-danger py-2 mt-3 mb-0 small">{importError}</div>}
             {hasilImport && (
               <div className="mt-3">
-                <div className="import-result-success mb-2">
+                <div className="alert alert-success py-2 small mb-2">
                   ✓ <strong>{hasilImport.berhasil}</strong> dari <strong>{hasilImport.total}</strong> baris berhasil diimport.
                 </div>
-                {hasilImport.gagal.length > 0 && (
-                  <div className="table-responsive import-result-table" style={{ maxHeight: 240, overflowY: "auto" }}>
-                    <table className="table table-sm table-bordered mb-0">
-                      <thead><tr><th>Baris</th><th>Nama</th><th>Alasan Gagal</th></tr></thead>
-                      <tbody>
-                        {hasilImport.gagal.map((g, i) => (
-                          <tr key={i}>
-                            <td>{g.baris}</td>
-                            <td>{g.nama || "—"}</td>
-                            <td>{g.alasan}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
               </div>
             )}
           </div>
         </div>
 
         <div className="row">
-          {/* ——— Form Tambah (inline kiri) ——— */}
+          {/* ——— Form Tambah ——— */}
           <div className="col-lg-4 mb-4">
-            <div className="card card-form-tambah">
+            <div className="card card-form-tambah shadow-sm border-0" style={{ borderRadius: 16 }}>
               <div className="card-header">
-                <h2>✚ Tambah Siswa</h2>
+                <h2>✚ Tambah Siswa Baru</h2>
               </div>
-              <div className="card-body">
+              <div className="card-body p-4">
                 {errorTambah && <div className="alert alert-danger py-2 small">{errorTambah}</div>}
                 <form onSubmit={handleTambah}>
                   <div className="mb-2">
@@ -490,21 +447,41 @@ export default function SiswaPage() {
                         onChange={(e) => setFormTambah({ ...formTambah, nisn: e.target.value })} />
                     </div>
                   </div>
-                  <div className="mb-2">
-                    <label className="form-label small fw-semibold">Jenis Kelamin</label>
-                    <select className="form-select form-select-sm" value={formTambah.jenisKelamin}
-                      onChange={(e) => setFormTambah({ ...formTambah, jenisKelamin: e.target.value })}>
-                      <option value="L">Laki-laki</option>
-                      <option value="P">Perempuan</option>
-                    </select>
+                  <div className="row g-2 mb-2">
+                    <div className="col-6">
+                      <label className="form-label small fw-semibold">Jenis Kelamin</label>
+                      <select className="form-select form-select-sm" value={formTambah.jenisKelamin}
+                        onChange={(e) => setFormTambah({ ...formTambah, jenisKelamin: e.target.value })}>
+                        <option value="L">Laki-laki</option>
+                        <option value="P">Perempuan</option>
+                      </select>
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label small fw-semibold">Kelas</label>
+                      <select className="form-select form-select-sm" value={formTambah.kelasId}
+                        onChange={(e) => setFormTambah({ ...formTambah, kelasId: e.target.value })}>
+                        <option value="">— Pilih Kelas —</option>
+                        {kelasList.map((k) => <option key={k.id} value={k.id}>{k.namaKelas}</option>)}
+                      </select>
+                    </div>
                   </div>
                   <div className="mb-2">
-                    <label className="form-label small fw-semibold">Kelas</label>
-                    <select className="form-select form-select-sm" value={formTambah.kelasId}
-                      onChange={(e) => setFormTambah({ ...formTambah, kelasId: e.target.value })}>
-                      <option value="">— Belum ada kelas —</option>
-                      {kelasList.map((k) => <option key={k.id} value={k.id}>{k.namaKelas}</option>)}
-                    </select>
+                    <label className="form-label small fw-semibold">Foto Profile URL (Opsional)</label>
+                    <input className="form-control form-control-sm" value={formTambah.fotoUrl}
+                      onChange={(e) => setFormTambah({ ...formTambah, fotoUrl: e.target.value })}
+                      placeholder="https://link-foto-siswa.jpg" />
+                  </div>
+                  <div className="row g-2 mb-2">
+                    <div className="col-6">
+                      <label className="form-label small fw-semibold">Nama Wali</label>
+                      <input className="form-control form-control-sm" value={formTambah.namaWali}
+                        onChange={(e) => setFormTambah({ ...formTambah, namaWali: e.target.value })} />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label small fw-semibold">Kontak Wali</label>
+                      <input className="form-control form-control-sm" value={formTambah.kontakWali}
+                        onChange={(e) => setFormTambah({ ...formTambah, kontakWali: e.target.value })} />
+                    </div>
                   </div>
                   <div className="mb-3">
                     <label className="form-label small fw-semibold">Status</label>
@@ -516,36 +493,8 @@ export default function SiswaPage() {
                     </select>
                   </div>
 
-                  {/* Buat akun sekaligus */}
-                  <div className="akun-section">
-                    <label className="toggle-row mb-0">
-                      <span className="akun-section__label" style={{ marginBottom: 0 }}>
-                        🔑 Buat akun login
-                      </span>
-                      <input type="checkbox" className="form-check-input"
-                        checked={formTambah.buatAkun}
-                        onChange={(e) => setFormTambah({ ...formTambah, buatAkun: e.target.checked })} />
-                    </label>
-                    <div className={`field-group-collapse${formTambah.buatAkun ? " open" : ""}`}>
-                      <div className="mt-2">
-                        <input type="email" className="form-control form-control-sm mb-2"
-                          placeholder="Email siswa"
-                          value={formTambah.email}
-                          onChange={(e) => setFormTambah({ ...formTambah, email: e.target.value })}
-                          required={formTambah.buatAkun} />
-                        <input type="password" className="form-control form-control-sm"
-                          placeholder="Password (min. 8 karakter)"
-                          value={formTambah.password}
-                          onChange={(e) => setFormTambah({ ...formTambah, password: e.target.value })}
-                          required={formTambah.buatAkun} minLength={8} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <button className="btn btn-primary w-100 mt-3" disabled={loadingTambah}>
-                    {loadingTambah
-                      ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
-                      : "Tambah Siswa"}
+                  <button className="btn btn-primary w-100 fw-bold py-2" disabled={loadingTambah}>
+                    {loadingTambah ? "Menyimpan..." : "Simpan Data Siswa"}
                   </button>
                 </form>
               </div>
@@ -554,41 +503,55 @@ export default function SiswaPage() {
 
           {/* ——— Tabel Siswa ——— */}
           <div className="col-lg-8">
-            <div className="d-flex gap-2 mb-3 flex-wrap">
-              <input className="form-control" placeholder="🔍 Cari nama / NIS / NISN..."
-                value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 280 }} />
-              <select className="form-select" style={{ maxWidth: 200 }}
-                value={filterKelasId} onChange={(e) => setFilterKelasId(e.target.value)}>
-                <option value="">Semua Kelas</option>
-                {kelasList.map((k) => <option key={k.id} value={k.id}>{k.namaKelas}</option>)}
-              </select>
+            <div className="card border-0 shadow-sm p-3 mb-3" style={{ borderRadius: 16 }}>
+              <div className="row g-2">
+                <div className="col-md-7">
+                  <input
+                    className="form-control form-control-sm"
+                    placeholder="🔍 Cari nama siswa / NIS / NISN..."
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                  />
+                </div>
+                <div className="col-md-5">
+                  <select className="form-select form-select-sm" value={filterKelasId} onChange={(e) => setFilterKelasId(e.target.value)}>
+                    <option value="">Semua Kelas</option>
+                    {kelasList.map((k) => <option key={k.id} value={k.id}>{k.namaKelas}</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div className="card p-0 overflow-hidden">
+            <div className="card p-0 border-0 shadow-sm overflow-hidden" style={{ borderRadius: 16 }}>
               <div className="table-responsive">
-                <table className="table siswa-table mb-0">
+                <table className="table siswa-table align-middle mb-0">
                   <thead>
                     <tr>
-                      <th>Siswa</th>
+                      <th>Identitas Siswa</th>
                       <th>NIS</th>
                       <th>Kelas</th>
                       <th>Status</th>
-                      <th>Akun Login</th>
-                      <th style={{ width: 100 }}></th>
+                      <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {daftar.map((s) => (
                       <tr key={s.id}>
-                        <td>
+                        <td style={{ cursor: "pointer" }} onClick={() => bukaDetailSiswa(s.id)}>
                           <div className="d-flex align-items-center gap-2">
                             <div className="siswa-avatar" style={{ background: getAvatarColor(s.namaLengkap) }}>
-                              {getInisial(s.namaLengkap)}
+                              {s.fotoUrl ? (
+                                <img src={s.fotoUrl} alt="Foto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              ) : (
+                                getInisial(s.namaLengkap)
+                              )}
                             </div>
                             <div>
-                              <div className="fw-semibold" style={{ fontSize: "0.88rem" }}>{s.namaLengkap}</div>
+                              <div className="fw-bold text-dark text-decoration-none hover-primary" style={{ fontSize: "0.88rem" }}>
+                                {s.namaLengkap}
+                              </div>
                               <div style={{ fontSize: "0.75rem", color: "var(--ink-500)" }}>
-                                {s.jenisKelamin === "L" ? "Laki-laki" : "Perempuan"}
+                                {s.jenisKelamin === "L" ? "Laki-laki" : "Perempuan"} {s.namaWali ? `• Wali: ${s.namaWali}` : ""}
                               </div>
                             </div>
                           </div>
@@ -602,27 +565,20 @@ export default function SiswaPage() {
                             {STATUS_LABEL[s.status] || s.status}
                           </span>
                         </td>
-                        <td>
-                          {s.akun ? (
-                            <span className="chip-akun chip-akun--ada" title={s.akun.email}>
-                              🔑 {s.akun.email.length > 22 ? s.akun.email.slice(0, 20) + "…" : s.akun.email}
-                            </span>
-                          ) : (
-                            <span className="chip-akun chip-akun--kosong">Belum ada akun</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="d-flex gap-1">
-                            <button className="btn btn-sm btn-outline-primary" style={{ borderRadius: 8 }}
+                        <td className="text-end" style={{ whiteSpace: "nowrap" }}>
+                          <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
+                            <button className="btn btn-sm btn-outline-info rounded-pill px-2 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
+                              onClick={() => bukaDetailSiswa(s.id)}>
+                              👁️ Profil
+                            </button>
+                            <button className="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               onClick={() => bukaEdit(s)}>
                               Edit
                             </button>
-                            <button className="btn btn-sm btn-outline-danger" style={{ borderRadius: 8 }}
+                            <button className="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               disabled={deletingId === s.id}
                               onClick={() => handleDelete(s.id)}>
-                              {deletingId === s.id
-                                ? <span className="spinner-border spinner-border-sm" />
-                                : "Hapus"}
+                              {deletingId === s.id ? "..." : "Hapus"}
                             </button>
                           </div>
                         </td>
@@ -630,9 +586,9 @@ export default function SiswaPage() {
                     ))}
                     {daftar.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="text-center text-muted py-5">
+                        <td colSpan={5} className="text-center text-muted py-5">
                           <div style={{ fontSize: "2rem", marginBottom: 8 }}>🎓</div>
-                          Belum ada data siswa.
+                          Belum ada data siswa yang cocok dengan kriteria.
                         </td>
                       </tr>
                     )}
@@ -644,60 +600,142 @@ export default function SiswaPage() {
         </div>
       </div>
 
-      {/* ——————————————————————————————————————————
-          MODAL EDIT SISWA
-      —————————————————————————————————————————— */}
+      {/* ——— MODAL DETAIL PROFIL SISWA ——— */}
+      {(loadingDetail || detailSiswa) && (
+        <>
+          <div className="modal-backdrop fade show" />
+          <div className="modal fade show d-block" tabIndex={-1} role="dialog" onClick={() => setDetailSiswa(null)}>
+            <div className="modal-dialog modal-dialog-centered modal-lg" role="document" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 20 }}>
+                {loadingDetail ? (
+                  <div className="p-5 text-center text-muted">
+                    <div className="spinner-border text-primary mb-2" />
+                    <p className="mb-0 fw-semibold">Memuat profil lengkap siswa...</p>
+                  </div>
+                ) : detailSiswa && (
+                  <>
+                    <div className="modal-header bg-primary text-white" style={{ borderRadius: "20px 20px 0 0", padding: "1.2rem 1.6rem" }}>
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="siswa-avatar" style={{ width: 48, height: 48, background: getAvatarColor(detailSiswa.namaLengkap) }}>
+                          {detailSiswa.fotoUrl ? (
+                            <img src={detailSiswa.fotoUrl} alt="Foto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            getInisial(detailSiswa.namaLengkap)
+                          )}
+                        </div>
+                        <div>
+                          <h5 className="modal-title fw-bold text-white mb-0">{detailSiswa.namaLengkap}</h5>
+                          <span className="badge bg-light text-primary fw-bold" style={{ fontSize: "0.75rem" }}>
+                            {detailSiswa.kelas?.namaKelas ? `Kelas ${detailSiswa.kelas.namaKelas}` : "Belum Ada Kelas"}
+                          </span>
+                        </div>
+                      </div>
+                      <button type="button" className="btn-close btn-close-white" onClick={() => setDetailSiswa(null)} />
+                    </div>
+                    <div className="modal-body p-4">
+                      <div className="row g-3 mb-4">
+                        <div className="col-md-6">
+                          <div className="p-3 bg-light rounded-3">
+                            <h6 className="fw-bold mb-2 text-dark">📋 Data Identitas</h6>
+                            <div className="small mb-1"><strong>NIS:</strong> <span style={{ fontFamily: "monospace" }}>{detailSiswa.nis}</span></div>
+                            <div className="small mb-1"><strong>NISN:</strong> <span style={{ fontFamily: "monospace" }}>{detailSiswa.nisn || "-"}</span></div>
+                            <div className="small mb-1"><strong>Jenis Kelamin:</strong> {detailSiswa.jenisKelamin === "L" ? "Laki-laki" : "Perempuan"}</div>
+                            <div className="small mb-1"><strong>Status Siswa:</strong> <span className={`badge-status ${STATUS_COLOR[detailSiswa.status] || ""}`}>{detailSiswa.status}</span></div>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="p-3 bg-light rounded-3">
+                            <h6 className="fw-bold mb-2 text-dark">👨‍👩‍👧 Data Orang Tua / Wali</h6>
+                            <div className="small mb-1"><strong>Nama Wali:</strong> {detailSiswa.namaWali || "-"}</div>
+                            <div className="small mb-1"><strong>Kontak Wali:</strong> {detailSiswa.kontakWali || "-"}</div>
+                            <div className="small mb-1"><strong>Email Login Akun:</strong> {detailSiswa.akun?.email || "Belum Dibuatkan"}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Riwayat Tagihan SPP Siswa */}
+                      <h6 className="fw-bold mb-2">📜 Riwayat Tagihan SPP Siswa</h6>
+                      <div className="table-responsive" style={{ maxHeight: 220 }}>
+                        <table className="table table-sm table-hover mb-0" style={{ fontSize: "0.84rem" }}>
+                          <thead className="table-light">
+                            <tr>
+                              <th>Periode</th>
+                              <th>Nominal</th>
+                              <th>Status</th>
+                              <th>Tanggal Terakhir</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {detailSiswa.tagihan?.map((t) => (
+                              <tr key={t.id}>
+                                <td>{BULAN_LABEL[t.bulan]} {t.tahun}</td>
+                                <td className="fw-semibold">Rp {t.nominal.toLocaleString("id-ID")}</td>
+                                <td>
+                                  <span className={`badge ${t.status === "lunas" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
+                                    {t.status}
+                                  </span>
+                                </td>
+                                <td className="text-muted small">
+                                  {new Date(t.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                                </td>
+                              </tr>
+                            ))}
+                            {(!detailSiswa.tagihan || detailSiswa.tagihan.length === 0) && (
+                              <tr>
+                                <td colSpan={4} className="text-center text-muted py-3">Belum ada riwayat tagihan SPP untuk siswa ini.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div className="modal-footer bg-light" style={{ borderRadius: "0 0 20px 20px" }}>
+                      <button className="btn btn-secondary rounded-pill px-4" onClick={() => setDetailSiswa(null)}>
+                        Tutup
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ——— MODAL EDIT SISWA ——— */}
       {editSiswa && (
         <>
           <div className="modal-backdrop fade show" />
-          <div className="modal fade show d-block modal-edit" tabIndex={-1} role="dialog" onClick={tutupEdit}>
-            <div className="modal-dialog modal-dialog-centered modal-lg" role="document"
-              onClick={(e) => e.stopPropagation()}>
-              <div className="modal-content">
-                {/* Header */}
-                <div className="modal-header">
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="siswa-avatar" style={{ background: getAvatarColor(editSiswa.namaLengkap), width: 40, height: 40, borderRadius: 12, fontSize: "0.85rem" }}>
-                      {getInisial(editSiswa.namaLengkap)}
-                    </div>
-                    <div>
-                      <h5 className="modal-title">Edit Siswa</h5>
-                      <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.75)" }}>
-                        NIS {editSiswa.nis}
-                      </div>
-                    </div>
-                  </div>
-                  <button type="button" className="btn-close" onClick={tutupEdit} />
+          <div className="modal fade show d-block" tabIndex={-1} role="dialog" onClick={tutupEdit}>
+            <div className="modal-dialog modal-lg modal-dialog-centered" role="document" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 20 }}>
+                <div className="modal-header bg-dark text-white" style={{ borderRadius: "20px 20px 0 0" }}>
+                  <h5 className="modal-title fw-bold text-white">✏️ Edit Data Siswa: {editSiswa.namaLengkap}</h5>
+                  <button type="button" className="btn-close btn-close-white" onClick={tutupEdit} />
                 </div>
-
-                {/* Body */}
                 <form onSubmit={handleSimpanEdit}>
-                  <div className="modal-body">
+                  <div className="modal-body p-4">
                     {errorEdit && <div className="alert alert-danger py-2 small mb-3">{errorEdit}</div>}
-
-                    <div className="row g-3">
-                      {/* Data Siswa */}
-                      <div className="col-12">
-                        <p className="text-uppercase fw-semibold mb-2" style={{ fontSize: "0.72rem", color: "var(--ink-500)", letterSpacing: "0.05em" }}>
-                          Data Siswa
-                        </p>
-                      </div>
-                      <div className="col-12">
+                    <div className="row g-2 mb-3">
+                      <div className="col-md-6">
                         <label className="form-label small fw-semibold">Nama Lengkap</label>
                         <input className="form-control" value={formEdit.namaLengkap}
                           onChange={(e) => setFormEdit({ ...formEdit, namaLengkap: e.target.value })} required />
                       </div>
-                      <div className="col-sm-6">
+                      <div className="col-md-3">
                         <label className="form-label small fw-semibold">NIS</label>
                         <input className="form-control" value={formEdit.nis}
                           onChange={(e) => setFormEdit({ ...formEdit, nis: e.target.value })} required />
                       </div>
-                      <div className="col-sm-6">
+                      <div className="col-md-3">
                         <label className="form-label small fw-semibold">NISN</label>
                         <input className="form-control" value={formEdit.nisn}
                           onChange={(e) => setFormEdit({ ...formEdit, nisn: e.target.value })} />
                       </div>
-                      <div className="col-sm-4">
+                    </div>
+
+                    <div className="row g-2 mb-3">
+                      <div className="col-md-4">
                         <label className="form-label small fw-semibold">Jenis Kelamin</label>
                         <select className="form-select" value={formEdit.jenisKelamin}
                           onChange={(e) => setFormEdit({ ...formEdit, jenisKelamin: e.target.value })}>
@@ -705,15 +743,15 @@ export default function SiswaPage() {
                           <option value="P">Perempuan</option>
                         </select>
                       </div>
-                      <div className="col-sm-4">
+                      <div className="col-md-4">
                         <label className="form-label small fw-semibold">Kelas</label>
                         <select className="form-select" value={formEdit.kelasId}
                           onChange={(e) => setFormEdit({ ...formEdit, kelasId: e.target.value })}>
-                          <option value="">— Belum ada kelas —</option>
+                          <option value="">— Belum Ada Kelas —</option>
                           {kelasList.map((k) => <option key={k.id} value={k.id}>{k.namaKelas}</option>)}
                         </select>
                       </div>
-                      <div className="col-sm-4">
+                      <div className="col-md-4">
                         <label className="form-label small fw-semibold">Status</label>
                         <select className="form-select" value={formEdit.status}
                           onChange={(e) => setFormEdit({ ...formEdit, status: e.target.value })}>
@@ -722,96 +760,33 @@ export default function SiswaPage() {
                           ))}
                         </select>
                       </div>
+                    </div>
 
-                      {/* ——— Section Akun ——— */}
-                      <div className="col-12 mt-1">
-                        <hr style={{ borderColor: "var(--border-soft)", margin: "0 0 1rem" }} />
+                    <div className="mb-3">
+                      <label className="form-label small fw-semibold">Foto Profile URL (Opsional)</label>
+                      <input className="form-control" value={formEdit.fotoUrl}
+                        onChange={(e) => setFormEdit({ ...formEdit, fotoUrl: e.target.value })}
+                        placeholder="https://link-foto-siswa.jpg" />
+                    </div>
 
-                        {!sudahPunyaAkun ? (
-                          // BELUM PUNYA AKUN → opsi buat akun baru
-                          <div className="akun-section">
-                            <label className="toggle-row">
-                              <span className="akun-section__label" style={{ marginBottom: 0 }}>
-                                🔑 Buat Akun Login
-                              </span>
-                              <input type="checkbox" className="form-check-input"
-                                checked={formEdit.buatAkun}
-                                onChange={(e) => setFormEdit({ ...formEdit, buatAkun: e.target.checked })} />
-                            </label>
-                            <p className="text-muted mt-1 mb-0" style={{ fontSize: "0.78rem" }}>
-                              Siswa ini belum memiliki akun login. Aktifkan untuk membuat akun sekarang.
-                            </p>
-                            <div className={`field-group-collapse${formEdit.buatAkun ? " open" : ""}`}>
-                              <div className="mt-2 d-flex flex-column gap-2">
-                                <input type="email" className="form-control form-control-sm"
-                                  placeholder="Email siswa"
-                                  value={formEdit.email}
-                                  onChange={(e) => setFormEdit({ ...formEdit, email: e.target.value })}
-                                  required={formEdit.buatAkun} />
-                                <input type="password" className="form-control form-control-sm"
-                                  placeholder="Password (min. 8 karakter)"
-                                  value={formEdit.password}
-                                  onChange={(e) => setFormEdit({ ...formEdit, password: e.target.value })}
-                                  required={formEdit.buatAkun} minLength={8} />
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          // SUDAH PUNYA AKUN → opsi ganti email & reset password
-                          <div className="akun-section akun-section--ada">
-                            <div className="akun-section__label">
-                              🔑 Akun Login
-                              <span className="chip-akun chip-akun--ada ms-auto" style={{ fontWeight: 500 }}>
-                                {editSiswa.akun?.email}
-                              </span>
-                            </div>
-
-                            {/* Ganti Email */}
-                            <label className="toggle-row mb-1" style={{ fontSize: "0.85rem" }}>
-                              <span className="fw-semibold" style={{ color: "var(--ink-700)" }}>Ganti Email</span>
-                              <input type="checkbox" className="form-check-input"
-                                checked={formEdit.gantiEmail}
-                                onChange={(e) => setFormEdit({ ...formEdit, gantiEmail: e.target.checked, emailBaru: "" })} />
-                            </label>
-                            <div className={`field-group-collapse${formEdit.gantiEmail ? " open" : ""}`}>
-                              <input type="email" className="form-control form-control-sm mt-1"
-                                placeholder="Email baru"
-                                value={formEdit.emailBaru}
-                                onChange={(e) => setFormEdit({ ...formEdit, emailBaru: e.target.value })}
-                                required={formEdit.gantiEmail} />
-                            </div>
-
-                            <hr style={{ borderColor: "#c4b5fd", margin: "0.75rem 0" }} />
-
-                            {/* Reset Password */}
-                            <label className="toggle-row mb-1" style={{ fontSize: "0.85rem" }}>
-                              <span className="fw-semibold" style={{ color: "var(--ink-700)" }}>Reset Password</span>
-                              <input type="checkbox" className="form-check-input"
-                                checked={formEdit.resetPassword}
-                                onChange={(e) => setFormEdit({ ...formEdit, resetPassword: e.target.checked, passwordBaru: "" })} />
-                            </label>
-                            <div className={`field-group-collapse${formEdit.resetPassword ? " open" : ""}`}>
-                              <input type="password" className="form-control form-control-sm mt-1"
-                                placeholder="Password baru (min. 8 karakter)"
-                                value={formEdit.passwordBaru}
-                                onChange={(e) => setFormEdit({ ...formEdit, passwordBaru: e.target.value })}
-                                required={formEdit.resetPassword} minLength={8} />
-                            </div>
-                          </div>
-                        )}
+                    <div className="row g-2 mb-3">
+                      <div className="col-md-6">
+                        <label className="form-label small fw-semibold">Nama Wali</label>
+                        <input className="form-control" value={formEdit.namaWali}
+                          onChange={(e) => setFormEdit({ ...formEdit, namaWali: e.target.value })} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label small fw-semibold">Kontak Wali</label>
+                        <input className="form-control" value={formEdit.kontakWali}
+                          onChange={(e) => setFormEdit({ ...formEdit, kontakWali: e.target.value })} />
                       </div>
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="modal-footer">
-                    <button type="button" className="btn btn-outline-secondary" onClick={tutupEdit}>
-                      Batal
-                    </button>
-                    <button type="submit" className="btn btn-primary px-4" disabled={loadingEdit}>
-                      {loadingEdit
-                        ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
-                        : "💾 Simpan Perubahan"}
+                  <div className="modal-footer bg-light" style={{ borderRadius: "0 0 20px 20px" }}>
+                    <button type="button" className="btn btn-outline-secondary rounded-pill px-4" onClick={tutupEdit}>Batal</button>
+                    <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold" disabled={loadingEdit}>
+                      {loadingEdit ? "Memproses..." : "💾 Simpan Perubahan"}
                     </button>
                   </div>
                 </form>
@@ -820,8 +795,6 @@ export default function SiswaPage() {
           </div>
         </>
       )}
-
-      {modal}
     </>
   );
 }

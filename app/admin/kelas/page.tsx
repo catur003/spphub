@@ -326,7 +326,7 @@ export default function KelasPage() {
                       <th>Wali Kelas</th>
                       <th>Biaya SPP / Bulan</th>
                       <th>Jumlah Siswa</th>
-                      <th style={{ width: 180, textAlign: "right" }}>Aksi</th>
+                      <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -360,15 +360,15 @@ export default function KelasPage() {
                             👥 {k._count.siswa} siswa
                           </span>
                         </td>
-                        <td className="text-end">
-                          <div className="d-flex gap-1 justify-content-end">
-                            <button className="btn btn-sm btn-outline-info rounded-pill px-2 fw-semibold" style={{ fontSize: "0.75rem" }}
+                        <td className="text-end" style={{ whiteSpace: "nowrap" }}>
+                          <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
+                            <button className="btn btn-sm btn-outline-info rounded-pill px-2 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               onClick={() => bukaDetail(k.id)}>
                               👥 Detail & Rekap
                             </button>
-                            <button className="btn btn-sm btn-outline-primary rounded-pill px-2 fw-semibold" style={{ fontSize: "0.75rem" }}
+                            <button className="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               onClick={() => bukaEdit(k)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger rounded-pill px-2 fw-semibold" style={{ fontSize: "0.75rem" }}
+                            <button className="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               disabled={deletingId === k.id}
                               onClick={() => handleDelete(k.id)}>
                               {deletingId === k.id ? "..." : "Hapus"}
