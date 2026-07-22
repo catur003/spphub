@@ -12,7 +12,7 @@ type Tagihan = {
   nominal: number;
   status: string;
   jatuhTempo: string;
-  siswa: { namaLengkap: string; nis: string; kelas: { id: string; namaKelas: string } | null };
+  siswa?: { namaLengkap?: string; nis?: string; kelas?: { id?: string; namaKelas?: string } | null } | null;
 };
 
 const BULAN_LABEL = [
@@ -31,12 +31,12 @@ const TAHUN_SEKARANG = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 5 }, (_, i) => TAHUN_SEKARANG - 1 + i);
 
 const AVATAR_COLORS = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"];
-function getAvatarColor(nama: string) {
+function getAvatarColor(nama: string = "Siswa") {
   let h = 0;
   for (let i = 0; i < nama.length; i++) h = (h * 31 + nama.charCodeAt(i)) & 0xffff;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
-function getInisial(nama: string) {
+function getInisial(nama: string = "Siswa") {
   return nama.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase() || "").join("");
 }
 
@@ -134,23 +134,6 @@ export default function TagihanPage() {
     muatTagihan();
   }
 
-  async function handleBatalkan(id: string) {
-    if (!(await confirm("Batalkan status lunas? Tagihan akan kembali ke status Belum Bayar.", { confirmLabel: "Ya, Batalkan Lunas" }))) return;
-    setVerifyingId(id);
-    const res = await fetch(`/api/tagihan/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "belum_bayar" }),
-    });
-    setVerifyingId(null);
-    if (!res.ok) {
-      const data = await res.json();
-      await alertMsg(data.error || "Gagal membatalkan status lunas");
-      return;
-    }
-    muatTagihan();
-  }
-
   const totalTagihan = daftar.length;
   const totalLunas   = daftar.filter((t) => t.status === "lunas").length;
   const totalBelum   = daftar.filter((t) => t.status === "belum_bayar" || t.status === "terlambat").length;
@@ -187,7 +170,7 @@ export default function TagihanPage() {
         }
         .class-tab-btn:hover { background: #f8fafc; color: #4338ca; border-color: #cbd5e1; }
         .class-tab-btn.active {
-          background: #4338ca; color: white; border-color: #4338ca; shadow: 0 4px 12px rgba(67, 56, 202, 0.2);
+          background: #4338ca; color: white; border-color: #4338ca; box-shadow: 0 4px 12px rgba(67, 56, 202, 0.2);
         }
 
         .tagihan-table-clean {
@@ -384,23 +367,27 @@ export default function TagihanPage() {
               </thead>
               <tbody>
                 {daftar.map((t) => {
+                  const namaSiswa = t.siswa?.namaLengkap || "Siswa Tidak Ditemukan";
+                  const nisSiswa = t.siswa?.nis || "-";
+                  const namaKelas = t.siswa?.kelas?.namaKelas || "-";
                   const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
+
                   return (
                     <tr key={t.id}>
                       <td>
                         <div className="d-flex align-items-center gap-3">
-                          <div className="siswa-avatar-sm" style={{ background: getAvatarColor(t.siswa.namaLengkap) }}>
-                            {getInisial(t.siswa.namaLengkap)}
+                          <div className="siswa-avatar-sm" style={{ background: getAvatarColor(namaSiswa) }}>
+                            {getInisial(namaSiswa)}
                           </div>
                           <div>
-                            <div className="fw-bold text-dark">{t.siswa.namaLengkap}</div>
-                            <div className="text-muted small" style={{ fontFamily: "monospace" }}>NIS: {t.siswa.nis}</div>
+                            <div className="fw-bold text-dark">{namaSiswa}</div>
+                            <div className="text-muted small" style={{ fontFamily: "monospace" }}>NIS: {nisSiswa}</div>
                           </div>
                         </div>
                       </td>
                       <td>
                         <span className="badge bg-light text-dark border px-2 py-1">
-                          {t.siswa.kelas?.namaKelas || "-"}
+                          {namaKelas}
                         </span>
                       </td>
                       <td>
@@ -461,7 +448,7 @@ export default function TagihanPage() {
                   <tr>
                     <td colSpan={6} className="text-center text-muted py-5">
                       <div style={{ fontSize: "2.5rem", marginBottom: 8 }}>📄</div>
-                      Belum ada data tagihan untuk filter kelas ini.
+                      Belum ada data tagihan untuk filter ini.
                     </td>
                   </tr>
                 )}
