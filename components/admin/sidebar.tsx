@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import {
   IconDashboard, IconUsers, IconLayers, IconCalendar, IconReceipt,
-  IconChart, IconSettings, IconLogout, IconMenu, IconX, IconChevronLeft, IconMegaphone, IconFolderArchive,
+  IconChart, IconSettings, IconLogout, IconMenu, IconX, IconChevronLeft, IconMegaphone,
 } from "./icons";
 
 type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
@@ -19,7 +19,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/tagihan", label: "Tagihan", icon: IconReceipt },
   { href: "/admin/laporan", label: "Laporan", icon: IconChart },
   { href: "/admin/pengumuman", label: "Pengumuman", icon: IconMegaphone },
-  { href: "/admin/arsip", label: "Arsip Digital", icon: IconFolderArchive },
 ];
 
 interface AdminShellProps {
@@ -28,18 +27,12 @@ interface AdminShellProps {
   children: React.ReactNode;
 }
 
-/**
- * Satu komponen client yang megang SEMUA state UI (collapsed desktop + open/close
- * mobile drawer) di 1 tempat, terus dipakai bareng buat sidebar & <main> supaya
- * margin-left <main> selalu sinkron sama lebar sidebar yang lagi ke-render.
- */
 export function AdminShell({ role, userName, children }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
-  // Tutup drawer mobile otomatis tiap pindah halaman.
   React.useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);

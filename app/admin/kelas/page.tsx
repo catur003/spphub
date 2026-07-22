@@ -7,6 +7,7 @@ type Kelas = {
   id: string;
   namaKelas: string;
   tingkat: number;
+  nominalSpp?: number;
   _count: { siswa: number };
 };
 
@@ -23,6 +24,7 @@ export default function KelasPage() {
   const [editKelas, setEditKelas] = useState<Kelas | null>(null);
   const [namaKelas, setNamaKelas] = useState("");
   const [tingkat, setTingkat] = useState("");
+  const [nominalSpp, setNominalSpp] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export default function KelasPage() {
       const res = await fetch("/api/kelas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ namaKelas, tingkat }),
+        body: JSON.stringify({ namaKelas, tingkat: Number(tingkat), nominalSpp: Number(nominalSpp) || 0 }),
       });
       setLoading(false);
       if (!res.ok) {
@@ -58,7 +60,7 @@ export default function KelasPage() {
         setError(data.error || `Gagal menyimpan kelas (Status ${res.status})`);
         return;
       }
-      setNamaKelas(""); setTingkat(""); setError("");
+      setNamaKelas(""); setTingkat(""); setNominalSpp(""); setError("");
       tampilToast("Kelas berhasil ditambahkan");
       muatData();
     } catch (err: any) {
@@ -69,7 +71,10 @@ export default function KelasPage() {
 
   // ——— Edit (modal) ———
   function bukaEdit(k: Kelas) {
-    setEditKelas(k);
+    setEditKelas({
+      ...k,
+      nominalSpp: k.nominalSpp || 0,
+    });
     setError("");
   }
 
@@ -87,7 +92,11 @@ export default function KelasPage() {
       const res = await fetch(`/api/kelas/${editKelas.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ namaKelas: editKelas.namaKelas, tingkat: editKelas.tingkat }),
+        body: JSON.stringify({
+          namaKelas: editKelas.namaKelas,
+          tingkat: Number(editKelas.tingkat),
+          nominalSpp: Number(editKelas.nominalSpp) || 0,
+        }),
       });
       setLoading(false);
       if (!res.ok) {
@@ -123,7 +132,6 @@ export default function KelasPage() {
       await alertMsg("Gagal terhubung ke server: " + err.message);
     }
   }
-
 
   return (
     <>
@@ -170,7 +178,7 @@ export default function KelasPage() {
         }
         .tingkat-badge {
           display: inline-flex; align-items: center; justify-content: center;
-          width: 28px; height: 28px; border-radius: 8px;
+          min-width: 28px; height: 28px; border-radius: 8px; padding: 0 8px;
           background: #f0fdf4; color: #15803d;
           font-size: 0.8rem; font-weight: 700;
         }
@@ -184,15 +192,17 @@ export default function KelasPage() {
 
       <div className="container-fluid p-4">
         <div className="mb-4">
-          <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Data Kelas</h1>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>{daftar.length} kelas terdaftar</p>
+          <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Data Kelas & Biaya SPP</h1>
+          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+            {daftar.length} kelas terdaftar | Bebas tentukan tingkat (1-12) dan biaya SPP per kelas
+          </p>
         </div>
 
         <div className="row">
           {/* Form Tambah */}
           <div className="col-lg-4 mb-4">
             <div className="card card-tambah">
-              <div className="card-header"><h2>✚ Tambah Kelas</h2></div>
+              <div className="card-header"><h2>✚ Tambah Kelas Baru</h2></div>
               <div className="card-body">
                 {error && !editKelas && <div className="alert alert-danger py-2 small">{error}</div>}
                 <form onSubmit={handleTambah}>
@@ -200,19 +210,43 @@ export default function KelasPage() {
                     <label className="form-label small fw-semibold">Nama Kelas</label>
                     <input className="form-control" value={namaKelas}
                       onChange={(e) => setNamaKelas(e.target.value)} required
-                      placeholder="Contoh: 7A, 8B, 9C" />
+                      placeholder="Contoh: 10 IPA 1, 11 IPS 2, 7A" />
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold">Tingkat / Jenjang</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={tingkat}
+                      onChange={(e) => setTingkat(e.target.value)}
+                      placeholder="Contoh: 7, 8, 9, 10, 11, 12"
+                      required
+                      min={1}
+                      max={15}
+                    />
+                    <div className="form-text" style={{ fontSize: "0.74rem" }}>
+                      Bisa diisi angka tingkat fleksibel (misal SD: 1-6, SMP: 7-9, SMA/SMK: 10-12).
+                    </div>
                   </div>
                   <div className="mb-3">
-                    <label className="form-label small fw-semibold">Tingkat</label>
-                    <select className="form-select" value={tingkat}
-                      onChange={(e) => setTingkat(e.target.value)} required>
-                      <option value="">— Pilih Tingkat —</option>
-                      <option value="7">7 (Kelas 7)</option>
-                      <option value="8">8 (Kelas 8)</option>
-                      <option value="9">9 (Kelas 9)</option>
-                    </select>
+                    <label className="form-label small fw-semibold">Biaya SPP per Bulan (Rp)</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light text-muted fw-semibold">Rp</span>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={nominalSpp}
+                        onChange={(e) => setNominalSpp(e.target.value)}
+                        placeholder="Contoh: 350000"
+                        required
+                        min={0}
+                      />
+                    </div>
+                    <div className="form-text" style={{ fontSize: "0.74rem" }}>
+                      Biaya ini dipakai otomatis saat generate tagihan massal.
+                    </div>
                   </div>
-                  <button className="btn btn-primary w-100" disabled={loading}>
+                  <button className="btn btn-primary w-100 fw-bold" disabled={loading}>
                     {loading
                       ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
                       : "Tambah Kelas"}
@@ -224,15 +258,16 @@ export default function KelasPage() {
 
           {/* Tabel Kelas */}
           <div className="col-lg-8">
-            <div className="card p-0 overflow-hidden">
+            <div className="card p-0 overflow-hidden shadow-sm border-0" style={{ borderRadius: 16 }}>
               <div className="table-responsive">
                 <table className="table kelas-table mb-0">
                   <thead>
                     <tr>
-                      <th>Kelas</th>
+                      <th>Nama Kelas</th>
                       <th>Tingkat</th>
+                      <th>Biaya SPP / Bulan</th>
                       <th>Jumlah Siswa</th>
-                      <th style={{ width: 120 }}></th>
+                      <th style={{ width: 120, textAlign: "right" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -243,20 +278,25 @@ export default function KelasPage() {
                             <div className="kelas-badge" style={{ background: kelasColor(k.namaKelas) }}>
                               {k.namaKelas.slice(0, 2).toUpperCase()}
                             </div>
-                            <span className="fw-semibold">{k.namaKelas}</span>
+                            <span className="fw-bold text-dark">{k.namaKelas}</span>
                           </div>
                         </td>
-                        <td><span className="tingkat-badge">{k.tingkat}</span></td>
+                        <td><span className="tingkat-badge">Kelas {k.tingkat}</span></td>
+                        <td>
+                          <div className="fw-bold text-success">
+                            {(k.nominalSpp || 0).toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+                          </div>
+                        </td>
                         <td>
                           <span className="siswa-count-badge">
                             👥 {k._count.siswa} siswa
                           </span>
                         </td>
-                        <td>
-                          <div className="d-flex gap-1">
-                            <button className="btn btn-sm btn-outline-primary" style={{ borderRadius: 8 }}
+                        <td className="text-end">
+                          <div className="d-flex gap-1 justify-content-end">
+                            <button className="btn btn-sm btn-outline-primary rounded-pill px-3"
                               onClick={() => bukaEdit(k)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger" style={{ borderRadius: 8 }}
+                            <button className="btn btn-sm btn-outline-danger rounded-pill px-3"
                               disabled={deletingId === k.id}
                               onClick={() => handleDelete(k.id)}>
                               {deletingId === k.id
@@ -269,9 +309,9 @@ export default function KelasPage() {
                     ))}
                     {daftar.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="text-center text-muted py-5">
+                        <td colSpan={5} className="text-center text-muted py-5">
                           <div style={{ fontSize: "2rem", marginBottom: 8 }}>🏫</div>
-                          Belum ada data kelas.
+                          Belum ada data kelas. Silakan tambah kelas baru di samping.
                         </td>
                       </tr>
                     )}
@@ -296,7 +336,7 @@ export default function KelasPage() {
                     <div className="kelas-badge" style={{ background: kelasColor(editKelas.namaKelas) }}>
                       {editKelas.namaKelas.slice(0, 2).toUpperCase()}
                     </div>
-                    <h5 className="modal-title">Edit Kelas</h5>
+                    <h5 className="modal-title">Edit Kelas & Biaya SPP</h5>
                   </div>
                   <button type="button" className="btn-close" onClick={tutupEdit} />
                 </div>
@@ -309,20 +349,37 @@ export default function KelasPage() {
                         onChange={(e) => setEditKelas({ ...editKelas, namaKelas: e.target.value })}
                         required />
                     </div>
-                    <div className="mb-2">
-                      <label className="form-label small fw-semibold">Tingkat</label>
-                      <select className="form-select" value={editKelas.tingkat}
+                    <div className="mb-3">
+                      <label className="form-label small fw-semibold">Tingkat / Jenjang</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={editKelas.tingkat}
                         onChange={(e) => setEditKelas({ ...editKelas, tingkat: Number(e.target.value) })}
-                        required>
-                        <option value={7}>7 (Kelas 7)</option>
-                        <option value={8}>8 (Kelas 8)</option>
-                        <option value={9}>9 (Kelas 9)</option>
-                      </select>
+                        placeholder="Contoh: 10, 11, 12"
+                        required
+                        min={1}
+                        max={15}
+                      />
+                    </div>
+                    <div className="mb-2">
+                      <label className="form-label small fw-semibold">Biaya SPP per Bulan (Rp)</label>
+                      <div className="input-group">
+                        <span className="input-group-text bg-light text-muted fw-semibold">Rp</span>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={editKelas.nominalSpp || 0}
+                          onChange={(e) => setEditKelas({ ...editKelas, nominalSpp: Number(e.target.value) })}
+                          required
+                          min={0}
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn btn-outline-secondary" onClick={tutupEdit}>Batal</button>
-                    <button type="submit" className="btn btn-primary px-4" disabled={loading}>
+                    <button type="submit" className="btn btn-primary px-4 fw-bold" disabled={loading}>
                       {loading
                         ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
                         : "💾 Simpan Perubahan"}

@@ -131,10 +131,10 @@ model Siswa {
 
   tagihan TagihanSpp[]
   pembayaran Pembayaran[]
-  arsip ArsipDigital[]
 
   @@map("siswa")
 }
+
 
 model Kelas {
   id         String  @id @default(cuid())
@@ -241,24 +241,4 @@ model Pengumuman {
   @@map("pengumuman")
 }
 
-// ============================================================
-// ARSIP DIGITAL
-// ============================================================
-
-model ArsipDigital {
-  id          String   @id @default(cuid())
-  judul       String
-  kategori    String   // "kwitansi", "bukti_transfer", "surat", "dokumen_siswa"
-  fileUrl     String
-  fileType    String   // "pdf", "image"
-  siswaId     String?
-  tanggal     DateTime @default(now())
-  keterangan  String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  siswa       Siswa?   @relation(fields: [siswaId], references: [id], onDelete: SetNull)
-
-  @@map("arsip_digital")
-}
 

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 type TahunAjaran = { id: string; nama: string; aktif: boolean };
-type KelasOption = { id: string; namaKelas: string };
+type KelasOption = { id: string; namaKelas: string; nominalSpp?: number };
 type Tagihan = {
   id: string;
   bulan: number;
@@ -182,9 +182,10 @@ export default function TagihanPage() {
           margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0;
         }
         .class-tab-btn {
-          padding: 0.5rem 1.1rem; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
-          border: 1px solid #e2e8f0; background: white; color: #64748b;
+          padding: 0.55rem 1.1rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
+          border: 1px solid #e2e8f0; background: white; color: #475569;
           white-space: nowrap; cursor: pointer; transition: all 0.2s;
+          display: inline-flex; align-items: center; gap: 6px;
         }
         .class-tab-btn:hover { background: #f8fafc; color: #4338ca; border-color: #cbd5e1; }
         .class-tab-btn.active {
@@ -223,7 +224,7 @@ export default function TagihanPage() {
         <div className="mb-4">
           <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Kelola Tagihan SPP</h1>
           <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-            Generate tagihan massal berdasar Billing Rules kelas & penuhi monitoring pembayaran.
+            Generate tagihan massal otomatis berdasarkan Biaya SPP per Kelas masing-masing siswa.
           </p>
         </div>
 
@@ -263,18 +264,27 @@ export default function TagihanPage() {
 
         {/* Generate Form */}
         <div className="gen-card mb-4">
-          <h2 className="h6 mb-3 fw-bold" style={{ color: "var(--ink-900)" }}>
-            ⚡ Generate Tagihan Massal (Billing Rules Otomatis)
-          </h2>
+          <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
+            <h2 className="h6 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>
+              ⚡ Generate Tagihan Massal Otomatis
+            </h2>
+            <span className="badge bg-indigo-subtle text-indigo px-3 py-1 rounded-pill" style={{ fontSize: "0.75rem", background: "#e0e7ff", color: "#3730a3" }}>
+              💡 Nominal sesuai Biaya SPP per Kelas
+            </span>
+          </div>
+          <p className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>
+            Nominal tagihan setiap siswa akan diambil otomatis dari Biaya SPP Kelas siswa yang diatur pada menu <strong>Data Kelas</strong>.
+          </p>
+
           {genError && <div className="alert alert-danger py-2 small mb-3">{genError}</div>}
           {genResult && (
             <div className="alert alert-success py-2 small mb-3">
-              🎉 Berhasil membuat <strong>{genResult.dibuat}</strong> tagihan baru ({genResult.dilewati} siswa dilewati).
+              🎉 Berhasil membuat <strong>{genResult.dibuat}</strong> tagihan baru ({genResult.dilewati} siswa dilewati / sudah dibuat).
             </div>
           )}
           <form onSubmit={handleGenerate} className="row g-2 align-items-end">
-            <div className="col-12 col-sm-6 col-md-2">
-              <label className="form-label small fw-semibold text-muted">Bulan</label>
+            <div className="col-12 col-sm-6 col-md-3">
+              <label className="form-label small fw-semibold text-muted">Bulan Tagihan</label>
               <select className="form-select form-select-sm" value={gen.bulan}
                 onChange={(e) => setGen({ ...gen, bulan: e.target.value })}>
                 {BULAN_LABEL.slice(1).map((lbl, i) => (
@@ -295,19 +305,19 @@ export default function TagihanPage() {
               <label className="form-label small fw-semibold text-muted">Tahun Ajaran</label>
               <select className="form-select form-select-sm" value={gen.tahunAjaranId}
                 onChange={(e) => setGen({ ...gen, tahunAjaranId: e.target.value })} required>
-                <option value="">-- Pilih --</option>
+                <option value="">-- Pilih Tahun Ajaran --</option>
                 {tahunAjaranList.map((t) => (
                   <option key={t.id} value={t.id}>{t.nama}{t.aktif ? " (Aktif)" : ""}</option>
                 ))}
               </select>
             </div>
-            <div className="col-12 col-sm-6 col-md-3">
+            <div className="col-12 col-sm-6 col-md-2">
               <label className="form-label small fw-semibold text-muted">Jatuh Tempo</label>
               <input type="date" className="form-control form-control-sm" value={gen.jatuhTempo}
                 onChange={(e) => setGen({ ...gen, jatuhTempo: e.target.value })} required />
             </div>
             <div className="col-12 col-md-2">
-              <button type="submit" className="btn btn-primary btn-sm w-100 fw-bold" disabled={genLoading}>
+              <button type="submit" className="btn btn-primary btn-sm w-100 fw-bold py-2" disabled={genLoading}>
                 {genLoading ? "Memproses..." : "⚡ Generate Massal"}
               </button>
             </div>
@@ -328,7 +338,12 @@ export default function TagihanPage() {
               className={`class-tab-btn ${filterKelasId === k.id ? "active" : ""}`}
               onClick={() => setFilterKelasId(k.id)}
             >
-              Kelas {k.namaKelas}
+              <span>Kelas {k.namaKelas}</span>
+              {k.nominalSpp ? (
+                <span className="badge rounded-pill" style={{ background: filterKelasId === k.id ? "rgba(255,255,255,0.25)" : "#f1f5f9", color: filterKelasId === k.id ? "#fff" : "#475569", fontSize: "0.7rem" }}>
+                  Rp {(k.nominalSpp / 1000).toFixed(0)}k
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
