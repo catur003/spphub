@@ -44,6 +44,8 @@ export default function TagihanPage() {
   const [tahunAjaranList, setTahunAjaranList] = useState<TahunAjaran[]>([]);
   const [kelasList, setKelasList] = useState<KelasOption[]>([]);
   const [daftar, setDaftar] = useState<Tagihan[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Filter tabel
   const [filterStatus, setFilterStatus] = useState("");
@@ -81,15 +83,32 @@ export default function TagihanPage() {
   }
 
   const muatTagihan = useCallback(async () => {
+    setLoadingData(true);
+    setFetchError(null);
     const params = new URLSearchParams();
     if (filterStatus)  params.set("status", filterStatus);
     if (filterBulan)   params.set("bulan", filterBulan);
     if (filterTahun)   params.set("tahun", filterTahun);
     if (filterKelasId) params.set("kelasId", filterKelasId);
     
-    const res = await fetch(`/api/tagihan?${params.toString()}`);
-    if (res.ok) setDaftar(await res.json());
+    try {
+      const res = await fetch(`/api/tagihan?${params.toString()}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setFetchError(`Error ${res.status}: ${errData.error || res.statusText}`);
+        setDaftar([]);
+      } else {
+        const data = await res.json();
+        setDaftar(Array.isArray(data) ? data : []);
+      }
+    } catch (err: any) {
+      setFetchError("Gagal terhubung ke server: " + err.message);
+      setDaftar([]);
+    } finally {
+      setLoadingData(false);
+    }
   }, [filterStatus, filterBulan, filterTahun, filterKelasId]);
+
 
   useEffect(() => {
     muatTahunAjaran();
@@ -366,93 +385,110 @@ export default function TagihanPage() {
                 </tr>
               </thead>
               <tbody>
-                {daftar.map((t) => {
-                  const namaSiswa = t.siswa?.namaLengkap || "Siswa Tidak Ditemukan";
-                  const nisSiswa = t.siswa?.nis || "-";
-                  const namaKelas = t.siswa?.kelas?.namaKelas || "-";
-                  const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
-
-                  return (
-                    <tr key={t.id}>
-                      <td>
-                        <div className="d-flex align-items-center gap-3">
-                          <div className="siswa-avatar-sm" style={{ background: getAvatarColor(namaSiswa) }}>
-                            {getInisial(namaSiswa)}
-                          </div>
-                          <div>
-                            <div className="fw-bold text-dark">{namaSiswa}</div>
-                            <div className="text-muted small" style={{ fontFamily: "monospace" }}>NIS: {nisSiswa}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="badge bg-light text-dark border px-2 py-1">
-                          {namaKelas}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="fw-semibold text-primary">
-                          {BULAN_LABEL[t.bulan]} {t.tahun}
-                        </div>
-                        <div className="text-muted" style={{ fontSize: "0.75rem" }}>
-                          Tempo: {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="fw-bold" style={{ color: "#0f172a" }}>
-                          Rp {t.nominal.toLocaleString("id-ID")}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="status-chip" style={{ background: info.bg, color: info.color }}>
-                          {info.label}
-                        </span>
-                      </td>
-                      <td className="text-end">
-                        {t.status === "lunas" ? (
-                          <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary rounded-pill px-3">
-                            Kwitansi
-                          </a>
-                        ) : (
-                          <div className="d-flex gap-1 justify-content-end">
-                            <button
-                              className="btn btn-sm btn-success rounded-pill px-2 fw-semibold"
-                              style={{ fontSize: "0.75rem" }}
-                              disabled={verifyingId === t.id}
-                              onClick={() => handleVerifikasi(t.id)}>
-                              ✓ Tandai Lunas
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-secondary rounded-circle"
-                              style={{ width: 30, height: 30, padding: 0 }}
-                              title="Cek Status Midtrans"
-                              onClick={async () => {
-                                const res = await fetch(`/api/tagihan/${t.id}/cek-status`);
-                                const data = await res.json();
-                                if (data.status === "lunas") {
-                                  alert("Status terverifikasi LUNAS via Midtrans!");
-                                  muatTagihan();
-                                } else {
-                                  alert(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
-                                }
-                              }}>
-                              🔄
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {daftar.length === 0 && (
+                {loadingData ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-5">
+                      <div className="spinner-border text-primary spinner-border-sm me-2" />
+                      <span className="text-muted">Memuat data tagihan...</span>
+                    </td>
+                  </tr>
+                ) : fetchError ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4">
+                      <div className="alert alert-danger d-inline-block mb-0 small">
+                        ⚠️ {fetchError}
+                      </div>
+                    </td>
+                  </tr>
+                ) : daftar.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center text-muted py-5">
                       <div style={{ fontSize: "2.5rem", marginBottom: 8 }}>📄</div>
                       Belum ada data tagihan untuk filter ini.
                     </td>
                   </tr>
+                ) : (
+                  daftar.map((t) => {
+                    const namaSiswa = t.siswa?.namaLengkap || "Siswa Tidak Ditemukan";
+                    const nisSiswa = t.siswa?.nis || "-";
+                    const namaKelas = t.siswa?.kelas?.namaKelas || "-";
+                    const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
+
+                    return (
+                      <tr key={t.id}>
+                        <td>
+                          <div className="d-flex align-items-center gap-3">
+                            <div className="siswa-avatar-sm" style={{ background: getAvatarColor(namaSiswa) }}>
+                              {getInisial(namaSiswa)}
+                            </div>
+                            <div>
+                              <div className="fw-bold text-dark">{namaSiswa}</div>
+                              <div className="text-muted small" style={{ fontFamily: "monospace" }}>NIS: {nisSiswa}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge bg-light text-dark border px-2 py-1">
+                            {namaKelas}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="fw-semibold text-primary">
+                            {BULAN_LABEL[t.bulan]} {t.tahun}
+                          </div>
+                          <div className="text-muted" style={{ fontSize: "0.75rem" }}>
+                            Tempo: {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="fw-bold" style={{ color: "#0f172a" }}>
+                            Rp {t.nominal.toLocaleString("id-ID")}
+                          </div>
+                        </td>
+                        <td>
+                          <span className="status-chip" style={{ background: info.bg, color: info.color }}>
+                            {info.label}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          {t.status === "lunas" ? (
+                            <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary rounded-pill px-3">
+                              Kwitansi
+                            </a>
+                          ) : (
+                            <div className="d-flex gap-1 justify-content-end">
+                              <button
+                                className="btn btn-sm btn-success rounded-pill px-2 fw-semibold"
+                                style={{ fontSize: "0.75rem" }}
+                                disabled={verifyingId === t.id}
+                                onClick={() => handleVerifikasi(t.id)}>
+                                ✓ Tandai Lunas
+                              </button>
+                              <button
+                                className="btn btn-sm btn-outline-secondary rounded-circle"
+                                style={{ width: 30, height: 30, padding: 0 }}
+                                title="Cek Status Midtrans"
+                                onClick={async () => {
+                                  const res = await fetch(`/api/tagihan/${t.id}/cek-status`);
+                                  const data = await res.json();
+                                  if (data.status === "lunas") {
+                                    alert("Status terverifikasi LUNAS via Midtrans!");
+                                    muatTagihan();
+                                  } else {
+                                    alert(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
+                                  }
+                                }}>
+                                🔄
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
+
             </table>
           </div>
         </div>

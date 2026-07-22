@@ -15,26 +15,34 @@ export async function GET(req: NextRequest) {
   const tahun = searchParams.get("tahun");
   const kelasId = searchParams.get("kelasId") || undefined;
 
-  const tagihan = await prisma.tagihanSpp.findMany({
-    where: {
-      ...(status ? { status: status as never } : {}),
-      ...(bulan ? { bulan: Number(bulan) } : {}),
-      ...(tahun ? { tahun: Number(tahun) } : {}),
-      ...(kelasId ? { siswa: { kelasId } } : {}),
-    },
-    include: {
-      siswa: {
-        select: {
-          id: true,
-          namaLengkap: true,
-          nis: true,
-          kelas: { select: { id: true, namaKelas: true } },
+  try {
+    const tagihan = await prisma.tagihanSpp.findMany({
+      where: {
+        ...(status ? { status: status as never } : {}),
+        ...(bulan ? { bulan: Number(bulan) } : {}),
+        ...(tahun ? { tahun: Number(tahun) } : {}),
+        ...(kelasId ? { siswa: { kelasId } } : {}),
+      },
+      include: {
+        siswa: {
+          select: {
+            id: true,
+            namaLengkap: true,
+            nis: true,
+            kelas: { select: { id: true, namaKelas: true } },
+          },
         },
       },
-    },
-    orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
-    take: 300,
-  });
+      orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
+      take: 300,
+    });
 
-  return NextResponse.json(tagihan);
+    return NextResponse.json(tagihan);
+  } catch (error: any) {
+    console.error("[GET /api/tagihan] error:", error);
+    return NextResponse.json(
+      { error: "Gagal memuat data tagihan: " + (error.message || "Unknown error") },
+      { status: 500 }
+    );
+  }
 }

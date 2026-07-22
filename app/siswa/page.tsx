@@ -88,25 +88,42 @@ export default function SiswaPortalPage() {
   async function muatData() {
     setLoading(true);
     try {
-      const [resSiswa, resTagihan, resPengumuman] = await Promise.all([
+      // Fetch siswa & tagihan — data utama, harus berhasil
+      const [resSiswa, resTagihan] = await Promise.all([
         fetch("/api/siswa/saya"),
         fetch("/api/tagihan/saya"),
-        fetch("/api/pengumuman?limit=3")
       ]);
-      
-      if (resSiswa.ok) setSiswa(await resSiswa.json());
-      if (resPengumuman.ok) setPengumuman(await resPengumuman.json());
+
+      if (resSiswa.ok) {
+        setSiswa(await resSiswa.json());
+      } else {
+        const d = await resSiswa.json().catch(() => ({}));
+        setPageError(d.error || "Gagal memuat data profil siswa.");
+      }
 
       if (resTagihan.ok) {
-        setDaftar(await resTagihan.json());
+        const data = await resTagihan.json();
+        setDaftar(Array.isArray(data) ? data : []);
         setPageError("");
       } else {
-        const d = await resTagihan.json();
+        const d = await resTagihan.json().catch(() => ({}));
         setPageError(d.error || "Gagal memuat data tagihan.");
       }
     } catch {
       setPageError("Tidak bisa terhubung ke server. Periksa koneksi Anda.");
     }
+
+    // Fetch pengumuman — opsional, jangan crash halaman jika gagal
+    try {
+      const resPengumuman = await fetch("/api/pengumuman?limit=3");
+      if (resPengumuman.ok) {
+        const data = await resPengumuman.json();
+        setPengumuman(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // Pengumuman gagal dimuat — tidak apa-apa, halaman tetap tampil
+    }
+
     setLoading(false);
   }
 

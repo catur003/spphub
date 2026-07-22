@@ -34,5 +34,13 @@
     "prisma": "^6.1.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "sharp@0.34.5": true,
+    "@prisma/engines@6.19.3": true,
+    "@prisma/client@6.19.3": true,
+    "core-js@3.49.0": true,
+    "prisma@6.19.3": true
   }
 }
