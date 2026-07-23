@@ -71,7 +71,8 @@ export default function SiswaPortalPage() {
   const [pengumuman, setPengumuman] = useState<Pengumuman[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"tagihan" | "riwayat" | "profil">("tagihan");
-  
+
+  const [searchRiwayat, setSearchRiwayat] = useState("");
   const [bayarLoading, setBayarLoading] = useState<string | null>(null);
   const [cekStatusLoading, setCekStatusLoading] = useState<string | null>(null);
   const [bayarError, setBayarError] = useState<string | null>(null);
@@ -88,7 +89,6 @@ export default function SiswaPortalPage() {
   async function muatData() {
     setLoading(true);
     try {
-      // Fetch siswa & tagihan — data utama, harus berhasil
       const [resSiswa, resTagihan] = await Promise.all([
         fetch("/api/siswa/saya"),
         fetch("/api/tagihan/saya"),
@@ -113,7 +113,6 @@ export default function SiswaPortalPage() {
       setPageError("Tidak bisa terhubung ke server. Periksa koneksi Anda.");
     }
 
-    // Fetch pengumuman — opsional, jangan crash halaman jika gagal
     try {
       const resPengumuman = await fetch("/api/pengumuman?limit=3");
       if (resPengumuman.ok) {
@@ -121,7 +120,7 @@ export default function SiswaPortalPage() {
         setPengumuman(Array.isArray(data) ? data : []);
       }
     } catch {
-      // Pengumuman gagal dimuat — tidak apa-apa, halaman tetap tampil
+      // Ignore if announcements fail
     }
 
     setLoading(false);
@@ -132,6 +131,11 @@ export default function SiswaPortalPage() {
   function tampilToast(msg: string, type: "success" | "info" | "error" = "success") {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
+  }
+
+  function copyToClipboard(text: string, label: string) {
+    navigator.clipboard.writeText(text);
+    tampilToast(`${label} "${text}" berhasil disalin!`, "info");
   }
 
   async function handleLogout() {
@@ -231,6 +235,11 @@ export default function SiswaPortalPage() {
   const nominalTunggakan = tagihanBelumLunas.reduce((acc, curr) => acc + curr.nominal, 0);
   const nominalLunas = tagihanLunas.reduce((acc, curr) => acc + curr.nominal, 0);
 
+  // Progres SPP %
+  const totalBulanCount = daftar.length || 1;
+  const lunasCount = tagihanLunas.length;
+  const persenLunas = Math.round((lunasCount / totalBulanCount) * 100);
+
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
@@ -239,6 +248,20 @@ export default function SiswaPortalPage() {
   const initials = siswa?.namaLengkap
     ? siswa.namaLengkap.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
     : "S";
+
+  // Filtered Riwayat Lunas
+  const filteredRiwayat = tagihanLunas.filter(t => {
+    if (!searchRiwayat) return true;
+    const bulanNama = BULAN_LABEL[t.bulan].toLowerCase();
+    const tahunStr = String(t.tahun);
+    const q = searchRiwayat.toLowerCase();
+    return bulanNama.includes(q) || tahunStr.includes(q);
+  });
+
+  // Pesan WhatsApp Bendahara
+  const waPesan = encodeURIComponent(
+    `Halo Admin/Bendahara Sekolah, saya ${siswa?.namaLengkap || "Siswa"} (NIS: ${siswa?.nis || "-"}, Kelas: ${siswa?.kelas?.namaKelas || "-"}) ingin menanyakan mengenai informasi tagihan SPP.`
+  );
 
   return (
     <>
@@ -260,11 +283,23 @@ export default function SiswaPortalPage() {
 
       {/* Top Navbar */}
       <div className="top-navbar">
-        <div className="d-flex align-items-center gap-2">
-          <span style={{ fontSize: "1.3rem" }}>🎓</span>
-          <h1 className="h5 mb-0 fw-bold">SPP Sekolah Digital</h1>
+        <div className="d-flex align-items-center gap-3">
+          <span style={{ fontSize: "1.4rem" }}>🎓</span>
+          <div>
+            <h1 className="h6 mb-0 fw-bold text-white">SPP Sekolah Digital</h1>
+            <span className="brand-badge">Portal Siswa</span>
+          </div>
         </div>
         <div className="d-flex align-items-center gap-2">
+          <a
+            href={`https://wa.me/?text=${waPesan}`}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-sm btn-light rounded-pill px-3 fw-bold d-none d-sm-inline-flex align-items-center gap-1 text-dark"
+            title="Hubungi Bendahara via WhatsApp"
+          >
+            💬 Hubungi Bendahara
+          </a>
           <button className="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold" onClick={handleLogout}>
             Keluar 🚪
           </button>
@@ -273,27 +308,46 @@ export default function SiswaPortalPage() {
 
       {/* Student Hero Header */}
       <div className="student-hero">
-        <div className="container" style={{ maxWidth: 960 }}>
+        <div className="container" style={{ maxWidth: 980 }}>
           <div className="d-flex align-items-center gap-4 flex-wrap">
             <div className="avatar-box">
               {siswa?.fotoUrl ? (
-                <img src={siswa.fotoUrl} alt="Foto" style={{ width: "100%", height: "100%", borderRadius: "20px", objectFit: "cover" }} />
+                <img src={siswa.fotoUrl} alt="Foto" style={{ width: "100%", height: "100%", borderRadius: "18px", objectFit: "cover" }} />
               ) : initials}
             </div>
-            <div>
+            <div className="flex-grow-1">
               <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
                 <h2 className="h4 fw-bold mb-0" style={{ color: "#0f172a" }}>
                   {siswa?.namaLengkap || "Siswa"}
                 </h2>
-                <span className="badge bg-primary rounded-pill px-3">{siswa?.kelas?.namaKelas || "Kelas -"}</span>
-                <span className="badge bg-success rounded-pill px-3">Status: Aktif</span>
+                <span className="badge bg-indigo-subtle text-indigo px-3 py-1 rounded-pill fw-bold" style={{ background: "#e0e7ff", color: "#3730a3" }}>
+                  Kelas {siswa?.kelas?.namaKelas || "-"}
+                </span>
+                <span className="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-bold" style={{ background: "#dcfce7", color: "#15803d" }}>
+                  Status: Aktif
+                </span>
               </div>
-              <p className="text-muted mb-0 small">
-                NIS: <strong>{siswa?.nis || "-"}</strong> {siswa?.nisn ? `| NISN: ${siswa.nisn}` : ""}
-              </p>
+              <div className="d-flex align-items-center gap-2 flex-wrap mt-2">
+                <span className="text-muted small">
+                  NIS: <strong className="text-dark">{siswa?.nis || "-"}</strong>
+                </span>
+                {siswa?.nis && (
+                  <button className="copy-badge-btn" onClick={() => copyToClipboard(siswa.nis, "NIS")}>
+                    📋 Salin
+                  </button>
+                )}
+                {siswa?.nisn && (
+                  <>
+                    <span className="text-muted small">| NISN: <strong className="text-dark">{siswa.nisn}</strong></span>
+                    <button className="copy-badge-btn" onClick={() => copyToClipboard(siswa.nisn!, "NISN")}>
+                      📋 Salin
+                    </button>
+                  </>
+                )}
+              </div>
               {siswa?.namaWali && (
-                <p className="text-muted mb-0 style-italic" style={{ fontSize: "0.82rem" }}>
-                  Wali: {siswa.namaWali} {siswa.kontakWali ? `(${siswa.kontakWali})` : ""}
+                <p className="text-muted mb-0 mt-1 style-italic" style={{ fontSize: "0.82rem" }}>
+                  Wali Siswa: <strong>{siswa.namaWali}</strong> {siswa.kontakWali ? `(${siswa.kontakWali})` : ""}
                 </p>
               )}
             </div>
@@ -302,8 +356,29 @@ export default function SiswaPortalPage() {
       </div>
 
       {/* Container Dashboard Content */}
-      <div className="container pb-5" style={{ maxWidth: 960 }}>
+      <div className="container pb-5" style={{ maxWidth: 980 }}>
         
+        {/* Progres SPP Component */}
+        <div className="progress-card">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <span className="fw-bold text-dark" style={{ fontSize: "0.92rem" }}>📊 Capaian SPP Sekolah</span>
+              <span className="text-muted small ms-2">({lunasCount} dari {totalBulanCount} bulan terbayar)</span>
+            </div>
+            <span className="badge bg-success rounded-pill px-3 py-1 fw-bold">{persenLunas}% Lunas</span>
+          </div>
+          <div className="progress" style={{ height: 10, borderRadius: 20, backgroundColor: "#e2e8f0" }}>
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${persenLunas}%` }}
+              role="progressbar"
+              aria-valuenow={persenLunas}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            />
+          </div>
+        </div>
+
         {/* Ringkasan Stats Cards */}
         <div className="row g-3 mb-4">
           <div className="col-md-4">
@@ -359,13 +434,13 @@ export default function SiswaPortalPage() {
         {pengumuman.length > 0 && (
           <div className="mb-4">
             {pengumuman.map(p => (
-              <div key={p.id} className="alert alert-info border-0 shadow-sm mb-3" style={{ borderRadius: "14px", background: "linear-gradient(to right, #eff6ff, #dbeafe)" }}>
-                <div className="d-flex gap-3">
+              <div key={p.id} className="alert border-0 shadow-sm mb-3 p-3" style={{ borderRadius: "16px", background: "linear-gradient(to right, #eff6ff, #dbeafe)" }}>
+                <div className="d-flex gap-3 align-items-start">
                   <div style={{ fontSize: "1.6rem" }}>📢</div>
-                  <div>
+                  <div className="flex-grow-1">
                     <div className="fw-bold text-primary mb-1">{p.judul}</div>
                     <div className="text-dark small mb-1" style={{ whiteSpace: "pre-wrap" }}>{p.isi}</div>
-                    <div className="text-muted" style={{ fontSize: "0.7rem" }}>
+                    <div className="text-muted" style={{ fontSize: "0.72rem" }}>
                       Diterbitkan: {new Date(p.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                     </div>
                   </div>
@@ -378,7 +453,7 @@ export default function SiswaPortalPage() {
         {/* Banner Error Pembayaran */}
         {bayarError && (
           <div className="alert d-flex align-items-start gap-2 mb-4"
-            style={{ background: "#fff1f2", border: "1.5px solid #fecaca", borderRadius: 14, color: "#991b1b" }}>
+            style={{ background: "#fff1f2", border: "1.5px solid #fecaca", borderRadius: 16, color: "#991b1b" }}>
             <span style={{ fontSize: "1.2rem" }}>⚠️</span>
             <div>
               <strong>Pembayaran Gagal:</strong> {bayarError}
@@ -417,10 +492,10 @@ export default function SiswaPortalPage() {
             ) : pageError ? (
               <div className="alert alert-danger">{pageError}</div>
             ) : tagihanBelumLunas.length === 0 ? (
-              <div className="text-center py-5 bg-white rounded-4 border p-4">
+              <div className="text-center py-5 bg-white rounded-4 border p-4 shadow-sm">
                 <div style={{ fontSize: "3.5rem", marginBottom: "0.5rem" }}>🎉</div>
-                <h4 className="h5 fw-bold" style={{ color: "#0f172a" }}>Semua Tagihan Lunas!</h4>
-                <p className="text-muted small">Tidak ada tunggakan SPP yang perlu dibayar saat ini.</p>
+                <h4 className="h5 fw-bold" style={{ color: "#0f172a" }}>Semua Tagihan SPP Lunas!</h4>
+                <p className="text-muted small">Terima kasih, tidak ada tunggakan SPP yang perlu dibayar saat ini.</p>
               </div>
             ) : (
               tagihanBelumLunas.map((t) => {
@@ -440,7 +515,7 @@ export default function SiswaPortalPage() {
                         </span>
                       </div>
                       <div className="text-muted small">
-                        Jatuh tempo: {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                        Jatuh tempo: <strong>{new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</strong>
                       </div>
                     </div>
 
@@ -460,7 +535,7 @@ export default function SiswaPortalPage() {
                         </button>
 
                         <button
-                          className="btn btn-primary btn-sm px-4 rounded-pill fw-semibold shadow-sm"
+                          className="btn btn-primary btn-sm px-4 rounded-pill fw-bold shadow-sm"
                           onClick={() => handleBayar(t.id)}
                           disabled={isBayarLoading || isCekLoading}
                         >
@@ -480,16 +555,33 @@ export default function SiswaPortalPage() {
         {/* TAB 2: RIWAYAT LUNAS */}
         {activeTab === "riwayat" && (
           <div>
+            {tagihanLunas.length > 0 && (
+              <div className="mb-3">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  style={{ maxWidth: 300, borderRadius: 10 }}
+                  placeholder="🔍 Cari bulan / tahun riwayat..."
+                  value={searchRiwayat}
+                  onChange={(e) => setSearchRiwayat(e.target.value)}
+                />
+              </div>
+            )}
+
             {loading ? (
               <div className="text-center py-5 text-muted"><div className="spinner-border text-primary mb-2" /><p>Memuat riwayat...</p></div>
             ) : tagihanLunas.length === 0 ? (
-              <div className="text-center py-5 bg-white rounded-4 border p-4">
+              <div className="text-center py-5 bg-white rounded-4 border p-4 shadow-sm">
                 <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>📜</div>
                 <h5 className="fw-bold">Belum Ada Riwayat</h5>
                 <p className="text-muted small">Belum ada transaksi pembayaran SPP yang berstatus lunas.</p>
               </div>
+            ) : filteredRiwayat.length === 0 ? (
+              <div className="text-center py-4 bg-white rounded-4 border p-3">
+                <p className="text-muted mb-0 small">Tidak ditemukan riwayat pembayaran yang cocok.</p>
+              </div>
             ) : (
-              tagihanLunas.map((t) => (
+              filteredRiwayat.map((t) => (
                 <div className="tagihan-card-modern" key={t.id}>
                   <div>
                     <div className="d-flex align-items-center gap-2 mb-1">
@@ -523,7 +615,7 @@ export default function SiswaPortalPage() {
 
         {/* TAB 3: PROFIL SAYA */}
         {activeTab === "profil" && (
-          <div className="bg-white rounded-4 border p-4">
+          <div className="bg-white rounded-4 border p-4 shadow-sm">
             <h3 className="h6 fw-bold mb-3 text-uppercase text-primary" style={{ letterSpacing: "1px" }}>
               📋 Identitas Siswa Lengkap
             </h3>

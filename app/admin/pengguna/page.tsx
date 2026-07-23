@@ -247,7 +247,7 @@ export default function PenggunaPage() {
                       <th>Nama & Email</th>
                       <th>Hak Akses (Role)</th>
                       <th>Tanggal Dibuat</th>
-                      <th style={{ textAlign: "right" }}>Aksi</th>
+                      <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -274,18 +274,18 @@ export default function PenggunaPage() {
                               {new Date(u.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                             </div>
                           </td>
-                          <td className="text-end">
-                            <div className="d-flex gap-1 justify-content-end">
+                          <td className="text-end" style={{ whiteSpace: "nowrap" }}>
+                            <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
                               <button
-                                className="btn btn-sm btn-outline-warning rounded-pill px-2 fw-semibold"
-                                style={{ fontSize: "0.75rem" }}
+                                className="btn btn-sm btn-outline-warning rounded-pill px-2 py-1 fw-semibold"
+                                style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                                 onClick={() => setResetUser(u)}
                               >
                                 🔑 Ganti Password
                               </button>
                               <button
-                                className="btn btn-sm btn-outline-info rounded-pill px-2 fw-semibold"
-                                style={{ fontSize: "0.75rem" }}
+                                className="btn btn-sm btn-outline-info rounded-pill px-2 py-1 fw-semibold"
+                                style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                                 onClick={() => handleUbahRole(u, u.role === "owner" ? "petugas" : "owner")}
                               >
                                 🔄 Peran ({u.role === "owner" ? "→ Petugas" : "→ Owner"})

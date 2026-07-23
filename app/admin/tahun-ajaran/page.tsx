@@ -209,7 +209,7 @@ export default function TahunAjaranPage() {
                     <tr>
                       <th>Tahun Ajaran</th>
                       <th>Status</th>
-                      <th style={{ width: 120 }}></th>
+                      <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -226,11 +226,11 @@ export default function TahunAjaranPage() {
                             ? <span className="badge-aktif">✓ Aktif</span>
                             : <span className="badge-nonaktif">Nonaktif</span>}
                         </td>
-                        <td>
-                          <div className="d-flex gap-1">
-                            <button className="btn btn-sm btn-outline-primary" style={{ borderRadius: 8 }}
+                        <td className="text-end" style={{ whiteSpace: "nowrap" }}>
+                          <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
+                            <button className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               onClick={() => bukaEdit(t)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger" style={{ borderRadius: 8 }}
+                            <button className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               disabled={deletingId === t.id}
                               onClick={() => handleDelete(t.id)}>
                               {deletingId === t.id

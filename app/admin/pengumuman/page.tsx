@@ -174,7 +174,7 @@ export default function PengumumanPage() {
                     <tr>
                       <th style={{ width: "20%" }}>Tanggal</th>
                       <th style={{ width: "60%" }}>Pengumuman</th>
-                      <th style={{ width: "20%" }}></th>
+                      <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -190,11 +190,11 @@ export default function PengumumanPage() {
                             {p.isi}
                           </div>
                         </td>
-                        <td>
-                          <div className="d-flex gap-1 justify-content-end">
-                            <button className="btn btn-sm btn-outline-primary" style={{ borderRadius: 8 }}
+                        <td className="text-end" style={{ whiteSpace: "nowrap" }}>
+                          <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
+                            <button className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               onClick={() => bukaEdit(p)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger" style={{ borderRadius: 8 }}
+                            <button className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               disabled={deletingId === p.id}
                               onClick={() => handleDelete(p.id)}>
                               {deletingId === p.id ? "..." : "Hapus"}
