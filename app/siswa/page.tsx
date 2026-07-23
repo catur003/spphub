@@ -79,11 +79,16 @@ export default function SiswaPortalPage() {
   const [pageError, setPageError] = useState("");
   const [toast, setToast] = useState<{ msg: string; type: "success" | "info" | "error" } | null>(null);
   const [midtrans, setMidtrans] = useState<MidtransConfig>(null);
+  const [noHpBendahara, setNoHpBendahara] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings/midtrans-public")
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setMidtrans(data); });
+
+    fetch("/api/settings/sekolah-public")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.noHpBendahara) setNoHpBendahara(data.noHpBendahara); });
   }, []);
 
   async function muatData() {
@@ -258,10 +263,15 @@ export default function SiswaPortalPage() {
     return bulanNama.includes(q) || tahunStr.includes(q);
   });
 
-  // Pesan WhatsApp Bendahara
-  const waPesan = encodeURIComponent(
-    `Halo Admin/Bendahara Sekolah, saya ${siswa?.namaLengkap || "Siswa"} (NIS: ${siswa?.nis || "-"}, Kelas: ${siswa?.kelas?.namaKelas || "-"}) ingin menanyakan mengenai informasi tagihan SPP.`
-  );
+  // Link WhatsApp Bendahara
+  const hpClean = noHpBendahara ? noHpBendahara.replace(/\D/g, "").replace(/^0/, "62") : "";
+  const waUrl = hpClean
+    ? `https://wa.me/${hpClean}?text=${encodeURIComponent(
+        `Halo Admin/Bendahara Sekolah, saya ${siswa?.namaLengkap || "Siswa"} (NIS: ${siswa?.nis || "-"}, Kelas: ${siswa?.kelas?.namaKelas || "-"}) ingin menanyakan mengenai informasi tagihan SPP.`
+      )}`
+    : `https://wa.me/?text=${encodeURIComponent(
+        `Halo Admin/Bendahara Sekolah, saya ${siswa?.namaLengkap || "Siswa"} (NIS: ${siswa?.nis || "-"}, Kelas: ${siswa?.kelas?.namaKelas || "-"}) ingin menanyakan mengenai informasi tagihan SPP.`
+      )}`;
 
   return (
     <>
@@ -292,7 +302,7 @@ export default function SiswaPortalPage() {
         </div>
         <div className="d-flex align-items-center gap-2">
           <a
-            href={`https://wa.me/?text=${waPesan}`}
+            href={waUrl}
             target="_blank"
             rel="noreferrer"
             className="btn btn-sm btn-light rounded-pill px-3 fw-bold d-none d-sm-inline-flex align-items-center gap-1 text-dark"

@@ -5,7 +5,7 @@ import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import Link from "next/link";
 
 type TahunAjaran = { id: string; nama: string; aktif: boolean };
-type KelasOption = { id: string; namaKelas: string; nominalSpp?: number };
+type KelasOption = { id: string; namaKelas: string; tingkat?: number; nominalSpp?: number };
 type Tagihan = {
   id: string;
   bulan: number;
@@ -13,7 +13,7 @@ type Tagihan = {
   nominal: number;
   status: string;
   jatuhTempo: string;
-  siswa?: { namaLengkap?: string; nis?: string; kelas?: { id?: string; namaKelas?: string } | null } | null;
+  siswa?: { namaLengkap?: string; nis?: string; kelas?: { id?: string; namaKelas?: string; tingkat?: number } | null } | null;
 };
 
 const BULAN_LABEL = [
@@ -52,7 +52,9 @@ export default function TagihanPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterBulan, setFilterBulan] = useState("");
   const [filterTahun, setFilterTahun] = useState("");
+  const [filterTingkat, setFilterTingkat] = useState("");
   const [filterKelasId, setFilterKelasId] = useState("");
+  const [filterQ, setFilterQ] = useState("");
 
   // Form generate
   const [gen, setGen] = useState({
@@ -66,7 +68,29 @@ export default function TagihanPage() {
   const [genResult, setGenResult] = useState<{ dibuat: number; dilewati: number } | null>(null);
   const [genLoading, setGenLoading] = useState(false);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [sendingWaId, setSendingWaId] = useState<string | null>(null);
   const { confirm, alertMsg, modal } = useConfirmModal();
+
+  async function handleKirimWa(id: string) {
+    setSendingWaId(id);
+    try {
+      const res = await fetch(`/api/tagihan/${id}/kirim-wa`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        await alertMsg(data.error || "Gagal mengirim pengingat WA");
+        return;
+      }
+      if (data.method === "wa_link" && data.waUrl) {
+        window.open(data.waUrl, "_blank");
+      } else {
+        await alertMsg(`✅ ${data.message || "Pesan WA berhasil dikirim via Fonnte!"}`);
+      }
+    } catch (err: any) {
+      await alertMsg("Gagal mengirim WA: " + err.message);
+    } finally {
+      setSendingWaId(null);
+    }
+  }
 
   async function muatTahunAjaran() {
     const res = await fetch("/api/tahun-ajaran");
@@ -90,7 +114,9 @@ export default function TagihanPage() {
     if (filterStatus)  params.set("status", filterStatus);
     if (filterBulan)   params.set("bulan", filterBulan);
     if (filterTahun)   params.set("tahun", filterTahun);
+    if (filterTingkat) params.set("tingkat", filterTingkat);
     if (filterKelasId) params.set("kelasId", filterKelasId);
+    if (filterQ)       params.set("q", filterQ);
 
     try {
       const res = await fetch(`/api/tagihan?${params.toString()}`);
@@ -108,7 +134,7 @@ export default function TagihanPage() {
     } finally {
       setLoadingData(false);
     }
-  }, [filterStatus, filterBulan, filterTahun, filterKelasId]);
+  }, [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ]);
 
   useEffect(() => {
     muatTahunAjaran();
@@ -116,7 +142,8 @@ export default function TagihanPage() {
   }, []);
 
   useEffect(() => {
-    muatTagihan();
+    const timeout = setTimeout(muatTagihan, 300);
+    return () => clearTimeout(timeout);
   }, [muatTagihan]);
 
   async function handleGenerate(e: React.FormEvent) {
@@ -153,12 +180,22 @@ export default function TagihanPage() {
     muatTagihan();
   }
 
+  // Opsi Tingkat & Kelas yang ter-filter
+  const tingkatOptions = Array.from(
+    new Set(kelasList.map((k) => k.tingkat).filter(Boolean))
+  ).sort((a, b) => Number(a) - Number(b));
+
+  const filteredKelasList = filterTingkat
+    ? kelasList.filter((k) => String(k.tingkat) === filterTingkat)
+    : kelasList;
+
   const totalTagihan = daftar.length;
   const totalLunas   = daftar.filter((t) => t.status === "lunas").length;
   const totalBelum   = daftar.filter((t) => t.status === "belum_bayar" || t.status === "terlambat").length;
   const totalNominal = daftar.reduce((acc, t) => acc + t.nominal, 0);
 
   const kelasBelumSet = kelasList.filter((k) => !k.nominalSpp || k.nominalSpp === 0);
+  const isFilterActive = !!(filterBulan || filterTahun || filterStatus || filterKelasId || filterTingkat || filterQ);
 
   return (
     <>
@@ -180,19 +217,9 @@ export default function TagihanPage() {
           padding: 1.25rem 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
 
-        .class-tab-bar {
-          display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.5rem;
-          margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0;
-        }
-        .class-tab-btn {
-          padding: 0.55rem 1.1rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
-          border: 1px solid #e2e8f0; background: white; color: #475569;
-          white-space: nowrap; cursor: pointer; transition: all 0.2s;
-          display: inline-flex; align-items: center; gap: 6px;
-        }
-        .class-tab-btn:hover { background: #f8fafc; color: #4338ca; border-color: #cbd5e1; }
-        .class-tab-btn.active {
-          background: #4338ca; color: white; border-color: #4338ca; box-shadow: 0 4px 12px rgba(67, 56, 202, 0.2);
+        .filter-card {
+          background: white; border-radius: 16px; border: 1px solid var(--border-soft);
+          padding: 1rem 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
 
         .tagihan-table-clean {
@@ -338,68 +365,97 @@ export default function TagihanPage() {
           </form>
         </div>
 
-        {/* Tab Navigasi Per Kelas */}
-        <div className="class-tab-bar">
-          <button
-            className={`class-tab-btn ${filterKelasId === "" ? "active" : ""}`}
-            onClick={() => setFilterKelasId("")}
-          >
-            🏫 Semua Kelas
-          </button>
-          {kelasList.map((k) => (
-            <button
-              key={k.id}
-              className={`class-tab-btn ${filterKelasId === k.id ? "active" : ""}`}
-              onClick={() => setFilterKelasId(k.id)}
-            >
-              <span>Kelas {k.namaKelas}</span>
-              {k.nominalSpp ? (
-                <span className="badge rounded-pill" style={{ background: filterKelasId === k.id ? "rgba(255,255,255,0.25)" : "#f1f5f9", color: filterKelasId === k.id ? "#fff" : "#475569", fontSize: "0.7rem" }}>
-                  Rp {(k.nominalSpp / 1000).toFixed(0)}k
-                </span>
-              ) : (
-                <span className="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning" style={{ fontSize: "0.68rem" }}>
-                  ⚠️ Rp 0
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Filter Card Toolbar Multi-Level (Tingkat & Kelas Dropdown) */}
+        <div className="filter-card mb-4">
+          <div className="d-flex align-items-center justify-content-between mb-2">
+            <span className="fw-bold small text-dark">🔍 Filter Data Tagihan</span>
+            <span className="text-muted small">Total: <strong>{daftar.length}</strong> tagihan</span>
+          </div>
 
-        {/* Sub-filters (Bulan, Tahun, Status) */}
-        <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
-          <select className="form-select form-select-sm" style={{ maxWidth: 140 }}
-            value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)}>
-            <option value="">Semua Bulan</option>
-            {BULAN_LABEL.slice(1).map((lbl, i) => (
-              <option key={i + 1} value={i + 1}>{lbl}</option>
-            ))}
-          </select>
-          <select className="form-select form-select-sm" style={{ maxWidth: 130 }}
-            value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)}>
-            <option value="">Semua Tahun</option>
-            {TAHUN_OPTIONS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          <select className="form-select form-select-sm" style={{ maxWidth: 170 }}
-            value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-            <option value="">Semua Status</option>
-            {Object.entries(STATUS_INFO).map(([val, info]) => (
-              <option key={val} value={val}>{info.label}</option>
-            ))}
-          </select>
+          <div className="row g-2 align-items-center">
+            {/* Cari Nama Siswa / NIS */}
+            <div className="col-12 col-md-3">
+              <input
+                className="form-control form-control-sm"
+                placeholder="🔍 Cari nama siswa / NIS..."
+                value={filterQ}
+                onChange={(e) => setFilterQ(e.target.value)}
+              />
+            </div>
 
-          {(filterBulan || filterTahun || filterStatus || filterKelasId) && (
-            <button className="btn btn-sm btn-outline-secondary" style={{ borderRadius: 8, fontSize: "0.78rem" }}
-              onClick={() => { setFilterBulan(""); setFilterTahun(""); setFilterStatus(""); setFilterKelasId(""); }}>
-              ✕ Reset Filter
-            </button>
+            {/* Filter Tingkat Dropdown */}
+            <div className="col-6 col-md-2">
+              <select
+                className="form-select form-select-sm"
+                value={filterTingkat}
+                onChange={(e) => {
+                  setFilterTingkat(e.target.value);
+                  setFilterKelasId("");
+                }}
+              >
+                <option value="">Semua Tingkat</option>
+                {tingkatOptions.map((t) => (
+                  <option key={t} value={t}>Tingkat {t}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Kelas Dropdown */}
+            <div className="col-6 col-md-3">
+              <select
+                className="form-select form-select-sm"
+                value={filterKelasId}
+                onChange={(e) => setFilterKelasId(e.target.value)}
+              >
+                <option value="">Semua Kelas {filterTingkat ? `(Tingkat ${filterTingkat})` : ""}</option>
+                {filteredKelasList.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    Kelas {k.namaKelas} {k.nominalSpp ? `(Rp ${(k.nominalSpp / 1000).toFixed(0)}k)` : "(⚠️ Rp 0)"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Bulan */}
+            <div className="col-4 col-md-2">
+              <select className="form-select form-select-sm"
+                value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)}>
+                <option value="">Semua Bulan</option>
+                {BULAN_LABEL.slice(1).map((lbl, i) => (
+                  <option key={i + 1} value={i + 1}>{lbl}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Status */}
+            <div className="col-4 col-md-2">
+              <select className="form-select form-select-sm"
+                value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                <option value="">Semua Status</option>
+                {Object.entries(STATUS_INFO).map(([val, info]) => (
+                  <option key={val} value={val}>{info.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Active Filter Chips */}
+          {isFilterActive && (
+            <div className="d-flex align-items-center justify-content-between mt-3 pt-2 border-top flex-wrap gap-2">
+              <div className="d-flex align-items-center gap-1 flex-wrap" style={{ fontSize: "0.75rem" }}>
+                <span className="text-muted fw-semibold me-1">Filter Aktif:</span>
+                {filterTingkat && <span className="badge bg-indigo-subtle text-indigo px-2 py-1 rounded-pill" style={{ background: "#e0e7ff", color: "#3730a3" }}>Tingkat {filterTingkat}</span>}
+                {filterKelasId && <span className="badge bg-primary px-2 py-1 rounded-pill">Kelas {kelasList.find(k => k.id === filterKelasId)?.namaKelas}</span>}
+                {filterBulan && <span className="badge bg-info text-dark px-2 py-1 rounded-pill">Bulan {BULAN_LABEL[Number(filterBulan)]}</span>}
+                {filterStatus && <span className="badge bg-secondary px-2 py-1 rounded-pill">{STATUS_INFO[filterStatus]?.label}</span>}
+                {filterQ && <span className="badge bg-dark px-2 py-1 rounded-pill">Cari: "{filterQ}"</span>}
+              </div>
+              <button className="btn btn-sm btn-outline-danger py-1 px-3 rounded-pill fw-semibold ms-auto" style={{ fontSize: "0.75rem" }}
+                onClick={() => { setFilterBulan(""); setFilterTahun(""); setFilterStatus(""); setFilterKelasId(""); setFilterTingkat(""); setFilterQ(""); }}>
+                ✕ Reset Filter
+              </button>
+            </div>
           )}
-
-          <span className="ms-auto text-muted small fw-semibold">
-            {daftar.length} data tagihan ditemukan
-          </span>
         </div>
 
         {/* Tabel Tagihan */}
@@ -482,38 +538,49 @@ export default function TagihanPage() {
                             {info.label}
                           </span>
                         </td>
-                        <td className="text-end">
-                          {t.status === "lunas" ? (
-                            <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary rounded-pill px-3">
-                              Kwitansi
-                            </a>
-                          ) : (
-                            <div className="d-flex gap-1 justify-content-end">
-                              <button
-                                className="btn btn-sm btn-success rounded-pill px-2 fw-semibold"
-                                style={{ fontSize: "0.75rem" }}
-                                disabled={verifyingId === t.id}
-                                onClick={() => handleVerifikasi(t.id)}>
-                                ✓ Tandai Lunas
-                              </button>
-                              <button
-                                className="btn btn-sm btn-outline-secondary rounded-circle"
-                                style={{ width: 30, height: 30, padding: 0 }}
-                                title="Cek Status Midtrans"
-                                onClick={async () => {
-                                  const res = await fetch(`/api/tagihan/${t.id}/cek-status`);
-                                  const data = await res.json();
-                                  if (data.status === "lunas") {
-                                    alert("Status terverifikasi LUNAS via Midtrans!");
-                                    muatTagihan();
-                                  } else {
-                                    alert(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
-                                  }
-                                }}>
-                                🔄
-                              </button>
-                            </div>
-                          )}
+                        <td className="text-end" style={{ whiteSpace: "nowrap" }}>
+                          <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
+                            <button
+                              className="btn btn-sm btn-outline-success rounded-pill px-2 py-1 fw-semibold"
+                              style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
+                              disabled={sendingWaId === t.id}
+                              onClick={() => handleKirimWa(t.id)}
+                              title="Kirim Pengingat WA Wali Siswa"
+                            >
+                              {sendingWaId === t.id ? <span className="spinner-border spinner-border-sm" /> : "📲 Kirim WA"}
+                            </button>
+                            {t.status === "lunas" ? (
+                              <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                                Kwitansi
+                              </a>
+                            ) : (
+                              <>
+                                <button
+                                  className="btn btn-sm btn-success rounded-pill px-2 py-1 fw-semibold"
+                                  style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
+                                  disabled={verifyingId === t.id}
+                                  onClick={() => handleVerifikasi(t.id)}>
+                                  ✓ Tandai Lunas
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-secondary rounded-circle"
+                                  style={{ width: 28, height: 28, padding: 0 }}
+                                  title="Cek Status Midtrans"
+                                  onClick={async () => {
+                                    const res = await fetch(`/api/tagihan/${t.id}/cek-status`);
+                                    const data = await res.json();
+                                    if (data.status === "lunas") {
+                                      alert("Status terverifikasi LUNAS via Midtrans!");
+                                      muatTagihan();
+                                    } else {
+                                      alert(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
+                                    }
+                                  }}>
+                                  🔄
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

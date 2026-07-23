@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
   const bulan = searchParams.get("bulan");
   const tahun = searchParams.get("tahun");
   const kelasId = searchParams.get("kelasId") || undefined;
+  const tingkat = searchParams.get("tingkat") || undefined;
+  const q = searchParams.get("q") || undefined;
 
   try {
     const tagihan = await prisma.tagihanSpp.findMany({
@@ -21,7 +23,22 @@ export async function GET(req: NextRequest) {
         ...(status ? { status: status as never } : {}),
         ...(bulan ? { bulan: Number(bulan) } : {}),
         ...(tahun ? { tahun: Number(tahun) } : {}),
-        ...(kelasId ? { siswa: { kelasId } } : {}),
+        ...(kelasId
+          ? { siswa: { kelasId } }
+          : tingkat
+          ? { siswa: { kelas: { tingkat: Number(tingkat) } } }
+          : {}),
+        ...(q
+          ? {
+              siswa: {
+                OR: [
+                  { namaLengkap: { contains: q } },
+                  { nis: { contains: q } },
+                  { nisn: { contains: q } },
+                ],
+              },
+            }
+          : {}),
       },
       include: {
         siswa: {
@@ -29,12 +46,12 @@ export async function GET(req: NextRequest) {
             id: true,
             namaLengkap: true,
             nis: true,
-            kelas: { select: { id: true, namaKelas: true } },
+            kelas: { select: { id: true, namaKelas: true, tingkat: true } },
           },
         },
       },
       orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
-      take: 300,
+      take: q ? 50 : 300,
     });
 
     return NextResponse.json(tagihan);

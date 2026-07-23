@@ -90,11 +90,13 @@ model Verifikasi {
 // ============================================================
 
 model ProfilSekolah {
-  id                String @id @default(cuid())
+  id                String  @id @default(cuid())
   nama              String
   alamat            String?
   logoUrl           String?
   nominalSppDefault Int
+  noHpBendahara     String?
+  fonnteToken       String?
 
   @@map("profil_sekolah")
 }

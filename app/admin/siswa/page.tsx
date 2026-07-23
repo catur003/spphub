@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
-type Kelas = { id: string; namaKelas: string };
+type Kelas = { id: string; namaKelas: string; tingkat?: number };
 type Siswa = {
   id: string;
   nis: string;
@@ -124,6 +124,7 @@ export default function SiswaPage() {
   const [daftar, setDaftar] = useState<Siswa[]>([]);
   const [kelasList, setKelasList] = useState<Kelas[]>([]);
   const [q, setQ] = useState("");
+  const [filterTingkat, setFilterTingkat] = useState("");
   const [filterKelasId, setFilterKelasId] = useState("");
   const [formTambah, setFormTambah] = useState(FORM_TAMBAH_KOSONG);
   const [loadingTambah, setLoadingTambah] = useState(false);
@@ -594,7 +595,7 @@ export default function SiswaPage() {
           <div className="col-lg-8">
             <div className="card border-0 shadow-sm p-3 mb-3" style={{ borderRadius: 16 }}>
               <div className="row g-2">
-                <div className="col-md-7">
+                <div className="col-md-5">
                   <input
                     className="form-control form-control-sm"
                     placeholder="🔍 Cari nama siswa / NIS / NISN (Maks 20)..."
@@ -602,10 +603,29 @@ export default function SiswaPage() {
                     onChange={(e) => setQ(e.target.value)}
                   />
                 </div>
-                <div className="col-md-5">
+                <div className="col-md-3">
+                  <select
+                    className="form-select form-select-sm"
+                    value={filterTingkat}
+                    onChange={(e) => {
+                      setFilterTingkat(e.target.value);
+                      setFilterKelasId("");
+                    }}
+                  >
+                    <option value="">Semua Tingkat</option>
+                    {Array.from(new Set(kelasList.map((k) => k.tingkat).filter(Boolean)))
+                      .sort((a, b) => Number(a) - Number(b))
+                      .map((t) => (
+                        <option key={t} value={t}>Tingkat {t}</option>
+                      ))}
+                  </select>
+                </div>
+                <div className="col-md-4">
                   <select className="form-select form-select-sm" value={filterKelasId} onChange={(e) => setFilterKelasId(e.target.value)}>
-                    <option value="">Semua Kelas</option>
-                    {kelasList.map((k) => <option key={k.id} value={k.id}>{k.namaKelas}</option>)}
+                    <option value="">Semua Kelas {filterTingkat ? `(Tingkat ${filterTingkat})` : ""}</option>
+                    {(filterTingkat ? kelasList.filter((k) => String(k.tingkat) === filterTingkat) : kelasList).map((k) => (
+                      <option key={k.id} value={k.id}>{k.namaKelas}</option>
+                    ))}
                   </select>
                 </div>
               </div>

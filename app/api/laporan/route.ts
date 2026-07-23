@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     const bulan = searchParams.get("bulan");
     const tahun = searchParams.get("tahun");
     const kelasId = searchParams.get("kelasId");
+    const tingkat = searchParams.get("tingkat");
     const status = searchParams.get("status");
     const q = searchParams.get("q") || "";
     const startDate = searchParams.get("startDate");
@@ -27,7 +28,11 @@ export async function GET(req: NextRequest) {
       ...(bulan ? { bulan: Number(bulan) } : {}),
       ...(tahun ? { tahun: Number(tahun) } : {}),
       ...(status ? { status: status as never } : {}),
-      ...(kelasId ? { siswa: { kelasId } } : {}),
+      ...(kelasId
+        ? { siswa: { kelasId } }
+        : tingkat
+        ? { siswa: { kelas: { tingkat: Number(tingkat) } } }
+        : {}),
     };
 
     if (q) {

@@ -15,6 +15,8 @@ type SekolahSettings = {
   alamat: string | null;
   logoUrl: string | null;
   nominalSppDefault: number;
+  noHpBendahara: string | null;
+  fonnteToken: string | null;
 };
 
 const PAYMENT_KOSONG: PaymentSettings = {
@@ -30,6 +32,8 @@ const SEKOLAH_KOSONG: SekolahSettings = {
   alamat: "",
   logoUrl: "",
   nominalSppDefault: 0,
+  noHpBendahara: "",
+  fonnteToken: "",
 };
 
 export default function SettingsPage() {
@@ -46,6 +50,7 @@ export default function SettingsPage() {
   const [sekolahMsg, setSekolahMsg] = useState("");
   const [sekolahError, setSekolahError] = useState("");
   const [sekolahLoading, setSekolahLoading] = useState(false);
+  const [showFonnteToken, setShowFonnteToken] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings/payment").then(async (res) => {
@@ -87,7 +92,7 @@ export default function SettingsPage() {
     setSekolahLoading(false);
     if (!res.ok) { setSekolahError(data.error || "Gagal menyimpan"); return; }
     setSekolah(data);
-    setSekolahMsg("Profil sekolah berhasil disimpan.");
+    setSekolahMsg("Profil sekolah & pengaturan WhatsApp berhasil disimpan.");
   }
 
   // Key yang aktif berdasarkan environment yang dipilih
@@ -188,10 +193,6 @@ export default function SettingsPage() {
         .gateway-card__info { flex: 1; }
         .gateway-card__name { font-size: 0.88rem; font-weight: 700; color: var(--ink-900); }
         .gateway-card__desc { font-size: 0.75rem; color: var(--ink-500); margin-top: 1px; }
-        .badge-soon {
-          background: #fef9c3; color: #854d0e; padding: 2px 8px;
-          border-radius: 20px; font-size: 0.68rem; font-weight: 600; white-space: nowrap;
-        }
 
         /* ——— API Key Section ——— */
         .api-key-section {
@@ -220,25 +221,17 @@ export default function SettingsPage() {
         }
         .input-secret__eye:hover { color: var(--accent); }
 
-        /* ——— Save button bar ——— */
-        .save-bar {
-          display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem;
-          padding: 1rem 1.2rem; border-top: 1px solid var(--border-soft);
-          background: var(--surface); border-radius: 0 0 16px 16px;
-          margin-top: 1.5rem;
-        }
-
         /* ——— Sekolah form ——— */
         .sekolah-section {
           border: 1px solid var(--border-soft); border-radius: 14px;
-          padding: 1.2rem; background: white;
+          padding: 1.2rem; background: white; margin-bottom: 1rem;
         }
       `}</style>
 
       <div className="container-fluid p-4" style={{ maxWidth: 760 }}>
         <div className="mb-4">
           <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Pengaturan</h1>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>Konfigurasi sistem dan payment gateway</p>
+          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>Konfigurasi sistem, payment gateway, dan WhatsApp Gateway</p>
         </div>
 
         {/* Tab Navigation */}
@@ -249,7 +242,7 @@ export default function SettingsPage() {
           </button>
           <button className={`settings-tab ${tab === "sekolah" ? "active" : ""}`}
             onClick={() => setTab("sekolah")}>
-            🏫 Profil Sekolah
+            🏫 Profil Sekolah & WhatsApp
           </button>
         </div>
 
@@ -287,7 +280,6 @@ export default function SettingsPage() {
             {/* Payment Gateway */}
             <div className="section-label">Payment Gateway</div>
             <div className="mb-4">
-              {/* Midtrans — active */}
               <div className="gateway-card selected">
                 <div className="gateway-card__radio" />
                 <div className="gateway-card__logo">M</div>
@@ -296,34 +288,11 @@ export default function SettingsPage() {
                   <div className="gateway-card__desc">Metode Snap Pop-up — checkout bawaan Midtrans</div>
                 </div>
               </div>
-              {/* Duitku — coming soon */}
-              <div className="gateway-card disabled">
-                <div className="gateway-card__radio" />
-                <div className="gateway-card__logo" style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)" }}>D</div>
-                <div className="gateway-card__info">
-                  <div className="gateway-card__name">
-                    Duitku <span className="badge-soon ms-1">Segera Hadir</span>
-                  </div>
-                  <div className="gateway-card__desc">Alternatif pembayaran multi-channel</div>
-                </div>
-              </div>
-              {/* Cashi.id — coming soon */}
-              <div className="gateway-card disabled">
-                <div className="gateway-card__radio" />
-                <div className="gateway-card__logo" style={{ background: "linear-gradient(135deg,#10b981,#059669)" }}>C</div>
-                <div className="gateway-card__info">
-                  <div className="gateway-card__name">
-                    Cashi.id <span className="badge-soon ms-1">Segera Hadir</span>
-                  </div>
-                  <div className="gateway-card__desc">Sistem QRIS Instan Cashi.id</div>
-                </div>
-              </div>
             </div>
 
-            {/* API Key Section — Sandbox */}
+            {/* API Key Section */}
             <div className="section-label">Midtrans API Key</div>
             <div className="mb-3">
-              {/* Sandbox */}
               <div className={`api-key-section mb-3 ${envAktif === "sandbox" ? "border-warning" : ""}`}
                 style={{ borderColor: envAktif === "sandbox" ? "#fde68a" : undefined,
                           background: envAktif === "sandbox" ? "#fffbeb" : undefined }}>
@@ -354,9 +323,7 @@ export default function SettingsPage() {
                       onChange={(e) => setPayment({ ...payment, sandboxServerKey: e.target.value })} />
                     <button type="button" className="input-secret__eye"
                       onClick={() => setShowSandboxServer(!showSandboxServer)}>
-                      {showSandboxServer
-                        ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                        : <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
+                      👁️
                     </button>
                   </div>
                 </div>
@@ -393,18 +360,15 @@ export default function SettingsPage() {
                       onChange={(e) => setPayment({ ...payment, productionServerKey: e.target.value })} />
                     <button type="button" className="input-secret__eye"
                       onClick={() => setShowProdServer(!showProdServer)}>
-                      {showProdServer
-                        ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                        : <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
+                      👁️
                     </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Save */}
             <div className="d-flex justify-content-end">
-              <button className="btn btn-primary px-4" disabled={paymentLoading}>
+              <button className="btn btn-primary px-4 fw-bold" disabled={paymentLoading}>
                 {paymentLoading
                   ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
                   : "💾 Simpan Payment Settings"}
@@ -423,6 +387,7 @@ export default function SettingsPage() {
                 ✓ {sekolahMsg}
               </div>
             )}
+
             <div className="sekolah-section">
               <div className="section-label">Identitas Sekolah</div>
               <div className="mb-3">
@@ -432,35 +397,70 @@ export default function SettingsPage() {
                   placeholder="Contoh: SMP Negeri 1 Contoh" />
               </div>
               <div className="mb-3">
-                <label className="form-label small fw-semibold">Alamat</label>
+                <label className="form-label small fw-semibold">Alamat Sekolah</label>
                 <textarea className="form-control" rows={2} value={sekolah.alamat || ""}
                   onChange={(e) => setSekolah({ ...sekolah, alamat: e.target.value })}
                   placeholder="Alamat lengkap sekolah" />
               </div>
               <div className="mb-3">
-                <label className="form-label small fw-semibold">URL Logo</label>
+                <label className="form-label small fw-semibold">URL Logo Sekolah</label>
                 <input className="form-control" value={sekolah.logoUrl || ""}
                   onChange={(e) => setSekolah({ ...sekolah, logoUrl: e.target.value })}
-                  placeholder="https://..." />
+                  placeholder="https://link-logo-sekolah.png" />
               </div>
               <div className="mb-1">
                 <label className="form-label small fw-semibold">Nominal SPP Default</label>
                 <div className="input-group">
-                  <span className="input-group-text" style={{ borderRadius: "10px 0 0 10px", fontSize: "0.85rem" }}>Rp</span>
+                  <span className="input-group-text bg-light text-muted fw-semibold">Rp</span>
                   <input type="number" className="form-control" value={sekolah.nominalSppDefault}
-                    onChange={(e) => setSekolah({ ...sekolah, nominalSppDefault: Number(e.target.value) })}
-                    style={{ borderRadius: "0 10px 10px 0" }} />
+                    onChange={(e) => setSekolah({ ...sekolah, nominalSppDefault: Number(e.target.value) })} />
                 </div>
                 <small className="text-muted" style={{ fontSize: "0.75rem" }}>
-                  Dipakai sebagai nilai awal saat generate tagihan massal.
+                  Dipakai sebagai nilai acuan awal jika biaya SPP per kelas belum diatur.
                 </small>
               </div>
             </div>
+
+            {/* Section WhatsApp Bendahara & Gateway Fonnte */}
+            <div className="sekolah-section">
+              <div className="section-label">📲 WhatsApp Bendahara & Fonnte Gateway</div>
+              
+              <div className="mb-3">
+                <label className="form-label small fw-semibold">No. WhatsApp / HP Bendahara Sekolah</label>
+                <input className="form-control" value={sekolah.noHpBendahara || ""}
+                  onChange={(e) => setSekolah({ ...sekolah, noHpBendahara: e.target.value })}
+                  placeholder="Contoh: 081234567890" />
+                <div className="form-text text-muted" style={{ fontSize: "0.76rem" }}>
+                  Nomor ini akan dipakai oleh siswa di portal saat mengeklik tombol <strong>💬 Hubungi Bendahara</strong>.
+                </div>
+              </div>
+
+              <div className="mb-1">
+                <label className="form-label small fw-semibold">Token Fonnte WhatsApp Gateway (API Key)</label>
+                <div className="input-secret">
+                  <input
+                    type={showFonnteToken ? "text" : "password"}
+                    className="form-control"
+                    placeholder="Isikan Token API dari fonnte.com"
+                    value={sekolah.fonnteToken || ""}
+                    onChange={(e) => setSekolah({ ...sekolah, fonnteToken: e.target.value })}
+                  />
+                  <button type="button" className="input-secret__eye"
+                    onClick={() => setShowFonnteToken(!showFonnteToken)}>
+                    👁️
+                  </button>
+                </div>
+                <div className="form-text text-muted" style={{ fontSize: "0.76rem" }}>
+                  Jika Token Fonnte diisi, notifikasi pengingat SPP di menu Tagihan akan terkirim <strong>otomatis secara langsung via Fonnte API</strong> ke WA wali siswa!
+                </div>
+              </div>
+            </div>
+
             <div className="d-flex justify-content-end mt-3">
-              <button className="btn btn-primary px-4" disabled={sekolahLoading}>
+              <button className="btn btn-primary px-4 fw-bold" disabled={sekolahLoading}>
                 {sekolahLoading
                   ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
-                  : "💾 Simpan Profil Sekolah"}
+                  : "💾 Simpan Profil Sekolah & WhatsApp"}
               </button>
             </div>
           </form>

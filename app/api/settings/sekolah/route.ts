@@ -25,22 +25,24 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || session.user.role !== "owner") {
-    return NextResponse.json({ error: "Hanya Owner yang boleh ubah Profil Sekolah" }, { status: 403 });
+    return NextResponse.json({ error: "Hanya Owner yang boleh ubah Profil Sekolah & WhatsApp" }, { status: 403 });
   }
 
   const body = await req.json();
-  const { nama, alamat, logoUrl, nominalSppDefault } = body;
+  const { nama, alamat, logoUrl, nominalSppDefault, noHpBendahara, fonnteToken } = body;
 
   if (!nama) {
-    return NextResponse.json({ error: "nama sekolah wajib diisi" }, { status: 400 });
+    return NextResponse.json({ error: "Nama sekolah wajib diisi" }, { status: 400 });
   }
 
   let profil = await prisma.profilSekolah.findFirst();
   const data = {
-    nama,
-    alamat: alamat || null,
-    logoUrl: logoUrl || null,
+    nama: String(nama).trim(),
+    alamat: alamat ? String(alamat).trim() : null,
+    logoUrl: logoUrl ? String(logoUrl).trim() : null,
     nominalSppDefault: Number(nominalSppDefault) || 0,
+    noHpBendahara: noHpBendahara ? String(noHpBendahara).trim() : null,
+    fonnteToken: fonnteToken ? String(fonnteToken).trim() : null,
   };
 
   profil = profil
