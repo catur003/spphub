@@ -42,20 +42,62 @@ const BULAN_LABEL = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 
+const CACHE_KEY = "dashboard_cache";
+const CACHE_TTL_MS = 60_000; // 60 seconds
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Show cached data immediately (stale-while-revalidate pattern)
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { payload, ts } = JSON.parse(cached);
+        const age = Date.now() - ts;
+        if (payload && age < CACHE_TTL_MS * 5) { // Serve cache up to 5 minutes old
+          setData(payload);
+          setLoading(false);
+        }
+      }
+    } catch {}
+
+    // Always fetch fresh data in background
     fetch("/api/dashboard")
-      .then((res) => res.json())
+      .then((res) => res.ok ? res.json() : null)
       .then((resData) => {
-        setData(resData);
+        if (resData && !resData.error) {
+          setData(resData);
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ payload: resData, ts: Date.now() }));
+          } catch {}
+        }
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
+
+    // Auto-refresh every 60s while page is visible
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetch("/api/dashboard")
+          .then((res) => res.ok ? res.json() : null)
+          .then((resData) => {
+            if (resData && !resData.error) {
+              setData(resData);
+              try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ payload: resData, ts: Date.now() }));
+              } catch {}
+            }
+          })
+          .catch(() => {});
+      }
+    }, 60_000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="container-fluid p-4 text-center text-muted py-5">
         <div className="spinner-border text-primary mb-3" />

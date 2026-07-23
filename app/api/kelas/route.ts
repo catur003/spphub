@@ -5,9 +5,7 @@ import { headers } from "next/headers";
 
 async function checkAccess() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-    return null;
-  }
+  if (!session || !["owner", "petugas"].includes(session.user.role as string)) return null;
   return session;
 }
 
@@ -18,9 +16,19 @@ export async function GET() {
 
     const kelas = await prisma.kelas.findMany({
       orderBy: [{ tingkat: "asc" }, { namaKelas: "asc" }],
-      include: { _count: { select: { siswa: true } } },
+      select: {
+        id: true,
+        namaKelas: true,
+        tingkat: true,
+        nominalSpp: true,
+        waliKelas: true,
+        _count: { select: { siswa: true } },
+      },
     });
-    return NextResponse.json(kelas);
+
+    const res = NextResponse.json(kelas);
+    res.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    return res;
   } catch (error: any) {
     console.error("[GET /api/kelas] Error:", error);
     return NextResponse.json(
@@ -51,15 +59,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(kelas, { status: 201 });
   } catch (error: any) {
     console.error("[POST /api/kelas] Error:", error);
-
-    // Prisma Unique Constraint Error (P2002)
     if (error.code === "P2002") {
       return NextResponse.json(
         { error: "Nama kelas sudah ada, gunakan nama kelas lain." },
         { status: 400 }
       );
     }
-
     return NextResponse.json(
       { error: "Gagal menyimpan kelas: " + (error.message || "Terjadi kesalahan pada server") },
       { status: 500 }

@@ -150,14 +150,19 @@ export default function SiswaPage() {
 
   const { confirm, alertMsg, modal } = useConfirmModal();
 
-  const muatData = useCallback(async () => {
+  const muatData = useCallback(async (signal?: AbortSignal) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
+    if (filterTingkat) params.set("tingkat", filterTingkat);
     if (filterKelasId) params.set("kelasId", filterKelasId);
     const qs = params.toString();
-    const res = await fetch(`/api/siswa${qs ? `?${qs}` : ""}`);
-    if (res.ok) setDaftar(await res.json());
-  }, [q, filterKelasId]);
+    try {
+      const res = await fetch(`/api/siswa${qs ? `?${qs}` : ""}`, { signal });
+      if (res.ok) setDaftar(await res.json());
+    } catch (err: any) {
+      if (err.name !== "AbortError") console.error("[muatData] error:", err);
+    }
+  }, [q, filterTingkat, filterKelasId]);
 
   async function muatKelas() {
     const res = await fetch("/api/kelas");
@@ -172,8 +177,12 @@ export default function SiswaPage() {
   useEffect(() => { muatKelas(); }, []);
 
   useEffect(() => {
-    const timeout = setTimeout(muatData, 300);
-    return () => clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => muatData(controller.signal), 250);
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, [muatData]);
 
   function kompresGambar(file: File, maxPx = 400): Promise<Blob> {

@@ -17,30 +17,44 @@ export async function GET(req: NextRequest) {
   const tingkat = searchParams.get("tingkat") || undefined;
   const q = searchParams.get("q") || undefined;
 
+  // Build prisma where
+  const siswaFilter =
+    kelasId
+      ? { kelasId }
+      : tingkat
+      ? { kelas: { tingkat: Number(tingkat) } }
+      : undefined;
+
+  const qFilter = q
+    ? {
+        OR: [
+          { namaLengkap: { contains: q } },
+          { nis: { contains: q } },
+          { nisn: { contains: q } },
+        ],
+      }
+    : undefined;
+
+  const siswaWhere =
+    siswaFilter || qFilter
+      ? { ...(siswaFilter || {}), ...(qFilter || {}) }
+      : undefined;
+
   try {
     const tagihan = await prisma.tagihanSpp.findMany({
       where: {
         ...(status ? { status: status as never } : {}),
         ...(bulan ? { bulan: Number(bulan) } : {}),
         ...(tahun ? { tahun: Number(tahun) } : {}),
-        ...(kelasId
-          ? { siswa: { kelasId } }
-          : tingkat
-          ? { siswa: { kelas: { tingkat: Number(tingkat) } } }
-          : {}),
-        ...(q
-          ? {
-              siswa: {
-                OR: [
-                  { namaLengkap: { contains: q } },
-                  { nis: { contains: q } },
-                  { nisn: { contains: q } },
-                ],
-              },
-            }
-          : {}),
+        ...(siswaWhere ? { siswa: siswaWhere } : {}),
       },
-      include: {
+      select: {
+        id: true,
+        bulan: true,
+        tahun: true,
+        nominal: true,
+        status: true,
+        jatuhTempo: true,
         siswa: {
           select: {
             id: true,
@@ -54,7 +68,10 @@ export async function GET(req: NextRequest) {
       take: q ? 50 : 300,
     });
 
-    return NextResponse.json(tagihan);
+    const res = NextResponse.json(tagihan);
+    // Short-lived private cache so the table feels instant on navigation
+    res.headers.set("Cache-Control", "private, max-age=15, stale-while-revalidate=30");
+    return res;
   } catch (error: any) {
     console.error("[GET /api/tagihan] error:", error);
     return NextResponse.json(

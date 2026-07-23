@@ -107,7 +107,7 @@ export default function TagihanPage() {
     if (res.ok) setKelasList(await res.json());
   }
 
-  const muatTagihan = useCallback(async () => {
+  const muatTagihan = useCallback(async (signal?: AbortSignal) => {
     setLoadingData(true);
     setFetchError(null);
     const params = new URLSearchParams();
@@ -119,16 +119,17 @@ export default function TagihanPage() {
     if (filterQ)       params.set("q", filterQ);
 
     try {
-      const res = await fetch(`/api/tagihan?${params.toString()}`);
-      if (!res.ok) {
+      const res = await fetch(`/api/tagihan?${params.toString()}`, { signal });
+      if (res.ok) {
+        const data = await res.json();
+        setDaftar(Array.isArray(data) ? data : []);
+      } else {
         const errData = await res.json().catch(() => ({}));
         setFetchError(`Error ${res.status}: ${errData.error || res.statusText}`);
         setDaftar([]);
-      } else {
-        const data = await res.json();
-        setDaftar(Array.isArray(data) ? data : []);
       }
     } catch (err: any) {
+      if (err.name === "AbortError") return; // Cancelled — ignore
       setFetchError("Gagal terhubung ke server: " + err.message);
       setDaftar([]);
     } finally {
@@ -142,8 +143,12 @@ export default function TagihanPage() {
   }, []);
 
   useEffect(() => {
-    const timeout = setTimeout(muatTagihan, 300);
-    return () => clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => muatTagihan(controller.signal), 250);
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, [muatTagihan]);
 
   async function handleGenerate(e: React.FormEvent) {

@@ -19,11 +19,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || "";
     const kelasId = searchParams.get("kelasId") || undefined;
+    const tingkat = searchParams.get("tingkat") || undefined;
     const limit = searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined;
 
     const siswa = await prisma.siswa.findMany({
       where: {
-        ...(kelasId ? { kelasId } : {}),
+        ...(kelasId
+          ? { kelasId }
+          : tingkat
+          ? { kelas: { tingkat: Number(tingkat) } }
+          : {}),
         ...(q
           ? {
               OR: [
@@ -34,12 +39,29 @@ export async function GET(req: NextRequest) {
             }
           : {}),
       },
-      include: { kelas: true, akun: { select: { email: true } } },
+      select: {
+        id: true,
+        nis: true,
+        nisn: true,
+        namaLengkap: true,
+        jenisKelamin: true,
+        tanggalLahir: true,
+        namaWali: true,
+        kontakWali: true,
+        fotoUrl: true,
+        status: true,
+        createdAt: true,
+        kelas: { select: { id: true, namaKelas: true, tingkat: true } },
+        akun: { select: { email: true } },
+      },
       orderBy: { namaLengkap: "asc" },
-      take: limit || (q ? 20 : 100), // Batasi query search maksimal 20 data biar cepat & ringan
+      take: limit || (q ? 20 : 100),
     });
 
-    return NextResponse.json(siswa);
+    const res = NextResponse.json(siswa);
+    // Short-lived cache – stale while revalidate so list loads instantly on revisit
+    if (!q) res.headers.set("Cache-Control", "private, max-age=20, stale-while-revalidate=60");
+    return res;
   } catch (error: any) {
     console.error("[GET /api/siswa] Error:", error);
     return NextResponse.json(

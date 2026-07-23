@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 type Kelas = { id: string; namaKelas: string; tingkat?: number };
 type Tagihan = {
@@ -72,21 +72,32 @@ export default function LaporanPage() {
     return params.toString();
   }
 
-  async function muatLaporan() {
+  const muatLaporan = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
-    const res = await fetch(`/api/laporan?${queryString()}`);
-    if (res.ok) {
-      const data = await res.json();
-      setRingkasan(data.ringkasan);
-      setDaftar(data.daftar);
+    try {
+      const res = await fetch(`/api/laporan?${queryString()}`, { signal });
+      if (res.ok) {
+        const data = await res.json();
+        setRingkasan(data.ringkasan);
+        setDaftar(data.daftar);
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError") console.error("[muatLaporan] error:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulan, tahun, filterTingkat, kelasId, status, q, startDate, endDate]);
 
   useEffect(() => {
-    muatLaporan();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const controller = new AbortController();
+    // Debounce so rapid filter changes don't fire many requests
+    const timeout = setTimeout(() => muatLaporan(controller.signal), 350);
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [muatLaporan]);
 
   function handlePrint() {
     window.print();
@@ -250,8 +261,8 @@ export default function LaporanPage() {
               />
             </div>
             <div className="col-12 col-md-1">
-              <button className="btn btn-primary btn-sm w-100 fw-bold py-2" onClick={muatLaporan} disabled={loading}>
-                {loading ? "..." : "Filter"}
+              <button className="btn btn-primary btn-sm w-100 fw-bold py-2" onClick={() => muatLaporan()} disabled={loading}>
+                {loading ? <span className="spinner-border spinner-border-sm" /> : "Filter"}
               </button>
             </div>
           </div>
