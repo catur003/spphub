@@ -43,11 +43,11 @@ const BULAN_LABEL = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 
-const STATUS_INFO: Record<string, { label: string; bg: string; color: string }> = {
-  belum_bayar:          { label: "Belum Bayar",         bg: "#f3f4f6", color: "#374151" },
-  menunggu_verifikasi:  { label: "Menunggu Verifikasi",  bg: "#fef9c3", color: "#854d0e" },
-  lunas:                { label: "Lunas",                bg: "#dcfce7", color: "#15803d" },
-  terlambat:            { label: "Terlambat",            bg: "#fee2e2", color: "#991b1b" },
+const STATUS_INFO: Record<string, { label: string; bg: string; color: string; badgeClass: string }> = {
+  belum_bayar:          { label: "Belum Bayar",         bg: "#fee2e2", color: "#991b1b", badgeClass: "pulse-warning" },
+  menunggu_verifikasi:  { label: "Menunggu Verifikasi",  bg: "#fef9c3", color: "#854d0e", badgeClass: "pulse-info" },
+  lunas:                { label: "Lunas",                bg: "#dcfce7", color: "#15803d", badgeClass: "pulse-success" },
+  terlambat:            { label: "Terlambat",            bg: "#fee2e2", color: "#991b1b", badgeClass: "pulse-danger" },
 };
 
 function waitForSnap(): Promise<void> {
@@ -70,6 +70,7 @@ export default function SiswaPortalPage() {
   const [daftar, setDaftar] = useState<Tagihan[]>([]);
   const [pengumuman, setPengumuman] = useState<Pengumuman[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [activeTab, setActiveTab] = useState<"tagihan" | "riwayat" | "profil">("tagihan");
 
   const [searchRiwayat, setSearchRiwayat] = useState("");
@@ -144,8 +145,15 @@ export default function SiswaPortalPage() {
   }
 
   async function handleLogout() {
-    await authClient.signOut();
-    router.push("/login");
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await authClient.signOut();
+    } catch (e) {
+      console.error("Logout error:", e);
+    } finally {
+      window.location.href = "/login";
+    }
   }
 
   async function handleCekStatus(id: string) {
@@ -293,10 +301,10 @@ export default function SiswaPortalPage() {
 
       {/* Top Navbar */}
       <div className="top-navbar">
-        <div className="d-flex align-items-center gap-3">
-          <span style={{ fontSize: "1.4rem" }}>🎓</span>
-          <div>
-            <h1 className="h6 mb-0 fw-bold text-white">SPP Sekolah Digital</h1>
+        <div className="d-flex align-items-center gap-2 text-truncate me-2">
+          <span className="navbar-logo-icon">🎓</span>
+          <div className="text-truncate">
+            <h1 className="h6 mb-0 fw-bold text-white text-truncate brand-title">SPP Sekolah Digital</h1>
             <span className="brand-badge">Portal Siswa</span>
           </div>
         </div>
@@ -305,13 +313,21 @@ export default function SiswaPortalPage() {
             href={waUrl}
             target="_blank"
             rel="noreferrer"
-            className="btn btn-sm btn-light rounded-pill px-3 fw-bold d-none d-sm-inline-flex align-items-center gap-1 text-dark"
+            className="btn btn-sm btn-light rounded-pill px-3 fw-bold d-none d-md-inline-flex align-items-center gap-1 text-dark btn-wa-nav"
             title="Hubungi Bendahara via WhatsApp"
           >
             💬 Hubungi Bendahara
           </a>
-          <button className="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold" onClick={handleLogout}>
-            Keluar 🚪
+          <button
+            className="btn btn-sm btn-logout-custom rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1"
+            onClick={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? (
+              <><span className="spinner-border spinner-border-sm me-1" /> Keluar...</>
+            ) : (
+              <><span>Keluar</span> 🚪</>
+            )}
           </button>
         </div>
       </div>
@@ -319,45 +335,50 @@ export default function SiswaPortalPage() {
       {/* Student Hero Header */}
       <div className="student-hero">
         <div className="container" style={{ maxWidth: 980 }}>
-          <div className="d-flex align-items-center gap-4 flex-wrap">
-            <div className="avatar-box">
+          <div className="d-flex align-items-center gap-3 gap-md-4 flex-column flex-sm-row text-center text-sm-start">
+            <div className="avatar-box flex-shrink-0 animate-bounce-slow">
               {siswa?.fotoUrl ? (
-                <img src={siswa.fotoUrl} alt="Foto" style={{ width: "100%", height: "100%", borderRadius: "18px", objectFit: "cover" }} />
-              ) : initials}
+                <img src={siswa.fotoUrl} alt="Foto Profil" className="avatar-img" />
+              ) : (
+                <span>{initials}</span>
+              )}
             </div>
-            <div className="flex-grow-1">
-              <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
-                <h2 className="h4 fw-bold mb-0" style={{ color: "#0f172a" }}>
+            <div className="flex-grow-1 w-100">
+              <div className="d-flex align-items-center justify-content-center justify-content-sm-start gap-2 flex-wrap mb-1">
+                <h2 className="h4 fw-bold mb-0 text-dark student-name">
                   {siswa?.namaLengkap || "Siswa"}
                 </h2>
-                <span className="badge bg-indigo-subtle text-indigo px-3 py-1 rounded-pill fw-bold" style={{ background: "#e0e7ff", color: "#3730a3" }}>
+                <span className="badge bg-indigo-subtle text-indigo px-3 py-1 rounded-pill fw-bold badge-kelas">
                   Kelas {siswa?.kelas?.namaKelas || "-"}
                 </span>
-                <span className="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-bold" style={{ background: "#dcfce7", color: "#15803d" }}>
-                  Status: Aktif
+                <span className="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-bold badge-status-aktif">
+                  ● Aktif
                 </span>
               </div>
-              <div className="d-flex align-items-center gap-2 flex-wrap mt-2">
+
+              <div className="d-flex align-items-center justify-content-center justify-content-sm-start gap-2 flex-wrap mt-2">
                 <span className="text-muted small">
                   NIS: <strong className="text-dark">{siswa?.nis || "-"}</strong>
                 </span>
                 {siswa?.nis && (
                   <button className="copy-badge-btn" onClick={() => copyToClipboard(siswa.nis, "NIS")}>
-                    📋 Salin
+                    📋 Salin NIS
                   </button>
                 )}
                 {siswa?.nisn && (
                   <>
-                    <span className="text-muted small">| NISN: <strong className="text-dark">{siswa.nisn}</strong></span>
+                    <span className="text-muted small d-none d-sm-inline">|</span>
+                    <span className="text-muted small">NISN: <strong className="text-dark">{siswa.nisn}</strong></span>
                     <button className="copy-badge-btn" onClick={() => copyToClipboard(siswa.nisn!, "NISN")}>
-                      📋 Salin
+                      📋 Salin NISN
                     </button>
                   </>
                 )}
               </div>
+
               {siswa?.namaWali && (
-                <p className="text-muted mb-0 mt-1 style-italic" style={{ fontSize: "0.82rem" }}>
-                  Wali Siswa: <strong>{siswa.namaWali}</strong> {siswa.kontakWali ? `(${siswa.kontakWali})` : ""}
+                <p className="text-muted mb-0 mt-2 style-italic" style={{ fontSize: "0.82rem" }}>
+                  👨‍👩‍👧 Wali: <strong>{siswa.namaWali}</strong> {siswa.kontakWali ? `(${siswa.kontakWali})` : ""}
                 </p>
               )}
             </div>
@@ -369,13 +390,13 @@ export default function SiswaPortalPage() {
       <div className="container pb-5" style={{ maxWidth: 980 }}>
         
         {/* Progres SPP Component */}
-        <div className="progress-card">
-          <div className="d-flex justify-content-between align-items-center mb-2">
+        <div className="progress-card animate-fade-in delay-1">
+          <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
             <div>
               <span className="fw-bold text-dark" style={{ fontSize: "0.92rem" }}>📊 Capaian SPP Sekolah</span>
-              <span className="text-muted small ms-2">({lunasCount} dari {totalBulanCount} bulan terbayar)</span>
+              <span className="text-muted small ms-2 d-none d-sm-inline">({lunasCount} dari {totalBulanCount} bulan terbayar)</span>
             </div>
-            <span className="badge bg-success rounded-pill px-3 py-1 fw-bold">{persenLunas}% Lunas</span>
+            <span className="badge bg-success rounded-pill px-3 py-1 fw-bold shadow-sm">{persenLunas}% Lunas</span>
           </div>
           <div className="progress" style={{ height: 10, borderRadius: 20, backgroundColor: "#e2e8f0" }}>
             <div
@@ -390,8 +411,8 @@ export default function SiswaPortalPage() {
         </div>
 
         {/* Ringkasan Stats Cards */}
-        <div className="row g-3 mb-4">
-          <div className="col-md-4">
+        <div className="row g-3 mb-4 animate-fade-in delay-2">
+          <div className="col-12 col-sm-6 col-md-4">
             <div className="stat-card-custom">
               <div className="stat-icon-bg" style={{ background: "#fee2e2", color: "#dc2626" }}>💳</div>
               <div>
@@ -404,7 +425,7 @@ export default function SiswaPortalPage() {
             </div>
           </div>
 
-          <div className="col-md-4">
+          <div className="col-12 col-sm-6 col-md-4">
             <div className="stat-card-custom">
               <div className="stat-icon-bg" style={{ background: "#dcfce7", color: "#16a34a" }}>✅</div>
               <div>
@@ -417,14 +438,14 @@ export default function SiswaPortalPage() {
             </div>
           </div>
 
-          <div className="col-md-4">
+          <div className="col-12 col-sm-12 col-md-4">
             <div className="stat-card-custom">
               <div className="stat-icon-bg" style={{ background: "#e0e7ff", color: "#4338ca" }}>📅</div>
               <div>
                 <div className="text-muted small fw-semibold">Status SPP Bulan Ini</div>
                 <div className="h6 mb-0 fw-bold mt-1">
                   {tagihanBulanIni ? (
-                    <span className="status-badge" style={{
+                    <span className={`status-badge ${STATUS_INFO[tagihanBulanIni.status]?.badgeClass || ""}`} style={{
                       background: STATUS_INFO[tagihanBulanIni.status]?.bg,
                       color: STATUS_INFO[tagihanBulanIni.status]?.color
                     }}>
@@ -442,11 +463,11 @@ export default function SiswaPortalPage() {
 
         {/* Pengumuman Alerts */}
         {pengumuman.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4 animate-fade-in delay-3">
             {pengumuman.map(p => (
-              <div key={p.id} className="alert border-0 shadow-sm mb-3 p-3" style={{ borderRadius: "16px", background: "linear-gradient(to right, #eff6ff, #dbeafe)" }}>
+              <div key={p.id} className="alert border-0 shadow-sm mb-3 p-3 pengumuman-card">
                 <div className="d-flex gap-3 align-items-start">
-                  <div style={{ fontSize: "1.6rem" }}>📢</div>
+                  <div style={{ fontSize: "1.6rem" }} className="animate-pulse">📢</div>
                   <div className="flex-grow-1">
                     <div className="fw-bold text-primary mb-1">{p.judul}</div>
                     <div className="text-dark small mb-1" style={{ whiteSpace: "pre-wrap" }}>{p.isi}</div>
@@ -462,7 +483,7 @@ export default function SiswaPortalPage() {
 
         {/* Banner Error Pembayaran */}
         {bayarError && (
-          <div className="alert d-flex align-items-start gap-2 mb-4"
+          <div className="alert d-flex align-items-start gap-2 mb-4 animate-shake"
             style={{ background: "#fff1f2", border: "1.5px solid #fecaca", borderRadius: 16, color: "#991b1b" }}>
             <span style={{ fontSize: "1.2rem" }}>⚠️</span>
             <div>
@@ -473,7 +494,7 @@ export default function SiswaPortalPage() {
         )}
 
         {/* Tab Headers */}
-        <div className="nav-tabs-custom">
+        <div className="nav-tabs-custom animate-fade-in delay-3">
           <button 
             className={`nav-tab-item ${activeTab === "tagihan" ? "active" : ""}`}
             onClick={() => setActiveTab("tagihan")}
@@ -496,31 +517,31 @@ export default function SiswaPortalPage() {
 
         {/* TAB 1: TAGIHAN AKTIF */}
         {activeTab === "tagihan" && (
-          <div>
+          <div className="tab-pane-animate">
             {loading ? (
               <div className="text-center py-5 text-muted"><div className="spinner-border text-primary mb-2" /><p>Memuat tagihan...</p></div>
             ) : pageError ? (
               <div className="alert alert-danger">{pageError}</div>
             ) : tagihanBelumLunas.length === 0 ? (
-              <div className="text-center py-5 bg-white rounded-4 border p-4 shadow-sm">
+              <div className="text-center py-5 bg-white rounded-4 border p-4 shadow-sm animate-bounce-slow">
                 <div style={{ fontSize: "3.5rem", marginBottom: "0.5rem" }}>🎉</div>
                 <h4 className="h5 fw-bold" style={{ color: "#0f172a" }}>Semua Tagihan SPP Lunas!</h4>
                 <p className="text-muted small">Terima kasih, tidak ada tunggakan SPP yang perlu dibayar saat ini.</p>
               </div>
             ) : (
               tagihanBelumLunas.map((t) => {
-                const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
+                const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151", badgeClass: "" };
                 const isBayarLoading = bayarLoading === t.id;
                 const isCekLoading = cekStatusLoading === t.id;
 
                 return (
                   <div className="tagihan-card-modern" key={t.id}>
                     <div>
-                      <div className="d-flex align-items-center gap-2 mb-1">
-                        <h4 className="h6 fw-bold mb-0" style={{ color: "#0f172a" }}>
+                      <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                        <h4 className="h6 fw-bold mb-0 text-dark">
                           SPP Bulan {BULAN_LABEL[t.bulan]} {t.tahun}
                         </h4>
-                        <span className="status-badge" style={{ background: info.bg, color: info.color }}>
+                        <span className={`status-badge ${info.badgeClass}`} style={{ background: info.bg, color: info.color }}>
                           {info.label}
                         </span>
                       </div>
@@ -530,13 +551,13 @@ export default function SiswaPortalPage() {
                     </div>
 
                     <div className="d-flex align-items-center gap-3 tagihan-action-group">
-                      <div className="fw-bold fs-5" style={{ color: "#0f172a" }}>
+                      <div className="fw-bold fs-5 text-dark">
                         Rp {t.nominal.toLocaleString("id-ID")}
                       </div>
 
-                      <div className="d-flex gap-2">
+                      <div className="d-flex gap-2 w-100-mobile">
                         <button
-                          className="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold"
+                          className="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold btn-action-mobile"
                           onClick={() => handleCekStatus(t.id)}
                           disabled={isCekLoading || isBayarLoading}
                           title="Sinkronkan status dengan server Midtrans"
@@ -545,13 +566,13 @@ export default function SiswaPortalPage() {
                         </button>
 
                         <button
-                          className="btn btn-primary btn-sm px-4 rounded-pill fw-bold shadow-sm"
+                          className="btn btn-primary btn-sm px-4 rounded-pill fw-bold shadow-sm btn-action-mobile btn-pay-animated"
                           onClick={() => handleBayar(t.id)}
                           disabled={isBayarLoading || isCekLoading}
                         >
                           {isBayarLoading ? (
                             <><span className="spinner-border spinner-border-sm me-1" /> Memuat...</>
-                          ) : "Bayar Sekarang"}
+                          ) : "Bayar Sekarang ➔"}
                         </button>
                       </div>
                     </div>
@@ -564,13 +585,12 @@ export default function SiswaPortalPage() {
 
         {/* TAB 2: RIWAYAT LUNAS */}
         {activeTab === "riwayat" && (
-          <div>
+          <div className="tab-pane-animate">
             {tagihanLunas.length > 0 && (
               <div className="mb-3">
                 <input
                   type="text"
-                  className="form-control form-control-sm"
-                  style={{ maxWidth: 300, borderRadius: 10 }}
+                  className="form-control form-control-sm search-riwayat-input"
                   placeholder="🔍 Cari bulan / tahun riwayat..."
                   value={searchRiwayat}
                   onChange={(e) => setSearchRiwayat(e.target.value)}
@@ -594,8 +614,8 @@ export default function SiswaPortalPage() {
               filteredRiwayat.map((t) => (
                 <div className="tagihan-card-modern" key={t.id}>
                   <div>
-                    <div className="d-flex align-items-center gap-2 mb-1">
-                      <h4 className="h6 fw-bold mb-0" style={{ color: "#0f172a" }}>
+                    <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                      <h4 className="h6 fw-bold mb-0 text-dark">
                         SPP Bulan {BULAN_LABEL[t.bulan]} {t.tahun}
                       </h4>
                       <span className="status-badge" style={{ background: "#dcfce7", color: "#15803d" }}>
@@ -607,12 +627,12 @@ export default function SiswaPortalPage() {
                     </div>
                   </div>
 
-                  <div className="d-flex align-items-center gap-2">
+                  <div className="d-flex align-items-center gap-2 w-100-mobile">
                     <a
                       href={`/kwitansi/${t.id}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="btn btn-outline-primary btn-sm rounded-pill px-4 fw-semibold shadow-sm d-flex align-items-center gap-1"
+                      className="btn btn-outline-primary btn-sm rounded-pill px-4 fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-1 w-100-mobile"
                     >
                       <span>📄</span> Kwitansi PDF
                     </a>
@@ -625,7 +645,7 @@ export default function SiswaPortalPage() {
 
         {/* TAB 3: PROFIL SAYA */}
         {activeTab === "profil" && (
-          <div className="bg-white rounded-4 border p-4 shadow-sm">
+          <div className="bg-white rounded-4 border p-4 shadow-sm tab-pane-animate">
             <h3 className="h6 fw-bold mb-3 text-uppercase text-primary" style={{ letterSpacing: "1px" }}>
               📋 Identitas Siswa Lengkap
             </h3>
@@ -661,13 +681,24 @@ export default function SiswaPortalPage() {
               </div>
               <div className="profile-info-item">
                 <div className="label">Status Siswa</div>
-                <div className="value text-success">Active / Aktif</div>
+                <div className="value text-success">● Active / Aktif</div>
               </div>
             </div>
           </div>
         )}
 
       </div>
+
+      {/* Floating WhatsApp Action Button for Mobile */}
+      <a
+        href={waUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="floating-wa-btn d-md-none"
+        title="Hubungi Bendahara via WhatsApp"
+      >
+        💬 WA Bendahara
+      </a>
     </>
   );
 }

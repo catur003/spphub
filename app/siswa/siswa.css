@@ -11,13 +11,134 @@ body {
   background-color: #f1f5f9;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--text-dark);
+  overflow-x: hidden;
 }
 
-/* Top Navbar */
+/* ============================================================
+   ANIMATIONS & KEYFRAMES
+   ============================================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes shimmerFill {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes pulseBadge {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes pulseSuccess {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes floatBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Utility Animation Classes */
+.animate-fade-in {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+
+.tab-pane-animate {
+  animation: tabFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-bounce-slow {
+  animation: floatBounce 4s ease-in-out infinite;
+}
+
+.pulse-warning {
+  animation: pulseBadge 2s infinite;
+}
+
+.pulse-success {
+  animation: pulseSuccess 2.5s infinite;
+}
+
+/* ============================================================
+   TOP NAVBAR
+   ============================================================ */
 .top-navbar {
   background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 50%, #4f46e5 100%);
   color: white;
-  padding: 0.9rem 1.75rem;
+  padding: 0.8rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -25,25 +146,68 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.navbar-logo-icon {
+  font-size: 1.4rem;
+  transition: transform 0.3s ease;
+}
+
+.top-navbar:hover .navbar-logo-icon {
+  transform: rotate(-10deg) scale(1.1);
+}
+
+.brand-title {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
 }
 
 .brand-badge {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(8px);
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.03em;
   color: #e0e7ff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* Hero Banner */
+/* Custom Buttons */
+.btn-wa-nav {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.btn-wa-nav:hover {
+  transform: translateY(-2px);
+  background: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3);
+}
+
+.btn-logout-custom {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.2s ease;
+}
+.btn-logout-custom:hover {
+  background: rgba(239, 68, 68, 0.85);
+  color: white;
+  border-color: rgba(239, 68, 68, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================================
+   HERO BANNER
+   ============================================================ */
 .student-hero {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border-bottom: 1px solid var(--border-subtle);
-  padding: 2.25rem 0 1.5rem 0;
-  margin-bottom: 2rem;
+  padding: 2rem 0 1.5rem 0;
+  margin-bottom: 1.75rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
@@ -59,8 +223,20 @@ body {
   font-size: 2.1rem;
   font-weight: 800;
   flex-shrink: 0;
-  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 8px 22px rgba(79, 70, 229, 0.3);
   border: 3px solid #ffffff;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.avatar-box:hover {
+  transform: scale(1.06) rotate(3deg);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .copy-badge-btn {
@@ -68,7 +244,7 @@ body {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   padding: 2px 8px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #475569;
   cursor: pointer;
@@ -80,9 +256,15 @@ body {
 .copy-badge-btn:hover {
   background: #e2e8f0;
   color: #1e293b;
+  transform: scale(1.04);
+}
+.copy-badge-btn:active {
+  transform: scale(0.94);
 }
 
-/* Stat Cards */
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
 .stat-card-custom {
   background: white;
   padding: 1.25rem 1.4rem;
@@ -92,12 +274,12 @@ body {
   display: flex;
   align-items: center;
   gap: 1.1rem;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
   height: 100%;
 }
 .stat-card-custom:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
 }
 
 .stat-icon-bg {
@@ -109,9 +291,15 @@ body {
   justify-content: center;
   font-size: 1.4rem;
   flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+.stat-card-custom:hover .stat-icon-bg {
+  transform: scale(1.1) rotate(5deg);
 }
 
-/* Progress Bar Card */
+/* ============================================================
+   PROGRESS BAR CARD
+   ============================================================ */
 .progress-card {
   background: white;
   border-radius: 18px;
@@ -119,26 +307,40 @@ body {
   padding: 1.25rem 1.5rem;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
   margin-bottom: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+.progress-card:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
 .progress-bar-fill {
   height: 10px;
   border-radius: 20px;
-  background: linear-gradient(90deg, #10b981, #3b82f6);
-  transition: width 0.6s ease-in-out;
+  background: linear-gradient(90deg, #10b981, #3b82f6, #6366f1);
+  background-size: 200% 200%;
+  animation: shimmerFill 4s ease infinite;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Nav Tabs */
+/* ============================================================
+   NAV TABS
+   ============================================================ */
 .nav-tabs-custom {
   border-bottom: 2px solid var(--border-subtle);
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
   overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.nav-tabs-custom::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tab-item {
   padding: 0.75rem 1.25rem;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #64748b;
   background: transparent;
@@ -150,18 +352,22 @@ body {
   align-items: center;
   gap: 0.5rem;
   white-space: nowrap;
+  border-radius: 10px 10px 0 0;
 }
 .nav-tab-item:hover {
   color: var(--primary-indigo);
+  background: rgba(67, 56, 202, 0.04);
 }
 .nav-tab-item.active {
   color: var(--primary-indigo);
   border-bottom-color: var(--primary-indigo);
   background: #eef2ff;
-  border-radius: 12px 12px 0 0;
+  box-shadow: 0 4px 12px rgba(67, 56, 202, 0.08);
 }
 
-/* Tagihan Cards */
+/* ============================================================
+   TAGIHAN CARDS & BUTTONS
+   ============================================================ */
 .tagihan-card-modern {
   background: white;
   border-radius: 18px;
@@ -171,11 +377,12 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.2s ease;
 }
 .tagihan-card-modern:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+  border-color: #cbd5e1;
 }
 
 .status-badge {
@@ -188,17 +395,56 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* Profile Grid */
+.btn-pay-animated {
+  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+  border: none;
+  transition: all 0.2s ease;
+}
+.btn-pay-animated:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3730a3 0%, #4338ca 100%);
+  transform: scale(1.04);
+  box-shadow: 0 6px 18px rgba(67, 56, 202, 0.35) !important;
+}
+.btn-pay-animated:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.search-riwayat-input {
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-subtle);
+}
+.search-riwayat-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.pengumuman-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  transition: transform 0.2s ease;
+}
+.pengumuman-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   PROFILE GRID
+   ============================================================ */
 .profile-info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.1rem;
 }
 .profile-info-item {
   background: #f8fafc;
   padding: 1.1rem;
   border-radius: 14px;
   border: 1px solid var(--border-subtle);
+  transition: all 0.2s ease;
+}
+.profile-info-item:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 .profile-info-item .label {
   font-size: 0.72rem;
@@ -214,10 +460,12 @@ body {
   font-weight: 700;
 }
 
-/* Toast */
+/* ============================================================
+   TOAST NOTIFICATION
+   ============================================================ */
 .toast-portal {
   position: fixed;
-  bottom: 1.5rem;
+  bottom: 1.75rem;
   right: 1.5rem;
   z-index: 9999;
   display: flex;
@@ -227,19 +475,123 @@ body {
   border-radius: 14px;
   font-size: 0.88rem;
   font-weight: 600;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.2);
   animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  max-width: 400px;
+  max-width: 90vw;
 }
 .toast-portal--success { background: #ffffff; border-left: 5px solid #10b981; color: #065f46; }
 .toast-portal--info    { background: #ffffff; border-left: 5px solid #3b82f6; color: #1e40af; }
 .toast-portal--error   { background: #ffffff; border-left: 5px solid #ef4444; color: #991b1b; }
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.94); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+
+/* ============================================================
+   FLOATING ACTION BUTTON (MOBILE WA)
+   ============================================================ */
+.floating-wa-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.25rem;
+  z-index: 990;
+  background: #25d366;
+  color: white;
+  padding: 0.75rem 1.2rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: pulseRing 3s infinite;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+.floating-wa-btn:hover, .floating-wa-btn:focus {
+  background: #20ba5a;
+  color: white;
+  transform: scale(1.05);
 }
 
+/* ============================================================
+   RESPONSIVE MEDIA QUERIES (MOBILE HP)
+   ============================================================ */
 @media (max-width: 768px) {
-  .tagihan-card-modern { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  .tagihan-action-group { width: 100%; justify-content: space-between; }
+  .top-navbar {
+    padding: 0.75rem 1rem;
+  }
+  .brand-title {
+    font-size: 0.85rem;
+  }
+  .brand-badge {
+    display: none;
+  }
+
+  .student-hero {
+    padding: 1.5rem 0 1.25rem 0;
+  }
+  .avatar-box {
+    width: 68px;
+    height: 68px;
+    font-size: 1.8rem;
+    border-radius: 18px;
+  }
+  .student-name {
+    font-size: 1.25rem;
+  }
+  
+  .tagihan-card-modern {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.1rem;
+  }
+  
+  .tagihan-action-group {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border-subtle);
+  }
+
+  .w-100-mobile {
+    width: 100% !important;
+  }
+
+  .btn-action-mobile {
+    flex: 1;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.82rem !important;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .nav-tab-item {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .toast-portal {
+    left: 1rem;
+    right: 1rem;
+    bottom: 4.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .avatar-box {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+  .badge-kelas, .badge-status-aktif {
+    font-size: 0.7rem !important;
+    padding: 2px 8px !important;
+  }
+  .search-riwayat-input {
+    max-width: 100% !important;
+  }
 }
