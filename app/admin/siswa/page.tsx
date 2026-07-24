@@ -126,6 +126,8 @@ export default function SiswaPage() {
   const [q, setQ] = useState("");
   const [filterTingkat, setFilterTingkat] = useState("");
   const [filterKelasId, setFilterKelasId] = useState("");
+  const [sortField, setSortField] = useState<"nama" | "nis" | "kelas" | "status">("nama");
+  const [sortAsc, setSortAsc] = useState(true);
   const [formTambah, setFormTambah] = useState(FORM_TAMBAH_KOSONG);
   const [loadingTambah, setLoadingTambah] = useState(false);
   const [errorTambah, setErrorTambah] = useState("");
@@ -383,6 +385,20 @@ export default function SiswaPage() {
     setHasilImport(data);
     setFileImport(null);
     muatData();
+  }
+
+  const sortedDaftar = [...daftar].sort((a, b) => {
+    let comp = 0;
+    if (sortField === "nama") comp = a.namaLengkap.localeCompare(b.namaLengkap);
+    else if (sortField === "nis") comp = a.nis.localeCompare(b.nis);
+    else if (sortField === "kelas") comp = (a.kelas?.namaKelas || "").localeCompare(b.kelas?.namaKelas || "");
+    else if (sortField === "status") comp = a.status.localeCompare(b.status);
+    return sortAsc ? comp : -comp;
+  });
+
+  function toggleSort(field: "nama" | "nis" | "kelas" | "status") {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else { setSortField(field); setSortAsc(true); }
   }
 
   return (
