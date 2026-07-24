@@ -43,6 +43,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Auto-sync tagihan belum bayar sebelumnya yang masih Rp 0 agar konsisten & sinkron
+    const tagihanNol = await prisma.tagihanSpp.findMany({
+      where: { status: { in: ["belum_bayar", "terlambat"] }, nominal: 0 },
+      include: { siswa: { include: { kelas: true } } },
+    });
+    for (const t of tagihanNol) {
+      const nom = t.siswa?.kelas?.nominalSpp && Number(t.siswa.kelas.nominalSpp) > 0
+        ? Number(t.siswa.kelas.nominalSpp)
+        : defaultNominal;
+      if (nom > 0) {
+        await prisma.tagihanSpp.update({ where: { id: t.id }, data: { nominal: nom } });
+      }
+    }
+
     // 3. Cek tagihan yang sudah pernah dibuat untuk periode bulan & tahun ini (Melindungi status Lunas dll)
     const existing = await prisma.tagihanSpp.findMany({
       where: { bulan: Number(bulan), tahun: Number(tahun) },

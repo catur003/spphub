@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import {
+  IconCheck, IconWhatsapp, IconSearch, IconRefresh, IconFileText, IconSync
+} from "@/components/admin/icons";
 import Link from "next/link";
 
 type TahunAjaran = { id: string; nama: string; aktif: boolean };
@@ -92,10 +95,30 @@ export default function TagihanPage() {
   const [genError, setGenError] = useState("");
   const [genResult, setGenResult] = useState<{ dibuat: number; dilewati: number } | null>(null);
   const [genLoading, setGenLoading] = useState(false);
+  const [syncingNominal, setSyncingNominal] = useState(false);
+
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [sendingWaId, setSendingWaId] = useState<string | null>(null);
 
   const { confirm, alertMsg, modal } = useConfirmModal();
+
+  async function handleSyncNominal() {
+    setSyncingNominal(true);
+    try {
+      const res = await fetch("/api/tagihan/sync-nominal", { method: "POST" });
+      const data = await res.json();
+      setSyncingNominal(false);
+      if (res.ok) {
+        await alertMsg(`✅ ${data.message}`);
+        muatTagihan();
+      } else {
+        await alertMsg(data.error || "Gagal menyinkronkan nominal");
+      }
+    } catch (err: any) {
+      setSyncingNominal(false);
+      await alertMsg("Gagal terhubung ke server: " + err.message);
+    }
+  }
 
   async function handleKirimWa(id: string) {
     setSendingWaId(id);
@@ -177,7 +200,6 @@ export default function TagihanPage() {
     };
   }, [muatTagihan]);
 
-  // Reset page ke 1 jika filter berubah
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ, sortField, sortAsc]);
@@ -221,7 +243,6 @@ export default function TagihanPage() {
     muatTagihan();
   }
 
-  // Opsi Tingkat & Kelas yang ter-filter
   const tingkatOptions = Array.from(
     new Set(kelasList.map((k) => k.tingkat).filter(Boolean))
   ).sort((a, b) => Number(a) - Number(b));
@@ -230,7 +251,6 @@ export default function TagihanPage() {
     ? kelasList.filter((k) => String(k.tingkat) === filterTingkat)
     : kelasList;
 
-  // Sorting Table Logic
   const sortedDaftar = [...daftar].sort((a, b) => {
     let comp = 0;
     if (sortField === "siswa") {
@@ -253,7 +273,6 @@ export default function TagihanPage() {
     return sortAsc ? comp : -comp;
   });
 
-  // Pagination Logic
   const totalPages = Math.max(1, Math.ceil(sortedDaftar.length / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedDaftar = sortedDaftar.slice(startIndex, startIndex + pageSize);
@@ -269,6 +288,7 @@ export default function TagihanPage() {
   const totalNominal = daftar.reduce((acc, t) => acc + t.nominal, 0);
 
   const kelasBelumSet = kelasList.filter((k) => !k.nominalSpp || k.nominalSpp === 0);
+  const tagihanRpNolCount = daftar.filter((t) => t.nominal === 0 && t.status !== "lunas").length;
   const isFilterActive = !!(filterBulan || filterTahun || filterStatus || filterKelasId || filterTingkat || filterQ);
 
   return (
@@ -347,11 +367,23 @@ export default function TagihanPage() {
       {modal}
 
       <div className="container-fluid p-4">
-        <div className="mb-4">
-          <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Kelola Tagihan SPP</h1>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-            Generate tagihan massal otomatis berdasarkan Biaya SPP per Kelas masing-masing siswa.
-          </p>
+        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+          <div>
+            <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Kelola Tagihan SPP</h1>
+            <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+              Generate tagihan massal otomatis berdasarkan Biaya SPP per Kelas masing-masing siswa.
+            </p>
+          </div>
+          {tagihanRpNolCount > 0 && (
+            <button
+              className="btn btn-warning btn-sm rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+              onClick={handleSyncNominal}
+              disabled={syncingNominal}
+            >
+              {syncingNominal ? <span className="spinner-border spinner-border-sm me-1" /> : <IconSync width={16} height={16} />}
+              Perbaiki {tagihanRpNolCount} Tagihan Rp 0
+            </button>
+          )}
         </div>
 
         {/* Stats */}
@@ -390,16 +422,28 @@ export default function TagihanPage() {
 
         {/* Generate Form */}
         <div className="gen-card mb-4">
-          <div className="d-flex align-items-center justify-content-between flex-wrap mb-2">
-            <h2 className="h6 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>
-              ⚡ Generate Tagihan Massal Otomatis
+          <div className="d-flex align-items-center justify-content-between flex-wrap mb-2 gap-2">
+            <h2 className="h6 mb-0 fw-bold d-flex align-items-center gap-2" style={{ color: "var(--ink-900)" }}>
+              <span>⚡</span> Generate Tagihan Massal Otomatis
             </h2>
-            <span className="badge bg-indigo-subtle text-indigo px-3 py-1 rounded-pill" style={{ fontSize: "0.75rem", background: "#e0e7ff", color: "#3730a3" }}>
-              💡 Nominal sesuai Biaya SPP per Kelas
-            </span>
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1"
+                onClick={handleSyncNominal}
+                disabled={syncingNominal}
+                title="Update tagihan belum bayar Rp 0 menjadi nominal SPP kelas/sekolah yang valid"
+              >
+                {syncingNominal ? <span className="spinner-border spinner-border-sm me-1" /> : <IconSync width={14} height={14} />}
+                Sync Nominal SPP
+              </button>
+              <span className="badge bg-indigo-subtle text-indigo px-3 py-1 rounded-pill" style={{ fontSize: "0.75rem", background: "#e0e7ff", color: "#3730a3" }}>
+                💡 Sync otomatis nominal per kelas
+              </span>
+            </div>
           </div>
           <p className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>
-            Nominal tagihan setiap siswa akan diambil otomatis dari Biaya SPP Kelas siswa yang diatur pada menu <strong>Data Kelas</strong>. Tagihan yang sudah LUNAS tidak akan pernah terduplikasi.
+            Nominal tagihan setiap siswa akan diambil otomatis dari Biaya SPP Kelas siswa yang diatur pada menu <strong>Data Kelas</strong>. Tagihan yang sudah LUNAS terlindungi dan tidak akan pernah terduplikasi.
           </p>
 
           {kelasBelumSet.length > 0 && (
@@ -416,7 +460,7 @@ export default function TagihanPage() {
           {genError && <div className="alert alert-danger py-2 small mb-3">{genError}</div>}
           {genResult && (
             <div className="alert alert-success py-2 small mb-3">
-              🎉 Berhasil membuat <strong>{genResult.dibuat}</strong> tagihan baru ({genResult.dilewati} siswa dilewati / sudah dibuat).
+              🎉 Berhasil membuat <strong>{genResult.dibuat}</strong> tagihan baru ({genResult.dilewati} siswa dilewati / sudah mempunyai tagihan).
             </div>
           )}
           <form onSubmit={handleGenerate} className="row g-2 align-items-end">
@@ -464,7 +508,9 @@ export default function TagihanPage() {
         {/* Filter Card Toolbar Multi-Level */}
         <div className="filter-card mb-4">
           <div className="d-flex align-items-center justify-content-between mb-2">
-            <span className="fw-bold small text-dark">🔍 Filter Data Tagihan</span>
+            <span className="fw-bold small text-dark d-flex align-items-center gap-1">
+              <IconSearch width={15} height={15} /> Filter Data Tagihan
+            </span>
             <span className="text-muted small">Total: <strong>{sortedDaftar.length}</strong> tagihan</span>
           </div>
 
@@ -619,7 +665,10 @@ export default function TagihanPage() {
                               )}
                             </div>
                             <div>
-                              <div className="fw-bold text-primary">{namaSiswa} 🔍</div>
+                              <div className="fw-bold text-primary d-inline-flex align-items-center gap-1">
+                                {namaSiswa}
+                                <IconSearch width={13} height={13} className="text-muted ms-1" />
+                              </div>
                               <div className="text-muted small" style={{ fontFamily: "monospace" }}>NIS: {nisSiswa}</div>
                             </div>
                           </div>
@@ -638,8 +687,13 @@ export default function TagihanPage() {
                           </div>
                         </td>
                         <td>
-                          <div className="fw-bold" style={{ color: "#0f172a" }}>
+                          <div className="fw-bold" style={{ color: t.nominal === 0 ? "#dc2626" : "#0f172a" }}>
                             Rp {t.nominal.toLocaleString("id-ID")}
+                            {t.nominal === 0 && (
+                              <span className="badge bg-danger-subtle text-danger ms-1 px-2 py-0" style={{ fontSize: "0.68rem" }}>
+                                ⚠️ Rp 0
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td>
@@ -650,26 +704,45 @@ export default function TagihanPage() {
                         <td className="text-end" style={{ whiteSpace: "nowrap" }}>
                           <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
                             <button
-                              className="btn btn-sm btn-outline-success rounded-pill px-2 py-1 fw-semibold"
+                              className="btn btn-sm btn-outline-success rounded-pill px-2 py-1 fw-semibold d-inline-flex align-items-center gap-1"
                               style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                               disabled={sendingWaId === t.id}
                               onClick={() => handleKirimWa(t.id)}
                               title="Kirim Pengingat WA Wali Siswa"
                             >
-                              {sendingWaId === t.id ? <span className="spinner-border spinner-border-sm" /> : "📲 Kirim WA"}
+                              {sendingWaId === t.id ? (
+                                <span className="spinner-border spinner-border-sm" />
+                              ) : (
+                                <>
+                                  <IconWhatsapp width={13} height={13} /> Kirim WA
+                                </>
+                              )}
                             </button>
                             {t.status === "lunas" ? (
-                              <a href={`/kwitansi/${t.id}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}>
-                                Kwitansi
+                              <a
+                                href={`/kwitansi/${t.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1"
+                                style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
+                              >
+                                <IconFileText width={13} height={13} /> Kwitansi
                               </a>
                             ) : (
                               <>
                                 <button
-                                  className="btn btn-sm btn-success rounded-pill px-2 py-1 fw-semibold"
+                                  className="btn btn-sm btn-success rounded-pill px-2 py-1 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm"
                                   style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                                   disabled={verifyingId === t.id}
-                                  onClick={() => handleVerifikasi(t.id)}>
-                                  ✓ Tandai Lunas
+                                  onClick={() => handleVerifikasi(t.id)}
+                                >
+                                  {verifyingId === t.id ? (
+                                    <span className="spinner-border spinner-border-sm" />
+                                  ) : (
+                                    <>
+                                      <IconCheck width={14} height={14} /> Tandai Lunas
+                                    </>
+                                  )}
                                 </button>
                                 <button
                                   className="btn btn-sm btn-outline-secondary rounded-circle"
@@ -684,8 +757,9 @@ export default function TagihanPage() {
                                     } else {
                                       await alertMsg(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
                                     }
-                                  }}>
-                                  🔄
+                                  }}
+                                >
+                                  <IconRefresh width={13} height={13} />
                                 </button>
                               </>
                             )}
@@ -829,9 +903,9 @@ export default function TagihanPage() {
                             href={`https://wa.me/${detailSiswa.kontakWali.replace(/\D/g, "").replace(/^0/, "62")}?text=${encodeURIComponent(`Halo Bapak/Ibu Wali dari ${detailSiswa.namaLengkap}...`)}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="btn btn-sm btn-success rounded-pill px-3 fw-bold"
+                            className="btn btn-sm btn-success rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1"
                           >
-                            📲 Chat WA
+                            <IconWhatsapp width={14} height={14} /> Chat WA
                           </a>
                         )}
                       </div>
