@@ -128,6 +128,8 @@ export default function SiswaPage() {
   const [filterKelasId, setFilterKelasId] = useState("");
   const [sortField, setSortField] = useState<"nama" | "nis" | "kelas" | "status">("nama");
   const [sortAsc, setSortAsc] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [formTambah, setFormTambah] = useState(FORM_TAMBAH_KOSONG);
   const [loadingTambah, setLoadingTambah] = useState(false);
   const [errorTambah, setErrorTambah] = useState("");
@@ -400,6 +402,14 @@ export default function SiswaPage() {
     if (sortField === field) setSortAsc(!sortAsc);
     else { setSortField(field); setSortAsc(true); }
   }
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [q, filterTingkat, filterKelasId, sortField, sortAsc]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedDaftar.length / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedDaftar = sortedDaftar.slice(startIndex, startIndex + pageSize);
 
   return (
     <>
@@ -677,7 +687,14 @@ export default function SiswaPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedDaftar.map((s) => (
+                    {paginatedDaftar.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-4 text-muted">
+                          Belum ada data siswa.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedDaftar.map((s) => (
                       <tr key={s.id}>
                         <td style={{ cursor: "pointer" }} onClick={() => bukaDetailSiswa(s.id)}>
                           <div className="d-flex align-items-center gap-2">
@@ -737,6 +754,80 @@ export default function SiswaPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Toolbar */}
+              {sortedDaftar.length > 0 && (
+                <div className="card-footer bg-white py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2 border-top">
+                  <div className="d-flex align-items-center gap-2 text-muted small">
+                    <span>Tampilkan</span>
+                    <select
+                      className="form-select form-select-sm"
+                      style={{ width: 70 }}
+                      value={pageSize}
+                      onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                    >
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <span>dari <strong>{sortedDaftar.length}</strong> data (Halaman <strong>{currentPage}</strong> dari <strong>{totalPages}</strong>)</span>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-1">
+                    <button
+                      className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      title="Halaman Pertama"
+                    >
+                      « First
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    >
+                      ‹ Prev
+                    </button>
+
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum = currentPage;
+                      if (currentPage <= 3) pageNum = i + 1;
+                      else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                      else pageNum = currentPage - 2 + i;
+                      if (pageNum < 1 || pageNum > totalPages) return null;
+
+                      return (
+                        <button
+                          key={pageNum}
+                          className={`btn btn-sm rounded-pill px-3 fw-bold ${currentPage === pageNum ? "btn-primary" : "btn-outline-secondary"}`}
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    >
+                      Next ›
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      title="Halaman Terakhir"
+                    >
+                      Last »
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

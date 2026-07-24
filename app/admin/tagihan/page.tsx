@@ -37,7 +37,7 @@ const BULAN_LABEL = [
 ];
 
 const STATUS_INFO: Record<string, { label: string; bg: string; color: string }> = {
-  belum_bayar:          { label: "Belum Bayar",         bg: "#f3f4f6", color: "#374151" },
+  belum_bayar:          { label: "Belum Bayar",         bg: "#fee2e2", color: "#991b1b" },
   menunggu_verifikasi:  { label: "Menunggu Verifikasi",  bg: "#fef9c3", color: "#854d0e" },
   lunas:                { label: "Lunas",                bg: "#dcfce7", color: "#15803d" },
   terlambat:            { label: "Terlambat",            bg: "#fee2e2", color: "#991b1b" },
@@ -72,6 +72,10 @@ export default function TagihanPage() {
   const [filterQ, setFilterQ] = useState("");
   const [sortField, setSortField] = useState<SortField>("periode");
   const [sortAsc, setSortAsc] = useState(false);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Detail Modal Siswa
   const [detailSiswa, setDetailSiswa] = useState<SiswaDetail | null>(null);
@@ -173,6 +177,11 @@ export default function TagihanPage() {
     };
   }, [muatTagihan]);
 
+  // Reset page ke 1 jika filter berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ, sortField, sortAsc]);
+
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
     setGenError("");
@@ -243,6 +252,11 @@ export default function TagihanPage() {
     }
     return sortAsc ? comp : -comp;
   });
+
+  // Pagination Logic
+  const totalPages = Math.max(1, Math.ceil(sortedDaftar.length / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedDaftar = sortedDaftar.slice(startIndex, startIndex + pageSize);
 
   function toggleSort(field: SortField) {
     if (sortField === field) setSortAsc(!sortAsc);
@@ -317,6 +331,17 @@ export default function TagihanPage() {
           font-size: 0.75rem; font-weight: 700; color: white; flex-shrink: 0;
           overflow: hidden;
         }
+
+        .pagination-btn {
+          border-radius: 10px; font-size: 0.8rem; font-weight: 600; padding: 4px 12px;
+          border: 1px solid #e2e8f0; background: white; color: #475569; transition: all 0.15s ease;
+        }
+        .pagination-btn:hover:not(:disabled) {
+          border-color: #4f46e5; color: #4f46e5; background: #eef2ff;
+        }
+        .pagination-btn.active {
+          background: #4f46e5; color: white; border-color: #4f46e5;
+        }
       `}</style>
 
       {modal}
@@ -374,7 +399,7 @@ export default function TagihanPage() {
             </span>
           </div>
           <p className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>
-            Nominal tagihan setiap siswa akan diambil otomatis dari Biaya SPP Kelas siswa yang diatur pada menu <strong>Data Kelas</strong>.
+            Nominal tagihan setiap siswa akan diambil otomatis dari Biaya SPP Kelas siswa yang diatur pada menu <strong>Data Kelas</strong>. Tagihan yang sudah LUNAS tidak akan pernah terduplikasi.
           </p>
 
           {kelasBelumSet.length > 0 && (
@@ -424,7 +449,7 @@ export default function TagihanPage() {
               </select>
             </div>
             <div className="col-12 col-sm-6 col-md-2">
-              <label className="form-label small fw-semibold text-muted">Jatuh Tempo</label>
+              <label className="form-label small fw-semibold text-muted">Jatuh Tempo (Seragam)</label>
               <input type="date" className="form-control form-control-sm" value={gen.jatuhTempo}
                 onChange={(e) => setGen({ ...gen, jatuhTempo: e.target.value })} required />
             </div>
@@ -436,7 +461,7 @@ export default function TagihanPage() {
           </form>
         </div>
 
-        {/* Filter Card Toolbar Multi-Level (Tingkat & Kelas Dropdown) */}
+        {/* Filter Card Toolbar Multi-Level */}
         <div className="filter-card mb-4">
           <div className="d-flex align-items-center justify-content-between mb-2">
             <span className="fw-bold small text-dark">🔍 Filter Data Tagihan</span>
@@ -444,7 +469,6 @@ export default function TagihanPage() {
           </div>
 
           <div className="row g-2 align-items-center">
-            {/* Cari Nama Siswa / NIS */}
             <div className="col-12 col-md-3">
               <input
                 className="form-control form-control-sm"
@@ -454,7 +478,6 @@ export default function TagihanPage() {
               />
             </div>
 
-            {/* Filter Tingkat Dropdown */}
             <div className="col-6 col-md-2">
               <select
                 className="form-select form-select-sm"
@@ -471,7 +494,6 @@ export default function TagihanPage() {
               </select>
             </div>
 
-            {/* Filter Kelas Dropdown */}
             <div className="col-6 col-md-3">
               <select
                 className="form-select form-select-sm"
@@ -487,7 +509,6 @@ export default function TagihanPage() {
               </select>
             </div>
 
-            {/* Filter Bulan */}
             <div className="col-4 col-md-2">
               <select className="form-select form-select-sm"
                 value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)}>
@@ -498,7 +519,6 @@ export default function TagihanPage() {
               </select>
             </div>
 
-            {/* Filter Status */}
             <div className="col-4 col-md-2">
               <select className="form-select form-select-sm"
                 value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
@@ -569,7 +589,7 @@ export default function TagihanPage() {
                       </div>
                     </td>
                   </tr>
-                ) : sortedDaftar.length === 0 ? (
+                ) : paginatedDaftar.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center text-muted py-5">
                       <div style={{ fontSize: "2.5rem", marginBottom: 8 }}>📄</div>
@@ -577,7 +597,7 @@ export default function TagihanPage() {
                     </td>
                   </tr>
                 ) : (
-                  sortedDaftar.map((t) => {
+                  paginatedDaftar.map((t) => {
                     const namaSiswa = t.siswa?.namaLengkap || "Siswa Tidak Ditemukan";
                     const nisSiswa = t.siswa?.nis || "-";
                     const namaKelas = t.siswa?.kelas?.namaKelas || "-";
@@ -659,10 +679,10 @@ export default function TagihanPage() {
                                     const res = await fetch(`/api/tagihan/${t.id}/cek-status`);
                                     const data = await res.json();
                                     if (data.status === "lunas") {
-                                      alert("Status terverifikasi LUNAS via Midtrans!");
+                                      await alertMsg("Status terverifikasi LUNAS via Midtrans!");
                                       muatTagihan();
                                     } else {
-                                      alert(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
+                                      await alertMsg(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
                                     }
                                   }}>
                                   🔄
@@ -678,6 +698,80 @@ export default function TagihanPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Toolbar */}
+          {sortedDaftar.length > 0 && (
+            <div className="card-footer bg-white py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2 border-top">
+              <div className="d-flex align-items-center gap-2 text-muted small">
+                <span>Tampilkan</span>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 70 }}
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>dari <strong>{sortedDaftar.length}</strong> data (Halaman <strong>{currentPage}</strong> dari <strong>{totalPages}</strong>)</span>
+              </div>
+
+              <div className="d-flex align-items-center gap-1">
+                <button
+                  className="pagination-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                  title="Halaman Pertama"
+                >
+                  « First
+                </button>
+                <button
+                  className="pagination-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  ‹ Prev
+                </button>
+
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum = currentPage;
+                  if (currentPage <= 3) pageNum = i + 1;
+                  else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                  else pageNum = currentPage - 2 + i;
+                  if (pageNum < 1 || pageNum > totalPages) return null;
+
+                  return (
+                    <button
+                      key={pageNum}
+                      className={`pagination-btn ${currentPage === pageNum ? "active" : ""}`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                <button
+                  className="pagination-btn"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next ›
+                </button>
+                <button
+                  className="pagination-btn"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(totalPages)}
+                  title="Halaman Terakhir"
+                >
+                  Last »
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

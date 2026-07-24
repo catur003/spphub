@@ -43,24 +43,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Cek tagihan yang sudah pernah terbuat untuk periode ini
+    // 3. Cek tagihan yang sudah pernah dibuat untuk periode bulan & tahun ini (Melindungi status Lunas dll)
     const existing = await prisma.tagihanSpp.findMany({
-      where: { tahunAjaranId, bulan: Number(bulan), tahun: Number(tahun) },
+      where: { bulan: Number(bulan), tahun: Number(tahun) },
       select: { siswaId: true },
     });
     const sudahAdaSet = new Set(existing.map((t) => t.siswaId));
 
+    // Siswa yang BELUM punya tagihan sama sekali di bulan & tahun ini
     const siswaBaru = siswaAktif.filter((s) => !sudahAdaSet.has(s.id));
 
     if (siswaBaru.length === 0) {
       return NextResponse.json({
         dibuat: 0,
         dilewati: siswaAktif.length,
-        message: "Semua siswa aktif sudah memiliki tagihan untuk periode bulan ini.",
+        message: "Semua siswa aktif sudah memiliki tagihan untuk periode bulan ini (termasuk tagihan LUNAS).",
       });
     }
 
-    // Standardize ISO Date for Jatuh Tempo to avoid UTC/WIB offset drift
+    // Standardize ISO Date for Jatuh Tempo - Seragam & Ter-sinkronisasi untuk seluruh kelas
     const tglStr = String(jatuhTempo).split("T")[0];
     const isoJatuhTempo = new Date(`${tglStr}T12:00:00.000Z`);
 
