@@ -742,15 +742,8 @@ export default function SiswaPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
-                    {daftar.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="text-center text-muted py-5">
-                          <div style={{ fontSize: "2rem", marginBottom: 8 }}>🎓</div>
-                          Belum ada data siswa yang cocok dengan kriteria.
-                        </td>
-                      </tr>
-                    )}
+                    ))
+                  )}
                   </tbody>
                 </table>
               </div>
