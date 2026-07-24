@@ -17,7 +17,6 @@ export async function GET(req: NextRequest) {
   const tingkat = searchParams.get("tingkat") || undefined;
   const q = searchParams.get("q") || undefined;
 
-  // Build prisma where
   const siswaFilter =
     kelasId
       ? { kelasId }
@@ -60,7 +59,12 @@ export async function GET(req: NextRequest) {
             id: true,
             namaLengkap: true,
             nis: true,
-            kelas: { select: { id: true, namaKelas: true, tingkat: true } },
+            nisn: true,
+            jenisKelamin: true,
+            namaWali: true,
+            kontakWali: true,
+            fotoUrl: true,
+            kelas: { select: { id: true, namaKelas: true, tingkat: true, waliKelas: true } },
           },
         },
       },
@@ -69,7 +73,6 @@ export async function GET(req: NextRequest) {
     });
 
     const res = NextResponse.json(tagihan);
-    // Short-lived private cache so the table feels instant on navigation
     res.headers.set("Cache-Control", "private, max-age=15, stale-while-revalidate=30");
     return res;
   } catch (error: any) {

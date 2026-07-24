@@ -6,6 +6,19 @@ import Link from "next/link";
 
 type TahunAjaran = { id: string; nama: string; aktif: boolean };
 type KelasOption = { id: string; namaKelas: string; tingkat?: number; nominalSpp?: number };
+
+type SiswaDetail = {
+  id?: string;
+  namaLengkap?: string;
+  nis?: string;
+  nisn?: string | null;
+  jenisKelamin?: string;
+  namaWali?: string | null;
+  kontakWali?: string | null;
+  fotoUrl?: string | null;
+  kelas?: { id?: string; namaKelas?: string; tingkat?: number; waliKelas?: string | null } | null;
+};
+
 type Tagihan = {
   id: string;
   bulan: number;
@@ -13,8 +26,10 @@ type Tagihan = {
   nominal: number;
   status: string;
   jatuhTempo: string;
-  siswa?: { namaLengkap?: string; nis?: string; kelas?: { id?: string; namaKelas?: string; tingkat?: number } | null } | null;
+  siswa?: SiswaDetail | null;
 };
+
+type SortField = "siswa" | "kelas" | "periode" | "nominal" | "status";
 
 const BULAN_LABEL = [
   "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -48,27 +63,34 @@ export default function TagihanPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Filter tabel
+  // Filter & Sort tabel
   const [filterStatus, setFilterStatus] = useState("");
   const [filterBulan, setFilterBulan] = useState("");
   const [filterTahun, setFilterTahun] = useState("");
   const [filterTingkat, setFilterTingkat] = useState("");
   const [filterKelasId, setFilterKelasId] = useState("");
   const [filterQ, setFilterQ] = useState("");
+  const [sortField, setSortField] = useState<SortField>("periode");
+  const [sortAsc, setSortAsc] = useState(false);
 
-  // Form generate
+  // Detail Modal Siswa
+  const [detailSiswa, setDetailSiswa] = useState<SiswaDetail | null>(null);
+
+  // Form generate massal
+  const todayStr = new Date().toISOString().split("T")[0];
   const [gen, setGen] = useState({
     tahunAjaranId: "",
     bulan: String(new Date().getMonth() + 1),
     tahun: String(new Date().getFullYear()),
     nominal: "",
-    jatuhTempo: "",
+    jatuhTempo: todayStr,
   });
   const [genError, setGenError] = useState("");
   const [genResult, setGenResult] = useState<{ dibuat: number; dilewati: number } | null>(null);
   const [genLoading, setGenLoading] = useState(false);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [sendingWaId, setSendingWaId] = useState<string | null>(null);
+
   const { confirm, alertMsg, modal } = useConfirmModal();
 
   async function handleKirimWa(id: string) {
@@ -129,7 +151,7 @@ export default function TagihanPage() {
         setDaftar([]);
       }
     } catch (err: any) {
-      if (err.name === "AbortError") return; // Cancelled — ignore
+      if (err.name === "AbortError") return;
       setFetchError("Gagal terhubung ke server: " + err.message);
       setDaftar([]);
     } finally {
@@ -156,16 +178,21 @@ export default function TagihanPage() {
     setGenError("");
     setGenResult(null);
     setGenLoading(true);
-    const res = await fetch("/api/tagihan/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(gen),
-    });
-    const data = await res.json();
-    setGenLoading(false);
-    if (!res.ok) { setGenError(data.error || "Gagal generate tagihan"); return; }
-    setGenResult(data);
-    muatTagihan();
+    try {
+      const res = await fetch("/api/tagihan/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(gen),
+      });
+      const data = await res.json();
+      setGenLoading(false);
+      if (!res.ok) { setGenError(data.error || "Gagal generate tagihan"); return; }
+      setGenResult(data);
+      muatTagihan();
+    } catch (err: any) {
+      setGenLoading(false);
+      setGenError("Terjadi kesalahan koneksi saat generate tagihan.");
+    }
   }
 
   async function handleVerifikasi(id: string) {
@@ -193,6 +220,34 @@ export default function TagihanPage() {
   const filteredKelasList = filterTingkat
     ? kelasList.filter((k) => String(k.tingkat) === filterTingkat)
     : kelasList;
+
+  // Sorting Table Logic
+  const sortedDaftar = [...daftar].sort((a, b) => {
+    let comp = 0;
+    if (sortField === "siswa") {
+      const namaA = a.siswa?.namaLengkap || "";
+      const namaB = b.siswa?.namaLengkap || "";
+      comp = namaA.localeCompare(namaB);
+    } else if (sortField === "kelas") {
+      const kelasA = a.siswa?.kelas?.namaKelas || "";
+      const kelasB = b.siswa?.kelas?.namaKelas || "";
+      comp = kelasA.localeCompare(kelasB);
+    } else if (sortField === "periode") {
+      const tA = a.tahun * 100 + a.bulan;
+      const tB = b.tahun * 100 + b.bulan;
+      comp = tA - tB;
+    } else if (sortField === "nominal") {
+      comp = a.nominal - b.nominal;
+    } else if (sortField === "status") {
+      comp = a.status.localeCompare(b.status);
+    }
+    return sortAsc ? comp : -comp;
+  });
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else { setSortField(field); setSortAsc(true); }
+  }
 
   const totalTagihan = daftar.length;
   const totalLunas   = daftar.filter((t) => t.status === "lunas").length;
@@ -242,6 +297,16 @@ export default function TagihanPage() {
         .tagihan-table-clean tr:last-child td { border-bottom: none; }
         .tagihan-table-clean tr:hover td { background: #faf5ff; }
 
+        .sort-th { cursor: pointer; user-select: none; transition: color 0.15s; }
+        .sort-th:hover { color: #4338ca; }
+
+        .siswa-clickable {
+          cursor: pointer; transition: transform 0.15s ease;
+        }
+        .siswa-clickable:hover {
+          transform: translateX(2px);
+        }
+
         .status-chip {
           display: inline-flex; align-items: center; padding: 4px 12px;
           border-radius: 20px; font-size: 0.75rem; font-weight: 600;
@@ -250,6 +315,7 @@ export default function TagihanPage() {
           width: 34px; height: 34px; border-radius: 10px;
           display: inline-flex; align-items: center; justify-content: center;
           font-size: 0.75rem; font-weight: 700; color: white; flex-shrink: 0;
+          overflow: hidden;
         }
       `}</style>
 
@@ -363,8 +429,8 @@ export default function TagihanPage() {
                 onChange={(e) => setGen({ ...gen, jatuhTempo: e.target.value })} required />
             </div>
             <div className="col-12 col-md-2">
-              <button type="submit" className="btn btn-primary btn-sm w-100 fw-bold py-2" disabled={genLoading}>
-                {genLoading ? "Memproses..." : "⚡ Generate Massal"}
+              <button type="submit" className="btn btn-primary btn-sm w-100 fw-bold py-2 shadow-sm" disabled={genLoading}>
+                {genLoading ? <><span className="spinner-border spinner-border-sm me-1" />Memproses...</> : "⚡ Generate Massal"}
               </button>
             </div>
           </form>
@@ -374,7 +440,7 @@ export default function TagihanPage() {
         <div className="filter-card mb-4">
           <div className="d-flex align-items-center justify-content-between mb-2">
             <span className="fw-bold small text-dark">🔍 Filter Data Tagihan</span>
-            <span className="text-muted small">Total: <strong>{daftar.length}</strong> tagihan</span>
+            <span className="text-muted small">Total: <strong>{sortedDaftar.length}</strong> tagihan</span>
           </div>
 
           <div className="row g-2 align-items-center">
@@ -469,11 +535,21 @@ export default function TagihanPage() {
             <table className="tagihan-table-clean mb-0">
               <thead>
                 <tr>
-                  <th style={{ width: "30%" }}>Identitas Siswa</th>
-                  <th style={{ width: "15%" }}>Kelas</th>
-                  <th style={{ width: "18%" }}>Periode Tagihan</th>
-                  <th style={{ width: "15%" }}>Nominal SPP</th>
-                  <th style={{ width: "12%" }}>Status</th>
+                  <th className="sort-th" style={{ width: "30%" }} onClick={() => toggleSort("siswa")}>
+                    Identitas Siswa {sortField === "siswa" ? (sortAsc ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="sort-th" style={{ width: "15%" }} onClick={() => toggleSort("kelas")}>
+                    Kelas {sortField === "kelas" ? (sortAsc ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="sort-th" style={{ width: "18%" }} onClick={() => toggleSort("periode")}>
+                    Periode Tagihan {sortField === "periode" ? (sortAsc ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="sort-th" style={{ width: "15%" }} onClick={() => toggleSort("nominal")}>
+                    Nominal SPP {sortField === "nominal" ? (sortAsc ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="sort-th" style={{ width: "12%" }} onClick={() => toggleSort("status")}>
+                    Status {sortField === "status" ? (sortAsc ? "▲" : "▼") : ""}
+                  </th>
                   <th style={{ width: "10%", textAlign: "right" }}>Aksi</th>
                 </tr>
               </thead>
@@ -493,7 +569,7 @@ export default function TagihanPage() {
                       </div>
                     </td>
                   </tr>
-                ) : daftar.length === 0 ? (
+                ) : sortedDaftar.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center text-muted py-5">
                       <div style={{ fontSize: "2.5rem", marginBottom: 8 }}>📄</div>
@@ -501,7 +577,7 @@ export default function TagihanPage() {
                     </td>
                   </tr>
                 ) : (
-                  daftar.map((t) => {
+                  sortedDaftar.map((t) => {
                     const namaSiswa = t.siswa?.namaLengkap || "Siswa Tidak Ditemukan";
                     const nisSiswa = t.siswa?.nis || "-";
                     const namaKelas = t.siswa?.kelas?.namaKelas || "-";
@@ -510,12 +586,20 @@ export default function TagihanPage() {
                     return (
                       <tr key={t.id}>
                         <td>
-                          <div className="d-flex align-items-center gap-3">
+                          <div
+                            className="d-flex align-items-center gap-3 siswa-clickable"
+                            onClick={() => t.siswa && setDetailSiswa(t.siswa)}
+                            title="Klik untuk lihat detail profil siswa"
+                          >
                             <div className="siswa-avatar-sm" style={{ background: getAvatarColor(namaSiswa) }}>
-                              {getInisial(namaSiswa)}
+                              {t.siswa?.fotoUrl ? (
+                                <img src={t.siswa.fotoUrl} alt="Foto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              ) : (
+                                getInisial(namaSiswa)
+                              )}
                             </div>
                             <div>
-                              <div className="fw-bold text-dark">{namaSiswa}</div>
+                              <div className="fw-bold text-primary">{namaSiswa} 🔍</div>
                               <div className="text-muted small" style={{ fontFamily: "monospace" }}>NIS: {nisSiswa}</div>
                             </div>
                           </div>
@@ -526,7 +610,7 @@ export default function TagihanPage() {
                           </span>
                         </td>
                         <td>
-                          <div className="fw-semibold text-primary">
+                          <div className="fw-semibold text-dark">
                             {BULAN_LABEL[t.bulan]} {t.tahun}
                           </div>
                           <div className="text-muted" style={{ fontSize: "0.75rem" }}>
@@ -596,6 +680,88 @@ export default function TagihanPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Detail Profil Siswa */}
+      {detailSiswa && (
+        <>
+          <div className="modal-backdrop fade show" />
+          <div className="modal fade show d-block" tabIndex={-1} onClick={() => setDetailSiswa(null)}>
+            <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 24 }}>
+                <div className="modal-header bg-gradient text-white p-4" style={{ background: "linear-gradient(135deg, #1e1b4b, #4338ca)", borderRadius: "24px 24px 0 0" }}>
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="siswa-avatar-sm" style={{ width: 56, height: 56, borderRadius: 16, background: getAvatarColor(detailSiswa.namaLengkap) }}>
+                      {detailSiswa.fotoUrl ? (
+                        <img src={detailSiswa.fotoUrl} alt="Foto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <span style={{ fontSize: "1.3rem" }}>{getInisial(detailSiswa.namaLengkap)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h5 className="modal-title fw-bold text-white mb-0">{detailSiswa.namaLengkap}</h5>
+                      <div className="text-white-50 small">NIS: {detailSiswa.nis || "-"} | NISN: {detailSiswa.nisn || "-"}</div>
+                    </div>
+                  </div>
+                  <button type="button" className="btn-close btn-close-white" onClick={() => setDetailSiswa(null)} />
+                </div>
+                <div className="modal-body p-4">
+                  <div className="row g-3">
+                    <div className="col-6">
+                      <div className="p-3 bg-light rounded-3 border">
+                        <div className="text-muted small fw-semibold">KELAS</div>
+                        <div className="fw-bold text-dark">{detailSiswa.kelas?.namaKelas || "-"}</div>
+                      </div>
+                    </div>
+                    <div className="col-6">
+                      <div className="p-3 bg-light rounded-3 border">
+                        <div className="text-muted small fw-semibold">JENIS KELAMIN</div>
+                        <div className="fw-bold text-dark">{detailSiswa.jenisKelamin === "P" ? "Perempuan" : "Laki-laki"}</div>
+                      </div>
+                    </div>
+                    <div className="col-12">
+                      <div className="p-3 bg-light rounded-3 border">
+                        <div className="text-muted small fw-semibold">NAMA WALI SISWA</div>
+                        <div className="fw-bold text-dark">{detailSiswa.namaWali || "-"}</div>
+                      </div>
+                    </div>
+                    <div className="col-12">
+                      <div className="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                        <div>
+                          <div className="text-muted small fw-semibold">KONTAK WALI (WHATSAPP)</div>
+                          <div className="fw-bold text-dark">{detailSiswa.kontakWali || "-"}</div>
+                        </div>
+                        {detailSiswa.kontakWali && (
+                          <a
+                            href={`https://wa.me/${detailSiswa.kontakWali.replace(/\D/g, "").replace(/^0/, "62")}?text=${encodeURIComponent(`Halo Bapak/Ibu Wali dari ${detailSiswa.namaLengkap}...`)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-sm btn-success rounded-pill px-3 fw-bold"
+                          >
+                            📲 Chat WA
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    {detailSiswa.kelas?.waliKelas && (
+                      <div className="col-12">
+                        <div className="p-3 bg-light rounded-3 border">
+                          <div className="text-muted small fw-semibold">WALI KELAS</div>
+                          <div className="fw-bold text-dark">{detailSiswa.kelas.waliKelas}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="modal-footer bg-light p-3" style={{ borderRadius: "0 0 24px 24px" }}>
+                  <button type="button" className="btn btn-secondary rounded-pill px-4" onClick={() => setDetailSiswa(null)}>
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

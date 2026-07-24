@@ -645,15 +645,23 @@ export default function SiswaPage() {
                 <table className="table siswa-table align-middle mb-0">
                   <thead>
                     <tr>
-                      <th>Identitas Siswa</th>
-                      <th>NIS</th>
-                      <th>Kelas</th>
-                      <th>Status</th>
+                      <th className="sort-th" onClick={() => toggleSort("nama")}>
+                        Identitas Siswa {sortField === "nama" ? (sortAsc ? "▲" : "▼") : ""}
+                      </th>
+                      <th className="sort-th" onClick={() => toggleSort("nis")}>
+                        NIS {sortField === "nis" ? (sortAsc ? "▲" : "▼") : ""}
+                      </th>
+                      <th className="sort-th" onClick={() => toggleSort("kelas")}>
+                        Kelas {sortField === "kelas" ? (sortAsc ? "▲" : "▼") : ""}
+                      </th>
+                      <th className="sort-th" onClick={() => toggleSort("status")}>
+                        Status {sortField === "status" ? (sortAsc ? "▲" : "▼") : ""}
+                      </th>
                       <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {daftar.map((s) => (
+                    {sortedDaftar.map((s) => (
                       <tr key={s.id}>
                         <td style={{ cursor: "pointer" }} onClick={() => bukaDetailSiswa(s.id)}>
                           <div className="d-flex align-items-center gap-2">

@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 
 async function checkOwnerAccess() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
+  if (!session || session.user.role !== "owner") {
     return null;
   }
   return session;
@@ -15,7 +15,7 @@ async function checkOwnerAccess() {
 export async function GET() {
   try {
     const session = await checkOwnerAccess();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session) return NextResponse.json({ error: "Hanya Owner yang berhak mengelola akun pengguna" }, { status: 403 });
 
     const users = await prisma.akun.findMany({
       where: { role: { in: ["owner", "petugas"] } },
@@ -43,7 +43,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await checkOwnerAccess();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session) return NextResponse.json({ error: "Hanya Owner yang berhak mengelola akun pengguna" }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const { name, email, password, role } = body;
@@ -69,8 +69,8 @@ export async function POST(req: NextRequest) {
     const newAkun = await prisma.$transaction(async (tx) => {
       const akun = await tx.akun.create({
         data: {
-          name,
-          email,
+          name: String(name).trim(),
+          email: String(email).trim().toLowerCase(),
           role,
         },
       });
