@@ -12,13 +12,16 @@ async function checkOwnerAccess() {
   return session;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await checkOwnerAccess();
     if (!session) return NextResponse.json({ error: "Hanya Owner yang berhak mengelola akun pengguna" }, { status: 403 });
 
+    const { searchParams } = new URL(req.url);
+    const roleParam = searchParams.get("role");
+
     const users = await prisma.akun.findMany({
-      where: { role: { in: ["owner", "petugas"] } },
+      where: roleParam ? { role: roleParam as any } : undefined,
       select: {
         id: true,
         name: true,
@@ -55,7 +58,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!["owner", "petugas"].includes(role)) {
+    if (!["owner", "petugas", "siswa"].includes(role)) {
       return NextResponse.json({ error: "Role tidak valid" }, { status: 400 });
     }
 

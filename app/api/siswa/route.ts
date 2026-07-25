@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import bcrypt from "bcryptjs";
 
 async function checkAccess() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -89,14 +90,27 @@ export async function POST(req: NextRequest) {
     let akunId: string | undefined;
 
     if (body.buatAkun && body.email && body.password) {
-      const hasil = await auth.api.signUpEmail({
-        body: {
-          email: body.email,
-          password: body.password,
+      const emailDipakai = await prisma.akun.findUnique({ where: { email: body.email } });
+      if (emailDipakai) {
+        return NextResponse.json({ error: "Email sudah dipakai akun lain" }, { status: 400 });
+      }
+
+      const hashedPassword = await bcrypt.hash(body.password, 10);
+      const newAkun = await prisma.akun.create({
+        data: {
           name: body.namaLengkap,
+          email: String(body.email).trim().toLowerCase(),
+          role: "siswa",
+          kredensial: {
+            create: {
+              accountId: String(body.email).trim().toLowerCase(),
+              providerId: "credential",
+              password: hashedPassword,
+            },
+          },
         },
       });
-      akunId = hasil.user.id;
+      akunId = newAkun.id;
     }
 
     const siswa = await prisma.siswa.create({

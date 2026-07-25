@@ -81,17 +81,25 @@ export async function PUT(
           return NextResponse.json({ error: "Email sudah dipakai akun lain" }, { status: 400 });
         }
         try {
-          const hasil = await auth.api.signUpEmail({
-            body: {
-              email: body.email,
-              password: body.password,
+          const hashedPassword = await bcrypt.hash(body.password, 10);
+          const newAkun = await prisma.akun.create({
+            data: {
               name: body.namaLengkap || body.nis,
+              email: String(body.email).trim().toLowerCase(),
+              role: "siswa",
+              kredensial: {
+                create: {
+                  accountId: String(body.email).trim().toLowerCase(),
+                  providerId: "credential",
+                  password: hashedPassword,
+                },
+              },
             },
           });
-          akunIdBaru = hasil.user.id;
-        } catch {
+          akunIdBaru = newAkun.id;
+        } catch (err: any) {
           return NextResponse.json(
-            { error: "Gagal membuat akun. Pastikan email valid dan password minimal 8 karakter." },
+            { error: "Gagal membuat akun: " + (err.message || "Email / password tidak valid") },
             { status: 400 }
           );
         }
@@ -115,8 +123,8 @@ export async function PUT(
       }
 
       if (body.resetPassword && body.passwordBaru) {
-        if (body.passwordBaru.length < 8) {
-          return NextResponse.json({ error: "Password baru minimal 8 karakter" }, { status: 400 });
+        if (body.passwordBaru.length < 6) {
+          return NextResponse.json({ error: "Password baru minimal 6 karakter" }, { status: 400 });
         }
         const hashBaru = await bcrypt.hash(body.passwordBaru, 10);
         await prisma.kredensial.updateMany({
@@ -173,7 +181,21 @@ export async function DELETE(
 
     const { id } = await params;
 
+    const siswa = await prisma.siswa.findUnique({
+      where: { id },
+      select: { akunId: true },
+    });
+
+    if (!siswa) {
+      return NextResponse.json({ error: "Siswa tidak ditemukan" }, { status: 404 });
+    }
+
     await prisma.siswa.delete({ where: { id } });
+
+    if (siswa.akunId) {
+      await prisma.akun.delete({ where: { id: siswa.akunId } }).catch(() => {});
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("[DELETE /api/siswa/[id]] Error:", error);

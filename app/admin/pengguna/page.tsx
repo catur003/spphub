@@ -8,7 +8,7 @@ type UserAkun = {
   id: string;
   name: string;
   email: string;
-  role: "owner" | "petugas";
+  role: "owner" | "petugas" | "siswa";
   createdAt: string;
 };
 
@@ -19,6 +19,7 @@ export default function PenggunaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export default function PenggunaPage() {
     name: "",
     email: "",
     password: "",
-    role: "petugas" as "owner" | "petugas",
+    role: "petugas" as "owner" | "petugas" | "siswa",
   });
   const [loadingTambah, setLoadingTambah] = useState(false);
 
@@ -162,13 +163,13 @@ export default function PenggunaPage() {
     }
   }
 
-  async function handleUbahRole(u: UserAkun, roleBaru: "owner" | "petugas") {
+  async function handleUbahRole(u: UserAkun, roleBaru: "owner" | "petugas" | "siswa") {
     if (u.email === currentUserEmail && roleBaru !== "owner") {
       await alertMsg("Anda tidak dapat menurunkan peran (role) akun Anda sendiri.");
       return;
     }
 
-    const labelBaru = roleBaru === "owner" ? "Owner (Akses Penuh Pengaturan)" : "Petugas (Akses Operasional)";
+    const labelBaru = roleBaru === "owner" ? "Owner" : roleBaru === "siswa" ? "Siswa" : "Petugas";
     if (!(await confirm(`Ubah peran ${u.name} menjadi ${labelBaru}?`, { confirmLabel: "Ya, Ubah Peran" }))) return;
 
     try {
@@ -211,6 +212,7 @@ export default function PenggunaPage() {
 
   // Filter & Sort Users
   const filteredUsers = users.filter((u) => {
+    if (roleFilter && u.role !== roleFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
@@ -274,7 +276,7 @@ export default function PenggunaPage() {
         <div className="mb-4">
           <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Kelola User & Hak Akses</h1>
           <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-            Manajemen akun Owner dan Petugas, tambah staf baru, atur role via dropdown, & edit nama/email akun
+            Manajemen akun Owner, Petugas, dan Akun Siswa (Tambah akun, ubah role, & edit nama/email)
           </p>
         </div>
 
@@ -282,7 +284,7 @@ export default function PenggunaPage() {
           {/* Form Tambah User */}
           <div className="col-lg-4 mb-4">
             <div className="user-card">
-              <h2 className="h6 fw-bold mb-3" style={{ color: "var(--ink-900)" }}>✚ Tambah Akun Staf Baru</h2>
+              <h2 className="h6 fw-bold mb-3" style={{ color: "var(--ink-900)" }}>✚ Tambah Akun Baru</h2>
               {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
               <form onSubmit={handleTambah}>
                 <div className="mb-2">
@@ -292,7 +294,7 @@ export default function PenggunaPage() {
                     value={formTambah.name}
                     onChange={(e) => setFormTambah({ ...formTambah, name: e.target.value })}
                     required
-                    placeholder="Contoh: Ahmad Admin"
+                    placeholder="Contoh: Ahmad Admin / Siswa"
                   />
                 </div>
                 <div className="mb-2">
@@ -323,10 +325,11 @@ export default function PenggunaPage() {
                   <select
                     className="form-select"
                     value={formTambah.role}
-                    onChange={(e) => setFormTambah({ ...formTambah, role: e.target.value as "owner" | "petugas" })}
+                    onChange={(e) => setFormTambah({ ...formTambah, role: e.target.value as any })}
                   >
                     <option value="petugas">👤 Petugas (Kelola Tagihan & Siswa)</option>
                     <option value="owner">👑 Owner (Akses Penuh Pengaturan & User)</option>
+                    <option value="siswa">🎓 Siswa (Akses Portal Siswa)</option>
                   </select>
                 </div>
                 <button className="btn btn-primary w-100 fw-bold py-2 shadow-sm" disabled={loadingTambah}>
@@ -341,14 +344,27 @@ export default function PenggunaPage() {
             <div className="card border-0 shadow-sm overflow-hidden" style={{ borderRadius: 18 }}>
               <div className="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style={{ borderBottom: "1px solid var(--border-soft)" }}>
                 <h5 className="mb-0 fw-bold" style={{ fontSize: "0.95rem" }}>👥 Daftar Pengguna Sistem ({sortedUsers.length})</h5>
-                <input
-                  type="text"
-                  className="form-control form-control-sm"
-                  style={{ maxWidth: 220, borderRadius: 10 }}
-                  placeholder="🔍 Cari pengguna..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+                <div className="d-flex gap-2">
+                  <select
+                    className="form-select form-select-sm"
+                    style={{ borderRadius: 10, width: 130 }}
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                  >
+                    <option value="">Semua Role</option>
+                    <option value="owner">👑 Owner</option>
+                    <option value="petugas">👤 Petugas</option>
+                    <option value="siswa">🎓 Siswa</option>
+                  </select>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    style={{ maxWidth: 200, borderRadius: 10 }}
+                    placeholder="🔍 Cari pengguna..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
               </div>
               <div className="table-responsive">
                 <table className="table align-middle mb-0" style={{ fontSize: "0.88rem" }}>
@@ -383,7 +399,11 @@ export default function PenggunaPage() {
                     ) : (
                       sortedUsers.map((u) => {
                         const isSelf = u.email === currentUserEmail;
-                        const avatarBg = u.role === "owner" ? "linear-gradient(135deg, #4f46e5, #3730a3)" : "linear-gradient(135deg, #64748b, #475569)";
+                        const avatarBg = u.role === "owner"
+                          ? "linear-gradient(135deg, #4f46e5, #3730a3)"
+                          : u.role === "siswa"
+                          ? "linear-gradient(135deg, #10b981, #047857)"
+                          : "linear-gradient(135deg, #64748b, #475569)";
 
                         return (
                           <tr key={u.id}>
@@ -414,15 +434,16 @@ export default function PenggunaPage() {
                                 <select
                                   className="form-select role-select-dropdown"
                                   style={{
-                                    background: u.role === "owner" ? "#e0e7ff" : "#f1f5f9",
-                                    color: u.role === "owner" ? "#3730a3" : "#334155",
-                                    borderColor: u.role === "owner" ? "#c7d2fe" : "#cbd5e1",
+                                    background: u.role === "owner" ? "#e0e7ff" : u.role === "siswa" ? "#dcfce7" : "#f1f5f9",
+                                    color: u.role === "owner" ? "#3730a3" : u.role === "siswa" ? "#15803d" : "#334155",
+                                    borderColor: u.role === "owner" ? "#c7d2fe" : u.role === "siswa" ? "#bbf7d0" : "#cbd5e1",
                                   }}
                                   value={u.role}
-                                  onChange={(e) => handleUbahRole(u, e.target.value as "owner" | "petugas")}
+                                  onChange={(e) => handleUbahRole(u, e.target.value as any)}
                                 >
                                   <option value="owner">👑 Owner (Akses Penuh)</option>
                                   <option value="petugas">👤 Petugas (Staff Operasional)</option>
+                                  <option value="siswa">🎓 Siswa (Portal Siswa)</option>
                                 </select>
                               )}
                             </td>
