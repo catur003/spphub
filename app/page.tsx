@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } fm "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
