@@ -129,6 +129,9 @@ model Siswa {
   tagihan    TagihanSpp[]
   pembayaran Pembayaran[]
 
+  @@index([namaLengkap])
+  @@index([kelasId])
+  @@index([status])
   @@map("siswa")
 }
 
@@ -178,6 +181,9 @@ model TagihanSpp {
   pembayaran Pembayaran[]
 
   @@unique([siswaId, tahunAjaranId, bulan, tahun])
+  @@index([status])
+  @@index([bulan, tahun])
+  @@index([siswaId])
   @@map("tagihan_spp")
 }
 
@@ -204,6 +210,9 @@ model Pembayaran {
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 
+  @@index([status])
+  @@index([siswaId])
+  @@index([tagihanSppId])
   @@map("pembayaran")
 }
 

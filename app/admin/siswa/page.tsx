@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 type Kelas = { id: string; namaKelas: string; tingkat?: number };
@@ -386,8 +386,8 @@ export default function SiswaPage() {
   // ——— Hapus ———
   async function handleDelete(id: string) {
     const yakin = await confirm(
-      "Hapus siswa ini? Jika punya riwayat tagihan, ubah status menjadi Nonaktif saja.",
-      { title: "Hapus Siswa", confirmLabel: "Ya, Hapus" }
+      "Hapus siswa ini secara permanen beserta seluruh riwayat tagihannya?",
+      { title: "Hapus Siswa", confirmLabel: "Ya, Hapus Permanen" }
     );
     if (!yakin) return;
     setDeletingId(id);
@@ -427,14 +427,16 @@ export default function SiswaPage() {
   }
 
   const safeDaftar = Array.isArray(daftar) ? daftar : [];
-  const sortedDaftar = [...safeDaftar].sort((a, b) => {
-    let comp = 0;
-    if (sortField === "nama") comp = (a.namaLengkap || "").localeCompare(b.namaLengkap || "");
-    else if (sortField === "nis") comp = (a.nis || "").localeCompare(b.nis || "");
-    else if (sortField === "kelas") comp = (a.kelas?.namaKelas || "").localeCompare(b.kelas?.namaKelas || "");
-    else if (sortField === "status") comp = (a.status || "").localeCompare(b.status || "");
-    return sortAsc ? comp : -comp;
-  });
+  const sortedDaftar = useMemo(() => {
+    return [...safeDaftar].sort((a, b) => {
+      let comp = 0;
+      if (sortField === "nama") comp = (a.namaLengkap || "").localeCompare(b.namaLengkap || "");
+      else if (sortField === "nis") comp = (a.nis || "").localeCompare(b.nis || "");
+      else if (sortField === "kelas") comp = (a.kelas?.namaKelas || "").localeCompare(b.kelas?.namaKelas || "");
+      else if (sortField === "status") comp = (a.status || "").localeCompare(b.status || "");
+      return sortAsc ? comp : -comp;
+    });
+  }, [safeDaftar, sortField, sortAsc]);
 
   function toggleSort(field: "nama" | "nis" | "kelas" | "status") {
     if (sortField === field) setSortAsc(!sortAsc);
@@ -445,9 +447,11 @@ export default function SiswaPage() {
     setCurrentPage(1);
   }, [q, filterTingkat, filterKelasId, sortField, sortAsc]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedDaftar.length / pageSize));
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedDaftar = sortedDaftar.slice(startIndex, startIndex + pageSize);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(sortedDaftar.length / pageSize)), [sortedDaftar.length, pageSize]);
+  const paginatedDaftar = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return sortedDaftar.slice(startIndex, startIndex + pageSize);
+  }, [sortedDaftar, currentPage, pageSize]);
 
   return (
     <>
@@ -678,7 +682,7 @@ export default function SiswaPage() {
                 <div className="col-md-5">
                   <input
                     className="form-control form-control-sm"
-                    placeholder="🔍 Cari nama siswa / NIS / NISN (Maks 20)..."
+                    placeholder="🔍 Cari nama siswa / NIS / NISN..."
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />

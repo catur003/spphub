@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import {
   IconCheck, IconWhatsapp, IconSearch, IconRefresh, IconFileText, IconSync
@@ -247,48 +247,53 @@ export default function TagihanPage() {
     new Set(kelasList.map((k) => k.tingkat).filter(Boolean))
   ).sort((a, b) => Number(a) - Number(b));
 
-  const filteredKelasList = filterTingkat
-    ? kelasList.filter((k) => String(k.tingkat) === filterTingkat)
-    : kelasList;
+  const safeDaftar = Array.isArray(daftar) ? daftar : [];
+  const filteredKelasList = useMemo(() => {
+    return filterTingkat ? kelasList.filter((k) => String(k.tingkat) === filterTingkat) : kelasList;
+  }, [kelasList, filterTingkat]);
 
-  const sortedDaftar = [...daftar].sort((a, b) => {
-    let comp = 0;
-    if (sortField === "siswa") {
-      const namaA = a.siswa?.namaLengkap || "";
-      const namaB = b.siswa?.namaLengkap || "";
-      comp = namaA.localeCompare(namaB);
-    } else if (sortField === "kelas") {
-      const kelasA = a.siswa?.kelas?.namaKelas || "";
-      const kelasB = b.siswa?.kelas?.namaKelas || "";
-      comp = kelasA.localeCompare(kelasB);
-    } else if (sortField === "periode") {
-      const tA = a.tahun * 100 + a.bulan;
-      const tB = b.tahun * 100 + b.bulan;
-      comp = tA - tB;
-    } else if (sortField === "nominal") {
-      comp = a.nominal - b.nominal;
-    } else if (sortField === "status") {
-      comp = a.status.localeCompare(b.status);
-    }
-    return sortAsc ? comp : -comp;
-  });
+  const sortedDaftar = useMemo(() => {
+    return [...safeDaftar].sort((a, b) => {
+      let comp = 0;
+      if (sortField === "siswa") {
+        const namaA = a.siswa?.namaLengkap || "";
+        const namaB = b.siswa?.namaLengkap || "";
+        comp = namaA.localeCompare(namaB);
+      } else if (sortField === "kelas") {
+        const kelasA = a.siswa?.kelas?.namaKelas || "";
+        const kelasB = b.siswa?.kelas?.namaKelas || "";
+        comp = kelasA.localeCompare(kelasB);
+      } else if (sortField === "periode") {
+        const tA = a.tahun * 100 + a.bulan;
+        const tB = b.tahun * 100 + b.bulan;
+        comp = tA - tB;
+      } else if (sortField === "nominal") {
+        comp = a.nominal - b.nominal;
+      } else if (sortField === "status") {
+        comp = (a.status || "").localeCompare(b.status || "");
+      }
+      return sortAsc ? comp : -comp;
+    });
+  }, [safeDaftar, sortField, sortAsc]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedDaftar.length / pageSize));
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedDaftar = sortedDaftar.slice(startIndex, startIndex + pageSize);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(sortedDaftar.length / pageSize)), [sortedDaftar.length, pageSize]);
+  const paginatedDaftar = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return sortedDaftar.slice(startIndex, startIndex + pageSize);
+  }, [sortedDaftar, currentPage, pageSize]);
 
   function toggleSort(field: SortField) {
     if (sortField === field) setSortAsc(!sortAsc);
     else { setSortField(field); setSortAsc(true); }
   }
 
-  const totalTagihan = daftar.length;
-  const totalLunas   = daftar.filter((t) => t.status === "lunas").length;
-  const totalBelum   = daftar.filter((t) => t.status === "belum_bayar" || t.status === "terlambat").length;
-  const totalNominal = daftar.reduce((acc, t) => acc + t.nominal, 0);
+  const totalTagihan = safeDaftar.length;
+  const totalLunas   = useMemo(() => safeDaftar.filter((t) => t.status === "lunas").length, [safeDaftar]);
+  const totalBelum   = useMemo(() => safeDaftar.filter((t) => t.status === "belum_bayar" || t.status === "terlambat").length, [safeDaftar]);
+  const totalNominal = useMemo(() => safeDaftar.reduce((acc, t) => acc + (t.nominal || 0), 0), [safeDaftar]);
 
-  const kelasBelumSet = kelasList.filter((k) => !k.nominalSpp || k.nominalSpp === 0);
-  const tagihanRpNolCount = daftar.filter((t) => t.nominal === 0 && t.status !== "lunas").length;
+  const kelasBelumSet = useMemo(() => kelasList.filter((k) => !k.nominalSpp || k.nominalSpp === 0), [kelasList]);
+  const tagihanRpNolCount = useMemo(() => safeDaftar.filter((t) => t.nominal === 0 && t.status !== "lunas").length, [safeDaftar]);
   const isFilterActive = !!(filterBulan || filterTahun || filterStatus || filterKelasId || filterTingkat || filterQ);
 
   return (

@@ -55,13 +55,10 @@ export async function GET(req: NextRequest) {
         akun: { select: { email: true } },
       },
       orderBy: { namaLengkap: "asc" },
-      take: limit || (q ? 20 : 100),
+      ...(limit ? { take: limit } : {}),
     });
 
-    const res = NextResponse.json(siswa);
-    // Short-lived cache – stale while revalidate so list loads instantly on revisit
-    if (!q) res.headers.set("Cache-Control", "private, max-age=20, stale-while-revalidate=60");
-    return res;
+    return NextResponse.json(siswa);
   } catch (error: any) {
     console.error("[GET /api/siswa] Error:", error);
     return NextResponse.json(
