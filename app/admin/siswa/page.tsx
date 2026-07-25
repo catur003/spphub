@@ -149,6 +149,7 @@ export default function SiswaPage() {
   const [hasilImport, setHasilImport] = useState<HasilImport | null>(null);
   const [importError, setImportError] = useState("");
   const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { confirm, alertMsg, modal } = useConfirmModal();
 
