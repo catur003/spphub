@@ -173,14 +173,6 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const punyaTagihan = await prisma.tagihanSpp.count({ where: { siswaId: id } });
-    if (punyaTagihan > 0) {
-      return NextResponse.json(
-        { error: "Siswa punya riwayat tagihan, tidak bisa dihapus. Ubah status jadi nonaktif saja." },
-        { status: 400 }
-      );
-    }
-
     await prisma.siswa.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {

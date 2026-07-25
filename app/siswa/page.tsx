@@ -556,6 +556,15 @@ export default function SiswaPortalPage() {
                       </div>
 
                       <div className="d-flex gap-2 w-100-mobile">
+                        <a
+                          href={`/invoice/${t.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold btn-action-mobile"
+                        >
+                          📑 Invoice
+                        </a>
+
                         <button
                           className="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold btn-action-mobile"
                           onClick={() => handleCekStatus(t.id)}

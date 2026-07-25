@@ -16,8 +16,12 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/siswa", label: "Siswa", icon: IconUsers },
   { href: "/admin/kelas", label: "Kelas", icon: IconLayers },
   { href: "/admin/tahun-ajaran", label: "Tahun Ajaran", icon: IconCalendar },
-  { href: "/admin/tagihan", label: "Tagihan", icon: IconReceipt },
-  { href: "/admin/laporan", label: "Laporan", icon: IconChart },
+  { href: "/admin/tagihan", label: "Tagihan SPP", icon: IconReceipt },
+  { href: "/admin/keuangan/pendapatan", label: "💵 Pendapatan", icon: IconReceipt },
+  { href: "/admin/keuangan/pengeluaran", label: "💸 Pengeluaran", icon: IconChart },
+  { href: "/admin/keuangan/utang-pegawai", label: "💳 Utang Pegawai", icon: IconUsers },
+  { href: "/admin/keuangan/laporan", label: "📊 Laporan Kas", icon: IconChart },
+  { href: "/admin/laporan", label: "Laporan SPP", icon: IconChart },
   { href: "/admin/pengumuman", label: "Pengumuman", icon: IconMegaphone },
   { href: "/admin/pengguna", label: "Kelola User", icon: IconUsers },
 ];
@@ -90,7 +94,7 @@ export function AdminShell({ role, userName, children }: AdminShellProps) {
 
         <nav className="app-sidebar__nav">
           {items.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            const active = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
             const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href} className={`app-sidebar__link ${active ? "active" : ""}`}>

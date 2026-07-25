@@ -22,11 +22,21 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
-    const { name, role, password } = body;
+    const { name, email, role, password } = body;
 
     const targetUser = await prisma.akun.findUnique({ where: { id } });
     if (!targetUser) {
       return NextResponse.json({ error: "Pengguna tidak ditemukan" }, { status: 404 });
+    }
+
+    if (email && String(email).toLowerCase().trim() !== targetUser.email) {
+      const cleanEmail = String(email).toLowerCase().trim();
+      const emailExist = await prisma.akun.findFirst({
+        where: { email: cleanEmail, NOT: { id } },
+      });
+      if (emailExist) {
+        return NextResponse.json({ error: "Email sudah digunakan oleh akun pengguna lain" }, { status: 400 });
+      }
     }
 
     // Permission Protection 1: Owner tidak boleh menurunkan dirinya sendiri dari role owner
@@ -50,6 +60,7 @@ export async function PATCH(
 
     const dataAkun: any = {};
     if (name) dataAkun.name = String(name).trim();
+    if (email) dataAkun.email = String(email).toLowerCase().trim();
     if (role && ["owner", "petugas"].includes(role)) dataAkun.role = role;
 
     await prisma.$transaction(async (tx) => {

@@ -33,6 +33,12 @@ export default function PenggunaPage() {
   });
   const [loadingTambah, setLoadingTambah] = useState(false);
 
+  // Form Edit Nama & Email Modal
+  const [editUser, setEditUser] = useState<UserAkun | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
   // Form Reset Password Modal
   const [resetUser, setResetUser] = useState<UserAkun | null>(null);
   const [newPassword, setNewPassword] = useState("");
@@ -97,6 +103,37 @@ export default function PenggunaPage() {
     } catch (err: any) {
       setLoadingTambah(false);
       setError("Gagal terhubung ke server: " + err.message);
+    }
+  }
+
+  function bukaEditUser(u: UserAkun) {
+    setEditUser(u);
+    setEditName(u.name);
+    setEditEmail(u.email);
+  }
+
+  async function handleSimpanEditUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editUser) return;
+    setLoadingEdit(true);
+    try {
+      const res = await fetch(`/api/users/${editUser.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName, email: editEmail }),
+      });
+      setLoadingEdit(false);
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        await alertMsg(d.error || "Gagal memperbarui data pengguna");
+        return;
+      }
+      setEditUser(null);
+      tampilToast(`Data pengguna ${editName} berhasil diperbarui!`);
+      muatUsers();
+    } catch (err: any) {
+      setLoadingEdit(false);
+      await alertMsg("Gagal terhubung ke server: " + err.message);
     }
   }
 
@@ -237,7 +274,7 @@ export default function PenggunaPage() {
         <div className="mb-4">
           <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Kelola User & Hak Akses</h1>
           <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-            Manajemen akun Owner dan Petugas, tambah staf baru, atur role via dropdown, & kelola password
+            Manajemen akun Owner dan Petugas, tambah staf baru, atur role via dropdown, & edit nama/email akun
           </p>
         </div>
 
@@ -397,6 +434,13 @@ export default function PenggunaPage() {
                             <td className="text-end" style={{ whiteSpace: "nowrap" }}>
                               <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
                                 <button
+                                  className="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 fw-semibold"
+                                  style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
+                                  onClick={() => bukaEditUser(u)}
+                                >
+                                  ✏️ Edit
+                                </button>
+                                <button
                                   className="btn btn-sm btn-outline-warning rounded-pill px-2 py-1 fw-semibold"
                                   style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
                                   onClick={() => setResetUser(u)}
@@ -425,6 +469,54 @@ export default function PenggunaPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Edit Nama & Email User */}
+      {editUser && (
+        <>
+          <div className="modal-backdrop fade show" />
+          <div className="modal fade show d-block" tabIndex={-1} onClick={() => setEditUser(null)}>
+            <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 20 }}>
+                <div className="modal-header bg-primary text-white" style={{ borderRadius: "20px 20px 0 0" }}>
+                  <h5 className="modal-title fw-bold text-white">✏️ Edit User: {editUser.name}</h5>
+                  <button type="button" className="btn-close btn-close-white" onClick={() => setEditUser(null)} />
+                </div>
+                <form onSubmit={handleSimpanEditUser}>
+                  <div className="modal-body p-4">
+                    <div className="mb-3">
+                      <label className="form-label small fw-semibold">Nama Lengkap</label>
+                      <input
+                        className="form-control"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label small fw-semibold">Email Login</label>
+                      <input
+                        type="email"
+                        className="form-control"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer bg-light" style={{ borderRadius: "0 0 20px 20px" }}>
+                    <button type="button" className="btn btn-outline-secondary rounded-pill px-4" onClick={() => setEditUser(null)}>
+                      Batal
+                    </button>
+                    <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold" disabled={loadingEdit}>
+                      {loadingEdit ? "Memproses..." : "💾 Simpan Perubahan"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Modal Reset Password */}
       {resetUser && (

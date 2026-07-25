@@ -17,7 +17,7 @@ export async function GET() {
     const enamBulanLalu = new Date(currentYear, now.getMonth() - 5, 1);
     enamBulanLalu.setHours(0, 0, 0, 0);
 
-    // Run all queries in parallel
+    // Parallel queries including financial modules
     const [
       totalSiswa,
       siswaBaruBulanIni,
@@ -26,6 +26,11 @@ export async function GET() {
       pembayaran6Bulan,
       transaksiTerbaru,
       notifikasiPenting,
+      sppLunasAll,
+      pendapatanLainAll,
+      pengeluaranAll,
+      tagihanTunggakanAll,
+      utangPegawaiAll,
     ] = await Promise.all([
       prisma.siswa.count({ where: { status: "aktif" } }),
       prisma.siswa.count({ where: { createdAt: { gte: awalBulanIni } } }),
@@ -58,7 +63,39 @@ export async function GET() {
         take: 3,
         select: { id: true, judul: true, isi: true, createdAt: true },
       }),
+      prisma.tagihanSpp.aggregate({
+        where: { status: "lunas" },
+        _sum: { nominal: true },
+      }),
+      prisma.pendapatanLain.aggregate({
+        _sum: { nominal: true },
+      }),
+      prisma.pengeluaran.aggregate({
+        _sum: { nominal: true },
+      }),
+      prisma.tagihanSpp.findMany({
+        where: { status: { in: ["belum_bayar", "terlambat"] } },
+        select: { nominal: true, siswaId: true },
+      }),
+      prisma.utangPegawai.findMany({
+        where: { status: "aktif" },
+        select: { nominalPinjaman: true, nominalTerbayar: true },
+      }),
     ]);
+
+    const totalSppLunas = sppLunasAll._sum.nominal || 0;
+    const totalPendapatanLain = pendapatanLainAll._sum.nominal || 0;
+    const totalPengeluaran = pengeluaranAll._sum.nominal || 0;
+
+    const totalPemasukan = totalSppLunas + totalPendapatanLain;
+    const saldoKas = totalPemasukan - totalPengeluaran;
+    const labaRugi = totalPemasukan - totalPengeluaran;
+
+    const sppBelumDibayarTotal = tagihanTunggakanAll.reduce((acc, t) => acc + t.nominal, 0);
+    const sppBelumDibayarCount = new Set(tagihanTunggakanAll.map((t) => t.siswaId)).size;
+
+    const utangPegawaiTotal = utangPegawaiAll.reduce((acc, u) => acc + Math.max(0, u.nominalPinjaman - u.nominalTerbayar), 0);
+    const utangPegawaiCount = utangPegawaiAll.length;
 
     const pendapatanBulanIni = tagihanBulanIni
       .filter((t) => t.status === "lunas")
@@ -98,6 +135,12 @@ export async function GET() {
     });
 
     const response = NextResponse.json({
+      saldoKas,
+      labaRugi,
+      sppBelumDibayarTotal,
+      sppBelumDibayarCount,
+      utangPegawaiTotal,
+      utangPegawaiCount,
       totalSiswa,
       siswaBaruBulanIni,
       pendapatanBulanIni,
@@ -111,7 +154,6 @@ export async function GET() {
       tahun: currentYear,
     });
 
-    // Cache for 60 seconds, stale-while-revalidate 120s (real-time enough for dashboard)
     response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
     return response;
   } catch (error: any) {

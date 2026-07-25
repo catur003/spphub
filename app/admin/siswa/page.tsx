@@ -150,9 +150,46 @@ export default function SiswaPage() {
   const [importError, setImportError] = useState("");
   const [uploadingFoto, setUploadingFoto] = useState(false);
 
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
-
   const { confirm, alertMsg, modal } = useConfirmModal();
+
+  const [showNaikKelasModal, setShowNaikKelasModal] = useState(false);
+  const [naikKelasAsal, setNaikKelasAsal] = useState("");
+  const [naikKelasTujuan, setNaikKelasTujuan] = useState("");
+  const [loadingNaikKelas, setLoadingNaikKelas] = useState(false);
+
+  async function handleEksekusiNaikKelas() {
+    if (!naikKelasAsal || !naikKelasTujuan) {
+      await alertMsg("Pilih kelas asal dan kelas tujuan (atau status Lulus)");
+      return;
+    }
+    const asalName = kelasList.find((k) => k.id === naikKelasAsal)?.namaKelas || "Kelas Asal";
+    const tujuanName = naikKelasTujuan === "lulus" ? "Status LULUS" : `Kelas ${kelasList.find((k) => k.id === naikKelasTujuan)?.namaKelas}`;
+
+    if (!(await confirm(`Yakin ingin memindahkan seluruh siswa aktif dari ${asalName} ke ${tujuanName}?`, { confirmLabel: "Ya, Pindahkan Massal" }))) return;
+
+    setLoadingNaikKelas(true);
+    try {
+      const res = await fetch("/api/siswa/naik-kelas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kelasAsalId: naikKelasAsal, kelasTujuanId: naikKelasTujuan }),
+      });
+      const data = await res.json();
+      setLoadingNaikKelas(false);
+      if (res.ok) {
+        await alertMsg(`🎉 ${data.message}`);
+        setShowNaikKelasModal(false);
+        setNaikKelasAsal("");
+        setNaikKelasTujuan("");
+        muatData();
+      } else {
+        await alertMsg(data.error || "Gagal memproses naik kelas");
+      }
+    } catch (err: any) {
+      setLoadingNaikKelas(false);
+      await alertMsg("Gagal terhubung ke server: " + err.message);
+    }
+  }
 
   const muatData = useCallback(async (signal?: AbortSignal) => {
     const params = new URLSearchParams();
@@ -474,6 +511,13 @@ export default function SiswaPage() {
               {daftar.length} siswa ditampilkan (Cari untuk melihat hasil spesifik)
             </p>
           </div>
+          <button
+            className="btn btn-indigo btn-sm rounded-pill px-3 py-2 fw-bold text-white shadow-sm"
+            style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}
+            onClick={() => setShowNaikKelasModal(true)}
+          >
+            🚀 Naik Kelas Massal
+          </button>
         </div>
 
         {/* ——— Import / Export ——— */}
@@ -1030,6 +1074,66 @@ export default function SiswaPage() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+      {/* ——— MODAL NAIK KELAS MASSAL ——— */}
+      {showNaikKelasModal && (
+        <>
+          <div className="modal-backdrop fade show" />
+          <div className="modal fade show d-block" tabIndex={-1} onClick={() => setShowNaikKelasModal(false)}>
+            <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 20 }}>
+                <div className="modal-header text-white" style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", borderRadius: "20px 20px 0 0" }}>
+                  <h5 className="modal-title fw-bold">🚀 Naik Kelas Massal</h5>
+                  <button type="button" className="btn-close btn-close-white" onClick={() => setShowNaikKelasModal(false)} />
+                </div>
+                <div className="modal-body p-4">
+                  <p className="text-muted small mb-3">
+                    Fitur ini memindahkan seluruh siswa aktif dari satu kelas ke kelas baru (atau mengubah status menjadi Lulus/Alumni) secara otomatis dalam 1 klik.
+                  </p>
+                  <div className="mb-3">
+                    <label className="form-label small fw-semibold">Pilih Kelas Asal (Siswa Aktif)</label>
+                    <select
+                      className="form-select"
+                      value={naikKelasAsal}
+                      onChange={(e) => setNaikKelasAsal(e.target.value)}
+                    >
+                      <option value="">-- Pilih Kelas Asal --</option>
+                      {kelasList.map((k) => (
+                        <option key={k.id} value={k.id}>Kelas {k.namaKelas} (Tingkat {k.tingkat})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label small fw-semibold">Pilih Kelas Tujuan Baru (Atau Status Lulus)</label>
+                    <select
+                      className="form-select fw-bold"
+                      value={naikKelasTujuan}
+                      onChange={(e) => setNaikKelasTujuan(e.target.value)}
+                    >
+                      <option value="">-- Pilih Kelas Tujuan --</option>
+                      <option value="lulus">🎓 Tandai LUNAS / ALUMNI (Kelulusan)</option>
+                      {kelasList.map((k) => (
+                        <option key={k.id} value={k.id}>Pindah ke Kelas {k.namaKelas} (Tingkat {k.tingkat})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="modal-footer bg-light" style={{ borderRadius: "0 0 20px 20px" }}>
+                  <button type="button" className="btn btn-outline-secondary rounded-pill px-4" onClick={() => setShowNaikKelasModal(false)}>
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-indigo text-white fw-bold rounded-pill px-4"
+                    style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}
+                    disabled={loadingNaikKelas || !naikKelasAsal || !naikKelasTujuan}
+                    onClick={handleEksekusiNaikKelas}
+                  >
+                    {loadingNaikKelas ? "Memproses..." : "🚀 Eksekusi Pindah Massal"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

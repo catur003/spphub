@@ -24,6 +24,12 @@ type Notifikasi = {
 };
 
 type DashboardData = {
+  saldoKas?: number;
+  labaRugi?: number;
+  sppBelumDibayarTotal?: number;
+  sppBelumDibayarCount?: number;
+  utangPegawaiTotal?: number;
+  utangPegawaiCount?: number;
   totalSiswa: number;
   siswaBaruBulanIni: number;
   pendapatanBulanIni: number;
@@ -43,29 +49,26 @@ const BULAN_LABEL = [
 ];
 
 const CACHE_KEY = "dashboard_cache";
-const CACHE_TTL_MS = 60_000; // 60 seconds
+const CACHE_TTL_MS = 60_000;
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Show cached data immediately (stale-while-revalidate pattern)
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         const { payload, ts } = JSON.parse(cached);
-        const age = Date.now() - ts;
-        if (payload && age < CACHE_TTL_MS * 5) { // Serve cache up to 5 minutes old
+        if (payload && Date.now() - ts < CACHE_TTL_MS * 5) {
           setData(payload);
           setLoading(false);
         }
       }
     } catch {}
 
-    // Always fetch fresh data in background
     fetch("/api/dashboard")
-      .then((res) => res.ok ? res.json() : null)
+      .then((res) => (res.ok ? res.json() : null))
       .then((resData) => {
         if (resData && !resData.error) {
           setData(resData);
@@ -77,11 +80,10 @@ export default function DashboardPage() {
       })
       .catch(() => setLoading(false));
 
-    // Auto-refresh every 60s while page is visible
     const interval = setInterval(() => {
       if (!document.hidden) {
         fetch("/api/dashboard")
-          .then((res) => res.ok ? res.json() : null)
+          .then((res) => (res.ok ? res.json() : null))
           .then((resData) => {
             if (resData && !resData.error) {
               setData(resData);
@@ -99,152 +101,204 @@ export default function DashboardPage() {
 
   if (loading && !data) {
     return (
-      <div className="container-fluid p-4 text-center text-muted py-5">
-        <div className="spinner-border text-primary mb-3" />
-        <p className="fw-semibold">Memuat data dashboard...</p>
+      <div className="container-fluid p-4">
+        <div className="p-5 text-center text-muted">
+          <div className="spinner-border text-primary me-2" />
+          <span>Memuat executive dashboard...</span>
+        </div>
       </div>
     );
   }
 
   if (!data) return null;
 
+  const todayStr = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "Long", year: "numeric" });
+  const saldoKas = data.saldoKas ?? data.pendapatanBulanIni;
+  const labaRugi = data.labaRugi ?? (data.pendapatanBulanIni - data.tunggakanBulanIni);
+  const sppBelumTotal = data.sppBelumDibayarTotal ?? data.tunggakanBulanIni;
+  const sppBelumCount = data.sppBelumDibayarCount ?? 0;
+  const utangPegawaiTotal = data.utangPegawaiTotal ?? 0;
+  const utangPegawaiCount = data.utangPegawaiCount ?? 0;
+
   return (
     <>
       <style>{`
-        .dash-card {
-          background: white; border-radius: 16px; padding: 1.25rem 1.5rem;
-          border: 1px solid var(--border-soft);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.02);
-          display: flex; flex-direction: column; gap: 0.4rem;
-          transition: transform 0.2s, box-shadow 0.2s;
+        .executive-card {
+          border: none; border-radius: 16px; color: white; padding: 1.25rem 1.4rem;
+          position: relative; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: pointer;
         }
-        .dash-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
-        .dash-card__icon {
-          width: 44px; height: 44px; border-radius: 12px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1.3rem; margin-bottom: 0.25rem;
+        .executive-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.18); }
+        .executive-card__val { font-size: 1.65rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+        .executive-card__title { font-size: 0.88rem; font-weight: 600; opacity: 0.92; margin-top: 0.35rem; }
+        .executive-card__footer {
+          margin-top: 1.1rem; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.22);
+          font-size: 0.78rem; font-weight: 500; opacity: 0.95; display: flex; align-items: center; gap: 6px;
         }
-        .dash-card__title { font-size: 0.82rem; font-weight: 600; color: var(--ink-500); }
-        .dash-card__value { font-size: 1.7rem; font-weight: 800; color: var(--ink-900); line-height: 1.1; }
-
-        .tx-list { list-style: none; padding: 0; margin: 0; }
-        .tx-item {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 0.9rem 0; border-bottom: 1px solid var(--border-soft);
-        }
-        .tx-item:last-child { border-bottom: none; }
-        .tx-icon {
-          width: 38px; height: 38px; border-radius: 50%;
-          background: #eef2ff; color: #4f46e5;
-          display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+        .executive-card__icon-wrap {
+          position: absolute; top: 1.1rem; right: 1.1rem; width: 42px; height: 42px;
+          border-radius: 50%; background: rgba(255,255,255,0.25); backdrop-filter: blur(8px);
+          display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
         }
 
-        .notif-card {
-          background: #f8fafc; border-radius: 12px; padding: 1rem; border-left: 4px solid #4f46e5;
-          margin-bottom: 0.75rem; transition: background 0.15s;
-        }
-        .notif-card:hover { background: #f1f5f9; }
+        .card-blue   { background: linear-gradient(135deg, #1d72e8, #0d52bf); }
+        .card-green  { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+        .card-orange { background: linear-gradient(135deg, #e65100, #f57c00); }
+        .card-red    { background: linear-gradient(135deg, #d32f2f, #c62828); }
+
+        .dashboard-section-title { font-size: 1.05rem; font-weight: 700; color: var(--ink-900); }
       `}</style>
 
       <div className="container-fluid p-4">
-        <div className="d-flex align-items-center justify-content-between flex-wrap mb-4">
+        {/* Header Title */}
+        <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
           <div>
-            <h1 className="h4 mb-1 fw-bold" style={{ color: "var(--ink-900)" }}>👋 Dashboard Admin</h1>
-            <p className="text-muted mb-0" style={{ fontSize: "0.88rem" }}>
-              Ringkasan Operasional SPP Bulan <strong>{BULAN_LABEL[data.bulan]} {data.tahun}</strong>
+            <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Executive Financial Dashboard</h1>
+            <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+              Ringkasan Realtime Arus Kas, Tagihan, dan Keuangan Sekolah
             </p>
           </div>
-          {data.jumlahTagihanBelumDibuat > 0 && (
-            <Link href="/admin/tagihan" className="btn btn-warning btn-sm fw-bold px-3 py-2 shadow-sm rounded-pill">
-              ⚡ {data.jumlahTagihanBelumDibuat} Siswa Belum Punya Tagihan →
+          <div className="d-flex gap-2">
+            <Link href="/admin/keuangan/pendapatan" className="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+              💵 Catat Pendapatan
             </Link>
-          )}
+            <Link href="/admin/keuangan/pengeluaran" className="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
+              💸 Catat Pengeluaran
+            </Link>
+          </div>
         </div>
 
-        {/* 4 Stat Cards Utama */}
+        {/* Banner Notifikasi Tagihan Belum Dibuat */}
+        {data.jumlahTagihanBelumDibuat > 0 && (
+          <div className="alert alert-warning border-0 shadow-sm d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4" style={{ borderRadius: 14, background: "#fff8e6" }}>
+            <div className="d-flex align-items-center gap-2">
+              <span style={{ fontSize: "1.2rem" }}>⚡</span>
+              <div>
+                <strong style={{ color: "#854d0e" }}>Tagihan Periode Ini:</strong> Ada <strong>{data.jumlahTagihanBelumDibuat} siswa aktif</strong> yang belum dibuatkan tagihan SPP bulan {BULAN_LABEL[data.bulan]} {data.tahun}.
+              </div>
+            </div>
+            <Link href="/admin/tagihan" className="btn btn-sm btn-warning fw-bold px-3 py-1 text-dark" style={{ borderRadius: 10, fontSize: "0.8rem" }}>
+              👉 Generate Massal
+            </Link>
+          </div>
+        )}
+
+        {/* 4 Executive Stat Cards Matching Reference Photo */}
         <div className="row g-3 mb-4">
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div className="dash-card">
-              <div className="dash-card__icon" style={{ background: "#e0e7ff", color: "#4338ca" }}>👨‍🎓</div>
-              <div className="dash-card__title">Total Siswa Aktif</div>
-              <div className="dash-card__value">
-                {data.totalSiswa} <span style={{ fontSize: "0.9rem", fontWeight: 500, color: "#6b7280" }}>Siswa</span>
+          {/* Card 1: Saldo Kas */}
+          <div className="col-12 col-sm-6 col-xl-3">
+            <Link href="/admin/keuangan/laporan" className="text-decoration-none">
+              <div className="executive-card card-blue">
+                <div className="executive-card__icon-wrap">👛</div>
+                <div className="executive-card__val">
+                  {saldoKas.toLocaleString("id-ID")}
+                </div>
+                <div className="executive-card__title">Saldo Kas Utama</div>
+                <div className="executive-card__footer">
+                  <span>📅 Per {todayStr}</span>
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div className="dash-card">
-              <div className="dash-card__icon" style={{ background: "#dcfce7", color: "#15803d" }}>💰</div>
-              <div className="dash-card__title">Pemasukan Bulan Ini</div>
-              <div className="dash-card__value" style={{ fontSize: "1.45rem", color: "#15803d" }}>
-                {data.pendapatanBulanIni.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}
+
+          {/* Card 2: Laba / Rugi Net */}
+          <div className="col-12 col-sm-6 col-xl-3">
+            <Link href="/admin/keuangan/laporan" className="text-decoration-none">
+              <div className="executive-card card-green">
+                <div className="executive-card__icon-wrap">🛍️</div>
+                <div className="executive-card__val">
+                  {labaRugi.toLocaleString("id-ID")}
+                </div>
+                <div className="executive-card__title">Laba/Rugi Net</div>
+                <div className="executive-card__footer">
+                  <span>📅 Per {todayStr}</span>
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div className="dash-card" style={{ borderColor: data.jumlahTagihanBelumDibuat > 0 ? "#fde68a" : "var(--border-soft)" }}>
-              <div className="dash-card__icon" style={{ background: "#fef3c7", color: "#92400e" }}>📋</div>
-              <div className="dash-card__title">Tagihan Belum Dibuat</div>
-              <div className="dash-card__value" style={{ color: "#92400e" }}>
-                {data.jumlahTagihanBelumDibuat} <span style={{ fontSize: "0.85rem", fontWeight: 500, color: "#92400e" }}>Siswa</span>
+
+          {/* Card 3: SPP Belum Dibayar */}
+          <div className="col-12 col-sm-6 col-xl-3">
+            <Link href="/admin/tagihan?status=belum_bayar" className="text-decoration-none">
+              <div className="executive-card card-orange">
+                <div className="executive-card__icon-wrap">📄</div>
+                <div className="executive-card__val">
+                  {sppBelumTotal.toLocaleString("id-ID")}
+                </div>
+                <div className="executive-card__title">SPP Belum Dibayar</div>
+                <div className="executive-card__footer">
+                  <span>👤 {sppBelumCount} siswa belum bayar</span>
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div className="dash-card">
-              <div className="dash-card__icon" style={{ background: "#f0fdf4", color: "#166534" }}>🌱</div>
-              <div className="dash-card__title">Siswa Baru Bulan Ini</div>
-              <div className="dash-card__value">
-                {data.siswaBaruBulanIni} <span style={{ fontSize: "0.85rem", fontWeight: 500, color: "#6b7280" }}>Siswa</span>
+
+          {/* Card 4: Utang Pegawai */}
+          <div className="col-12 col-sm-6 col-xl-3">
+            <Link href="/admin/keuangan/utang-pegawai" className="text-decoration-none">
+              <div className="executive-card card-red">
+                <div className="executive-card__icon-wrap">💵</div>
+                <div className="executive-card__val">
+                  {utangPegawaiTotal.toLocaleString("id-ID")}
+                </div>
+                <div className="executive-card__title">Utang Pegawai (Kasbon)</div>
+                <div className="executive-card__footer">
+                  <span>👤 {utangPegawaiCount} pegawai aktif</span>
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
 
-        {/* GRAFIK ANALITIK & WIDGET NOTIFIKASI */}
-        <div className="row g-4 mb-4">
-          <div className="col-lg-8">
-            <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: 16 }}>
-              <div className="card-header bg-white" style={{ borderBottom: "1px solid var(--border-soft)", padding: "1.1rem 1.4rem" }}>
-                <h5 className="mb-0 fw-bold" style={{ fontSize: "0.95rem" }}>📈 Tren Pemasukan SPP (6 Bulan Terakhir)</h5>
+        {/* Charts & Graphs Row */}
+        <div className="row g-3 mb-4">
+          {/* Bar Chart: Tren Pemasukan 6 Bulan */}
+          <div className="col-12 col-lg-8">
+            <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: 18 }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                  <div className="dashboard-section-title">📊 Tren Pemasukan SPP (6 Bulan Terakhir)</div>
+                  <div className="text-muted small">Total penerimaan kas SPP yang terverifikasi</div>
+                </div>
               </div>
-              <div className="card-body p-4" style={{ minHeight: 300 }}>
+              <div style={{ width: "100%", height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.barChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} dy={10} />
-                    <YAxis
-                      axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }}
-                      tickFormatter={(v) => `Rp${(v / 1000000).toFixed(1)}M`}
-                    />
+                  <BarChart data={data.barChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(v) => `${(v/1000000).toFixed(1)}M`} />
                     <RechartsTooltip
-                      formatter={(val: any) => [
-                        typeof val === "number" ? val.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }) : val,
-                        "Total Pemasukan",
-                      ]}
+                      formatter={(val: number) => [`Rp ${val.toLocaleString('id-ID')}`, 'Total Pemasukan']}
+                      contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
                     />
-                    <Bar dataKey="total" fill="#4f46e5" radius={[6, 6, 0, 0]} maxBarSize={45} />
+                    <Bar dataKey="total" fill="url(#barGradient)" radius={[8, 8, 0, 0]} />
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4f46e5" />
+                        <stop offset="100%" stopColor="#818cf8" />
+                      </linearGradient>
+                    </defs>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </div>
 
-          <div className="col-lg-4">
-            <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: 16 }}>
-              <div className="card-header bg-white" style={{ borderBottom: "1px solid var(--border-soft)", padding: "1.1rem 1.4rem" }}>
-                <h5 className="mb-0 fw-bold" style={{ fontSize: "0.95rem" }}>📊 Status Pembayaran SPP Bulan Ini</h5>
-              </div>
-              <div className="card-body p-4 d-flex flex-column align-items-center justify-content-center">
-                <ResponsiveContainer width="100%" height={220}>
+          {/* Pie Chart: Distribusi Status Pembayaran */}
+          <div className="col-12 col-lg-4">
+            <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: 18 }}>
+              <div className="dashboard-section-title mb-1">🍩 Rasio Status SPP</div>
+              <div className="text-muted small mb-3">Bulan {BULAN_LABEL[data.bulan]} {data.tahun}</div>
+              <div style={{ width: "100%", height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={data.pieChartData} innerRadius={60} outerRadius={85} paddingAngle={4} dataKey="value">
+                    <Pie data={data.pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4}>
                       {data.pieChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <RechartsTooltip />
-                    <Legend verticalAlign="bottom" height={36} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                    <RechartsTooltip formatter={(val: number) => [`${val} Siswa`, 'Jumlah']} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -252,74 +306,75 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* TRANSAKSI TERAKHIR & NOTIFIKASI PENTING */}
-        <div className="row g-4">
-          <div className="col-lg-6">
-            <div className="card border-0 shadow-sm h-100" style={{ borderRadius: 16 }}>
-              <div className="card-header bg-white d-flex justify-content-between align-items-center" style={{ borderBottom: "1px solid var(--border-soft)", padding: "1.1rem 1.4rem" }}>
-                <h5 className="mb-0 fw-bold" style={{ fontSize: "0.95rem" }}>🕒 Transaksi Pembayaran Terakhir</h5>
-                <Link href="/admin/laporan" className="text-primary fw-semibold small text-decoration-none">
+        {/* Bottom Row: Transaksi Terbaru & Pengumuman */}
+        <div className="row g-3">
+          {/* Transaksi Lunas Terbaru */}
+          <div className="col-12 col-lg-7">
+            <div className="card border-0 shadow-sm p-4" style={{ borderRadius: 18 }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="dashboard-section-title">⚡ Pembayaran Lunas Terbaru</div>
+                <Link href="/admin/tagihan?status=lunas" className="small text-primary text-decoration-none fw-bold">
                   Lihat Semua →
                 </Link>
               </div>
-              <div className="card-body p-4">
-                <ul className="tx-list">
-                  {data.transaksiTerbaru.map((t) => (
-                    <li key={t.id} className="tx-item">
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="tx-icon">✓</div>
-                        <div>
-                          <div className="fw-bold text-dark" style={{ fontSize: "0.9rem" }}>{t.siswa.namaLengkap}</div>
-                          <div className="text-muted small">
-                            {t.siswa.kelas?.namaKelas || "-"} • {BULAN_LABEL[t.bulan]} {t.tahun}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-end">
-                        <div className="fw-bold text-success" style={{ fontSize: "0.9rem" }}>
-                          +Rp {t.nominal.toLocaleString("id-ID")}
-                        </div>
-                        <div className="text-muted" style={{ fontSize: "0.74rem" }}>
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0" style={{ fontSize: "0.86rem" }}>
+                  <thead className="table-light">
+                    <tr>
+                      <th>Siswa</th>
+                      <th>Periode</th>
+                      <th>Nominal</th>
+                      <th>Tanggal Lunas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.transaksiTerbaru.map((t) => (
+                      <tr key={t.id}>
+                        <td>
+                          <div className="fw-bold text-dark">{t.siswa?.namaLengkap || "Siswa"}</div>
+                          <div className="text-muted small">{t.siswa?.kelas?.namaKelas || "-"}</div>
+                        </td>
+                        <td>{BULAN_LABEL[t.bulan]} {t.tahun}</td>
+                        <td className="fw-bold text-success">Rp {t.nominal.toLocaleString("id-ID")}</td>
+                        <td className="text-muted small">
                           {new Date(t.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                  {data.transaksiTerbaru.length === 0 && (
-                    <li className="text-center text-muted py-4">Belum ada transaksi pembayaran lunas baru-baru ini.</li>
-                  )}
-                </ul>
+                        </td>
+                      </tr>
+                    ))}
+                    {data.transaksiTerbaru.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="text-center text-muted py-4">Belum ada transaksi lunas.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
 
-          <div className="col-lg-6">
-            <div className="card border-0 shadow-sm h-100" style={{ borderRadius: 16 }}>
-              <div className="card-header bg-white d-flex justify-content-between align-items-center" style={{ borderBottom: "1px solid var(--border-soft)", padding: "1.1rem 1.4rem" }}>
-                <h5 className="mb-0 fw-bold" style={{ fontSize: "0.95rem" }}>📣 Notifikasi & Pengumuman Penting</h5>
-                <Link href="/admin/pengumuman" className="text-primary fw-semibold small text-decoration-none">
-                  + Buat Pengumuman
+          {/* Pengumuman Terbaru */}
+          <div className="col-12 col-lg-5">
+            <div className="card border-0 shadow-sm p-4" style={{ borderRadius: 18 }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="dashboard-section-title">📢 Pengumuman Sekolah</div>
+                <Link href="/admin/pengumuman" className="small text-primary text-decoration-none fw-bold">
+                  Kelola →
                 </Link>
               </div>
-              <div className="card-body p-4">
+              <div className="d-flex flex-column gap-2">
                 {data.notifikasiPenting.map((n) => (
-                  <div key={n.id} className="notif-card">
-                    <div className="d-flex justify-content-between align-items-center mb-1">
-                      <h6 className="fw-bold mb-0 text-dark" style={{ fontSize: "0.9rem" }}>{n.judul}</h6>
-                      <span className="text-muted" style={{ fontSize: "0.72rem" }}>
-                        {new Date(n.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
-                      </span>
-                    </div>
-                    <p className="text-muted mb-0" style={{ fontSize: "0.82rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  <div key={n.id} className="p-3 rounded-3 border bg-light">
+                    <div className="fw-bold text-dark mb-1" style={{ fontSize: "0.9rem" }}>{n.judul}</div>
+                    <div className="text-muted small" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                       {n.isi}
-                    </p>
+                    </div>
+                    <div className="text-muted" style={{ fontSize: "0.72rem", marginTop: 4 }}>
+                      🕒 {new Date(n.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                    </div>
                   </div>
                 ))}
                 {data.notifikasiPenting.length === 0 && (
-                  <div className="text-center text-muted py-4">
-                    <div style={{ fontSize: "2rem" }}>📣</div>
-                    Belum ada notifikasi atau pengumuman aktif.
-                  </div>
+                  <div className="text-center text-muted py-4 small">Belum ada pengumuman terbit.</div>
                 )}
               </div>
             </div>

@@ -9,11 +9,6 @@ datasource db {
 
 // ============================================================
 // AUTH (Better Auth)
-// Nama tabel di-map ke Bahasa Indonesia (@@map) biar gampang
-// dibedain pas debug/liat database langsung. Nama FIELD di dalam
-// tabel ini TIDAK diubah — tetap ikut konvensi default Better Auth
-// (emailVerified, createdAt, dst), supaya adapter jalan tanpa perlu
-// config field-mapping tambahan yang rawan typo/error.
 // ============================================================
 
 enum Peran {
@@ -131,12 +126,11 @@ model Siswa {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  tagihan TagihanSpp[]
+  tagihan    TagihanSpp[]
   pembayaran Pembayaran[]
 
   @@map("siswa")
 }
-
 
 model Kelas {
   id         String  @id @default(cuid())
@@ -151,9 +145,9 @@ model Kelas {
 }
 
 model TahunAjaran {
-  id     String  @id @default(cuid())
-  nama   String
-  aktif  Boolean @default(false)
+  id    String  @id @default(cuid())
+  nama  String
+  aktif Boolean @default(false)
 
   tagihan TagihanSpp[]
 
@@ -205,7 +199,7 @@ model Pembayaran {
   metode                String
   midtransTransactionId String?
   status                StatusPembayaran @default(pending)
-  rawResponse            Json?
+  rawResponse           Json?
   paidAt                DateTime?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
@@ -219,13 +213,13 @@ enum Environment {
 }
 
 model PengaturanPembayaran {
-  id                   String      @id @default(cuid())
-  environment          Environment @default(sandbox)
-  sandboxClientKey     String?
-  sandboxServerKey     String?
-  productionClientKey  String?
-  productionServerKey  String?
-  updatedAt            DateTime    @updatedAt
+  id                  String      @id @default(cuid())
+  environment         Environment @default(sandbox)
+  sandboxClientKey    String?
+  sandboxServerKey    String?
+  productionClientKey String?
+  productionServerKey String?
+  updatedAt           DateTime    @updatedAt
 
   @@map("pengaturan_pembayaran")
 }
@@ -244,4 +238,50 @@ model Pengumuman {
   @@map("pengumuman")
 }
 
+// ============================================================
+// KEUANGAN (PENDAPATAN, PENGELUARAN, UTANG PEGAWAI)
+// ============================================================
 
+model PendapatanLain {
+  id         String   @id @default(cuid())
+  judul      String
+  kategori   String   @default("Lain-lain")
+  nominal    Int
+  tanggal    DateTime @default(now())
+  keterangan String?  @db.Text
+  penerima   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("pendapatan_lain")
+}
+
+model Pengeluaran {
+  id              String   @id @default(cuid())
+  judul           String
+  kategori        String   @default("Lain-lain")
+  nominal         Int
+  tanggal         DateTime @default(now())
+  penanggungJawab String?
+  buktiUrl        String?  @db.LongText
+  keterangan      String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("pengeluaran")
+}
+
+model UtangPegawai {
+  id              String   @id @default(cuid())
+  namaPegawai     String
+  jabatan         String?
+  nominalPinjaman Int
+  nominalTerbayar Int      @default(0)
+  status          String   @default("aktif") // "aktif", "lunas"
+  tanggalPinjam   DateTime @default(now())
+  keterangan      String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("utang_pegawai")
+}
