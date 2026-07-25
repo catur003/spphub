@@ -1077,6 +1077,9 @@ export default function SiswaPage() {
               </div>
             </div>
           </div>
+        </>
+      )}
+
       {/* ——— MODAL NAIK KELAS MASSAL ——— */}
       {showNaikKelasModal && (
         <>
