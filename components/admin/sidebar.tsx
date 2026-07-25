@@ -9,21 +9,52 @@ import {
   IconChart, IconSettings, IconLogout, IconMenu, IconX, IconChevronLeft, IconMegaphone,
 } from "./icons";
 
-type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isSubItem?: boolean;
+};
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: IconDashboard },
-  { href: "/admin/siswa", label: "Siswa", icon: IconUsers },
-  { href: "/admin/kelas", label: "Kelas", icon: IconLayers },
-  { href: "/admin/tahun-ajaran", label: "Tahun Ajaran", icon: IconCalendar },
-  { href: "/admin/tagihan", label: "Tagihan SPP", icon: IconReceipt },
-  { href: "/admin/keuangan/pendapatan", label: "💵 Pendapatan", icon: IconReceipt },
-  { href: "/admin/keuangan/pengeluaran", label: "💸 Pengeluaran", icon: IconChart },
-  { href: "/admin/keuangan/utang-pegawai", label: "💳 Utang Pegawai", icon: IconUsers },
-  { href: "/admin/keuangan/laporan", label: "📊 Laporan Kas", icon: IconChart },
-  { href: "/admin/laporan", label: "Laporan SPP", icon: IconChart },
-  { href: "/admin/pengumuman", label: "Pengumuman", icon: IconMegaphone },
-  { href: "/admin/pengguna", label: "Kelola User", icon: IconUsers },
+type NavGroup = {
+  header?: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    items: [{ href: "/admin/dashboard", label: "Dashboard", icon: IconDashboard }],
+  },
+  {
+    header: "MASTER",
+    items: [
+      { href: "/admin/siswa", label: "Siswa", icon: IconUsers },
+      { href: "/admin/kelas", label: "Kelas", icon: IconLayers },
+      { href: "/admin/tahun-ajaran", label: "Tahun Ajaran", icon: IconCalendar },
+    ],
+  },
+  {
+    header: "TRANSAKSI",
+    items: [
+      { href: "/admin/tagihan", label: "Tagihan SPP", icon: IconReceipt },
+      { href: "/admin/keuangan/pendapatan", label: "Pembayaran (Kas)", icon: IconReceipt, isSubItem: true },
+      { href: "/admin/keuangan/utang-pegawai", label: "Utang Pegawai", icon: IconUsers, isSubItem: true },
+    ],
+  },
+  {
+    header: "LAPORAN",
+    items: [
+      { href: "/admin/keuangan/laporan", label: "Laporan Kas", icon: IconChart },
+      { href: "/admin/laporan", label: "Laporan SPP", icon: IconChart },
+    ],
+  },
+  {
+    header: "SISTEM",
+    items: [
+      { href: "/admin/pengumuman", label: "Pengumuman", icon: IconMegaphone },
+      { href: "/admin/pengguna", label: "Kelola User", icon: IconUsers },
+    ],
+  },
 ];
 
 interface AdminShellProps {
@@ -47,9 +78,18 @@ export function AdminShell({ role, userName, children }: AdminShellProps) {
     router.push("/login");
   }
 
-  const items = role === "owner"
-    ? [...NAV_ITEMS, { href: "/admin/settings", label: "Settings", icon: IconSettings }]
-    : NAV_ITEMS;
+  const groups = NAV_GROUPS.map((g) => {
+    if (g.header === "SISTEM" && role === "owner") {
+      return {
+        ...g,
+        items: [
+          ...g.items,
+          { href: "/admin/settings", label: "Pengaturan", icon: IconSettings },
+        ],
+      };
+    }
+    return g;
+  });
 
   const initials = userName
     .split(" ")
@@ -60,6 +100,21 @@ export function AdminShell({ role, userName, children }: AdminShellProps) {
 
   return (
     <div className="app-shell">
+      <style>{`
+        .sidebar-group-header {
+          font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.08em; color: rgba(255,255,255,0.45);
+          padding: 0.75rem 0.9rem 0.25rem 0.9rem; margin-top: 0.4rem;
+        }
+        .app-sidebar.collapsed .sidebar-group-header { display: none; }
+        .sub-menu-indent {
+          margin-left: 14px;
+          border-left: 2px solid rgba(255,255,255,0.12);
+          padding-left: 6px;
+        }
+        .app-sidebar.collapsed .sub-menu-indent { margin-left: 0; padding-left: 0; border-left: none; }
+      `}</style>
+
       {/* Topbar khusus mobile */}
       <div className="app-topbar">
         <button className="app-topbar__menu-btn" onClick={() => setMobileOpen(true)} aria-label="Buka menu">
@@ -93,16 +148,27 @@ export function AdminShell({ role, userName, children }: AdminShellProps) {
         </button>
 
         <nav className="app-sidebar__nav">
-          {items.map((item) => {
-            const active = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
-            const Icon = item.icon;
-            return (
-              <Link key={item.href} href={item.href} className={`app-sidebar__link ${active ? "active" : ""}`}>
-                <Icon />
-                <span className="app-sidebar__label">{item.label}</span>
-              </Link>
-            );
-          })}
+          {groups.map((group, idx) => (
+            <div key={idx}>
+              {group.header && (
+                <div className="sidebar-group-header">{group.header}</div>
+              )}
+              {group.items.map((item) => {
+                const active = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`app-sidebar__link ${active ? "active" : ""} ${item.isSubItem ? "sub-menu-indent" : ""}`}
+                  >
+                    <Icon />
+                    <span className="app-sidebar__label">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="app-sidebar__foot">

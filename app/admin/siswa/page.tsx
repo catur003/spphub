@@ -426,12 +426,13 @@ export default function SiswaPage() {
     muatData();
   }
 
-  const sortedDaftar = [...daftar].sort((a, b) => {
+  const safeDaftar = Array.isArray(daftar) ? daftar : [];
+  const sortedDaftar = [...safeDaftar].sort((a, b) => {
     let comp = 0;
-    if (sortField === "nama") comp = a.namaLengkap.localeCompare(b.namaLengkap);
-    else if (sortField === "nis") comp = a.nis.localeCompare(b.nis);
+    if (sortField === "nama") comp = (a.namaLengkap || "").localeCompare(b.namaLengkap || "");
+    else if (sortField === "nis") comp = (a.nis || "").localeCompare(b.nis || "");
     else if (sortField === "kelas") comp = (a.kelas?.namaKelas || "").localeCompare(b.kelas?.namaKelas || "");
-    else if (sortField === "status") comp = a.status.localeCompare(b.status);
+    else if (sortField === "status") comp = (a.status || "").localeCompare(b.status || "");
     return sortAsc ? comp : -comp;
   });
 

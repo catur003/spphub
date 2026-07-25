@@ -30,17 +30,17 @@ type DashboardData = {
   sppBelumDibayarCount?: number;
   utangPegawaiTotal?: number;
   utangPegawaiCount?: number;
-  totalSiswa: number;
-  siswaBaruBulanIni: number;
-  pendapatanBulanIni: number;
-  tunggakanBulanIni: number;
-  jumlahTagihanBelumDibuat: number;
-  transaksiTerbaru: Transaksi[];
-  pieChartData: { name: string; value: number; color: string }[];
-  barChartData: { name: string; total: number }[];
-  notifikasiPenting: Notifikasi[];
-  bulan: number;
-  tahun: number;
+  totalSiswa?: number;
+  siswaBaruBulanIni?: number;
+  pendapatanBulanIni?: number;
+  tunggakanBulanIni?: number;
+  jumlahTagihanBelumDibuat?: number;
+  transaksiTerbaru?: Transaksi[];
+  pieChartData?: { name: string; value: number; color: string }[];
+  barChartData?: { name: string; total: number }[];
+  notifikasiPenting?: Notifikasi[];
+  bulan?: number;
+  tahun?: number;
 };
 
 const BULAN_LABEL = [
@@ -112,13 +112,21 @@ export default function DashboardPage() {
 
   if (!data) return null;
 
-  const todayStr = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "Long", year: "numeric" });
-  const saldoKas = data.saldoKas ?? data.pendapatanBulanIni;
-  const labaRugi = data.labaRugi ?? (data.pendapatanBulanIni - data.tunggakanBulanIni);
-  const sppBelumTotal = data.sppBelumDibayarTotal ?? data.tunggakanBulanIni;
-  const sppBelumCount = data.sppBelumDibayarCount ?? 0;
-  const utangPegawaiTotal = data.utangPegawaiTotal ?? 0;
-  const utangPegawaiCount = data.utangPegawaiCount ?? 0;
+  const todayStr = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  const saldoKas = Number(data.saldoKas ?? data.pendapatanBulanIni ?? 0);
+  const labaRugi = Number(data.labaRugi ?? ((data.pendapatanBulanIni || 0) - (data.tunggakanBulanIni || 0)));
+  const sppBelumTotal = Number(data.sppBelumDibayarTotal ?? data.tunggakanBulanIni ?? 0);
+  const sppBelumCount = Number(data.sppBelumDibayarCount ?? 0);
+  const utangPegawaiTotal = Number(data.utangPegawaiTotal ?? 0);
+  const utangPegawaiCount = Number(data.utangPegawaiCount ?? 0);
+
+  const barChartData = Array.isArray(data.barChartData) ? data.barChartData : [];
+  const pieChartData = Array.isArray(data.pieChartData) ? data.pieChartData : [];
+  const transaksiTerbaru = Array.isArray(data.transaksiTerbaru) ? data.transaksiTerbaru : [];
+  const notifikasiPenting = Array.isArray(data.notifikasiPenting) ? data.notifikasiPenting : [];
+  const jumlahTagihanBelumDibuat = Number(data.jumlahTagihanBelumDibuat ?? 0);
+  const bulan = data.bulan || new Date().getMonth() + 1;
+  const tahun = data.tahun || new Date().getFullYear();
 
   return (
     <>
@@ -169,12 +177,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Banner Notifikasi Tagihan Belum Dibuat */}
-        {data.jumlahTagihanBelumDibuat > 0 && (
+        {jumlahTagihanBelumDibuat > 0 && (
           <div className="alert alert-warning border-0 shadow-sm d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4" style={{ borderRadius: 14, background: "#fff8e6" }}>
             <div className="d-flex align-items-center gap-2">
               <span style={{ fontSize: "1.2rem" }}>⚡</span>
               <div>
-                <strong style={{ color: "#854d0e" }}>Tagihan Periode Ini:</strong> Ada <strong>{data.jumlahTagihanBelumDibuat} siswa aktif</strong> yang belum dibuatkan tagihan SPP bulan {BULAN_LABEL[data.bulan]} {data.tahun}.
+                <strong style={{ color: "#854d0e" }}>Tagihan Periode Ini:</strong> Ada <strong>{jumlahTagihanBelumDibuat} siswa aktif</strong> yang belum dibuatkan tagihan SPP bulan {BULAN_LABEL[bulan]} {tahun}.
               </div>
             </div>
             <Link href="/admin/tagihan" className="btn btn-sm btn-warning fw-bold px-3 py-1 text-dark" style={{ borderRadius: 10, fontSize: "0.8rem" }}>
@@ -263,7 +271,7 @@ export default function DashboardPage() {
               </div>
               <div style={{ width: "100%", height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.barChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <BarChart data={barChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
                     <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(v) => `${(v/1000000).toFixed(1)}M`} />
@@ -288,12 +296,12 @@ export default function DashboardPage() {
           <div className="col-12 col-lg-4">
             <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: 18 }}>
               <div className="dashboard-section-title mb-1">🍩 Rasio Status SPP</div>
-              <div className="text-muted small mb-3">Bulan {BULAN_LABEL[data.bulan]} {data.tahun}</div>
+              <div className="text-muted small mb-3">Bulan {BULAN_LABEL[bulan]} {tahun}</div>
               <div style={{ width: "100%", height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={data.pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4}>
-                      {data.pieChartData.map((entry, index) => (
+                    <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4}>
+                      {pieChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -328,20 +336,20 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.transaksiTerbaru.map((t) => (
+                    {transaksiTerbaru.map((t) => (
                       <tr key={t.id}>
                         <td>
                           <div className="fw-bold text-dark">{t.siswa?.namaLengkap || "Siswa"}</div>
                           <div className="text-muted small">{t.siswa?.kelas?.namaKelas || "-"}</div>
                         </td>
                         <td>{BULAN_LABEL[t.bulan]} {t.tahun}</td>
-                        <td className="fw-bold text-success">Rp {t.nominal.toLocaleString("id-ID")}</td>
+                        <td className="fw-bold text-success">Rp {(t.nominal || 0).toLocaleString("id-ID")}</td>
                         <td className="text-muted small">
-                          {new Date(t.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                          {t.updatedAt ? new Date(t.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "-"}
                         </td>
                       </tr>
                     ))}
-                    {data.transaksiTerbaru.length === 0 && (
+                    {transaksiTerbaru.length === 0 && (
                       <tr>
                         <td colSpan={4} className="text-center text-muted py-4">Belum ada transaksi lunas.</td>
                       </tr>
@@ -362,7 +370,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
               <div className="d-flex flex-column gap-2">
-                {data.notifikasiPenting.map((n) => (
+                {notifikasiPenting.map((n) => (
                   <div key={n.id} className="p-3 rounded-3 border bg-light">
                     <div className="fw-bold text-dark mb-1" style={{ fontSize: "0.9rem" }}>{n.judul}</div>
                     <div className="text-muted small" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
@@ -373,7 +381,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
-                {data.notifikasiPenting.length === 0 && (
+                {notifikasiPenting.length === 0 && (
                   <div className="text-center text-muted py-4 small">Belum ada pengumuman terbit.</div>
                 )}
               </div>
