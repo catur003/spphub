@@ -668,6 +668,49 @@ export default function SiswaPage() {
                     </select>
                   </div>
 
+                  {/* Seksi Buat Akun Login Siswa */}
+                  <div className="p-3 bg-light rounded-3 border mb-3">
+                    <div className="form-check form-switch mb-1">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="checkBuatAkun"
+                        checked={formTambah.buatAkun}
+                        onChange={(e) => setFormTambah({ ...formTambah, buatAkun: e.target.checked })}
+                      />
+                      <label className="form-check-label fw-bold small text-dark" htmlFor="checkBuatAkun">
+                        🔑 Buat Akun Login Portal Siswa
+                      </label>
+                    </div>
+                    {formTambah.buatAkun && (
+                      <div className="mt-2 pt-2 border-top">
+                        <div className="mb-2">
+                          <label className="form-label small fw-semibold">Email Login Siswa</label>
+                          <input
+                            type="email"
+                            className="form-control form-control-sm"
+                            placeholder="siswa@sekolah.sch.id"
+                            value={formTambah.email}
+                            onChange={(e) => setFormTambah({ ...formTambah, email: e.target.value })}
+                            required={formTambah.buatAkun}
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label small fw-semibold">Password Login</label>
+                          <input
+                            type="password"
+                            className="form-control form-control-sm"
+                            placeholder="Minimal 6 karakter"
+                            value={formTambah.password}
+                            onChange={(e) => setFormTambah({ ...formTambah, password: e.target.value })}
+                            minLength={6}
+                            required={formTambah.buatAkun}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <button className="btn btn-primary w-100 fw-bold py-2" disabled={loadingTambah || uploadingFoto}>
                     {loadingTambah ? "Menyimpan..." : "Simpan Data Siswa"}
                   </button>
@@ -1070,6 +1113,115 @@ export default function SiswaPage() {
                         <input className="form-control" value={formEdit.kontakWali}
                           onChange={(e) => setFormEdit({ ...formEdit, kontakWali: e.target.value })} />
                       </div>
+                    </div>
+
+                    {/* Seksi Manajemen Akun Login Siswa */}
+                    <div className="p-3 rounded-3 border bg-light mb-3">
+                      <h6 className="fw-bold mb-2 text-dark" style={{ fontSize: "0.9rem" }}>🔑 Akun Login Portal Siswa</h6>
+                      {editSiswa.akun ? (
+                        <div>
+                          <div className="d-flex align-items-center gap-2 mb-2 text-success small fw-bold">
+                            <span>✓ Akun Portal Aktif</span>
+                            <span className="text-muted fw-normal">({editSiswa.akun.email})</span>
+                          </div>
+
+                          <div className="row g-2">
+                            <div className="col-md-6">
+                              <div className="form-check mb-2">
+                                <input
+                                  type="checkbox"
+                                  className="form-check-input"
+                                  id="checkGantiEmail"
+                                  checked={formEdit.gantiEmail}
+                                  onChange={(e) => setFormEdit({ ...formEdit, gantiEmail: e.target.checked })}
+                                />
+                                <label className="form-check-label small fw-semibold" htmlFor="checkGantiEmail">
+                                  Ubah Email Login
+                                </label>
+                              </div>
+                              {formEdit.gantiEmail && (
+                                <input
+                                  type="email"
+                                  className="form-control form-control-sm"
+                                  placeholder="Email baru..."
+                                  value={formEdit.emailBaru}
+                                  onChange={(e) => setFormEdit({ ...formEdit, emailBaru: e.target.value })}
+                                  required={formEdit.gantiEmail}
+                                />
+                              )}
+                            </div>
+
+                            <div className="col-md-6">
+                              <div className="form-check mb-2">
+                                <input
+                                  type="checkbox"
+                                  className="form-check-input"
+                                  id="checkResetPass"
+                                  checked={formEdit.resetPassword}
+                                  onChange={(e) => setFormEdit({ ...formEdit, resetPassword: e.target.checked })}
+                                />
+                                <label className="form-check-label small fw-semibold" htmlFor="checkResetPass">
+                                  Reset / Ganti Password
+                                </label>
+                              </div>
+                              {formEdit.resetPassword && (
+                                <input
+                                  type="password"
+                                  className="form-control form-control-sm"
+                                  placeholder="Password baru (min 6 char)..."
+                                  value={formEdit.passwordBaru}
+                                  onChange={(e) => setFormEdit({ ...formEdit, passwordBaru: e.target.value })}
+                                  minLength={6}
+                                  required={formEdit.resetPassword}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-muted small mb-2">Siswa ini belum memiliki akun login ke Portal Siswa.</div>
+                          <div className="form-check form-switch mb-2">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              id="checkBuatAkunEdit"
+                              checked={formEdit.buatAkun}
+                              onChange={(e) => setFormEdit({ ...formEdit, buatAkun: e.target.checked })}
+                            />
+                            <label className="form-check-label fw-bold small text-dark" htmlFor="checkBuatAkunEdit">
+                              ➕ Buat Akun Portal Siswa Sekarang
+                            </label>
+                          </div>
+                          {formEdit.buatAkun && (
+                            <div className="row g-2 mt-1">
+                              <div className="col-md-6">
+                                <label className="form-label small fw-semibold">Email Login Siswa</label>
+                                <input
+                                  type="email"
+                                  className="form-control form-control-sm"
+                                  placeholder="siswa@sekolah.sch.id"
+                                  value={formEdit.email}
+                                  onChange={(e) => setFormEdit({ ...formEdit, email: e.target.value })}
+                                  required={formEdit.buatAkun}
+                                />
+                              </div>
+                              <div className="col-md-6">
+                                <label className="form-label small fw-semibold">Password Login</label>
+                                <input
+                                  type="password"
+                                  className="form-control form-control-sm"
+                                  placeholder="Minimal 6 karakter"
+                                  value={formEdit.password}
+                                  onChange={(e) => setFormEdit({ ...formEdit, password: e.target.value })}
+                                  minLength={6}
+                                  required={formEdit.buatAkun}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
