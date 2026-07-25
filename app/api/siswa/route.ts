@@ -96,19 +96,25 @@ export async function POST(req: NextRequest) {
       }
 
       const hashedPassword = await bcrypt.hash(body.password, 10);
-      const newAkun = await prisma.akun.create({
-        data: {
-          name: body.namaLengkap,
-          email: String(body.email).trim().toLowerCase(),
-          role: "siswa",
-          kredensial: {
-            create: {
-              accountId: String(body.email).trim().toLowerCase(),
-              providerId: "credential",
-              password: hashedPassword,
-            },
+      const newAkun = await prisma.$transaction(async (tx) => {
+        const akun = await tx.akun.create({
+          data: {
+            name: body.namaLengkap,
+            email: String(body.email).trim().toLowerCase(),
+            role: "siswa",
           },
-        },
+        });
+
+        await tx.kredensial.create({
+          data: {
+            akunId: akun.id,
+            accountId: akun.id,
+            providerId: "credential",
+            password: hashedPassword,
+          },
+        });
+
+        return akun;
       });
       akunId = newAkun.id;
     }

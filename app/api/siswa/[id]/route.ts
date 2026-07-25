@@ -82,19 +82,25 @@ export async function PUT(
         }
         try {
           const hashedPassword = await bcrypt.hash(body.password, 10);
-          const newAkun = await prisma.akun.create({
-            data: {
-              name: body.namaLengkap || body.nis,
-              email: String(body.email).trim().toLowerCase(),
-              role: "siswa",
-              kredensial: {
-                create: {
-                  accountId: String(body.email).trim().toLowerCase(),
-                  providerId: "credential",
-                  password: hashedPassword,
-                },
+          const newAkun = await prisma.$transaction(async (tx) => {
+            const akun = await tx.akun.create({
+              data: {
+                name: body.namaLengkap || body.nis,
+                email: String(body.email).trim().toLowerCase(),
+                role: "siswa",
               },
-            },
+            });
+
+            await tx.kredensial.create({
+              data: {
+                akunId: akun.id,
+                accountId: akun.id,
+                providerId: "credential",
+                password: hashedPassword,
+              },
+            });
+
+            return akun;
           });
           akunIdBaru = newAkun.id;
         } catch (err: any) {
