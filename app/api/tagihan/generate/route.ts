@@ -1,0 +1,100 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireApiRole } from "@/lib/api-auth";
+import { syncNominalKosong } from "@/lib/tagihan-nominal";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
+
+    const body = await req.json().catch(() => ({}));
+    const { bulan, tahun, nominal, tahunAjaranId, jatuhTempo } = body;
+
+    if (!bulan || !tahun || !tahunAjaranId || !jatuhTempo) {
+      return NextResponse.json(
+        { error: "Bulan, tahun, tahun ajaran, dan jatuh tempo wajib diisi" },
+        { status: 400 }
+      );
+    }
+
+    // Verify tahunAjaran
+    const ta = await prisma.tahunAjaran.findUnique({ where: { id: tahunAjaranId } });
+    if (!ta) {
+      return NextResponse.json({ error: "Tahun ajaran yang dipilih tidak ditemukan" }, { status: 400 });
+    }
+
+    // 1. Fetch profil sekolah untuk nominal SPP default fallback
+    const profil = await prisma.profilSekolah.findFirst();
+    const defaultNominal = Number(nominal) || profil?.nominalSppDefault || 0;
+
+    // 2. Fetch siswa aktif beserta data kelas (Billing Rules)
+    const siswaAktif = await prisma.siswa.findMany({
+      where: { status: "aktif" },
+      include: { kelas: true },
+    });
+
+    if (siswaAktif.length === 0) {
+      return NextResponse.json(
+        { error: "Tidak ditemukan siswa berstatus 'Aktif' di database untuk dibuatkan tagihan." },
+        { status: 400 }
+      );
+    }
+
+    // Auto-sync tagihan belum bayar sebelumnya yang masih Rp 0 agar konsisten & sinkron
+    await syncNominalKosong(defaultNominal);
+
+    // 3. Cek tagihan yang sudah pernah dibuat untuk periode bulan & tahun ini (Melindungi status Lunas dll)
+    const existing = await prisma.tagihanSpp.findMany({
+      where: { bulan: Number(bulan), tahun: Number(tahun) },
+      select: { siswaId: true },
+    });
+    const sudahAdaSet = new Set(existing.map((t) => t.siswaId));
+
+    // Siswa yang BELUM punya tagihan sama sekali di bulan & tahun ini
+    const siswaBaru = siswaAktif.filter((s) => !sudahAdaSet.has(s.id));
+
+    if (siswaBaru.length === 0) {
+      return NextResponse.json({
+        dibuat: 0,
+        dilewati: siswaAktif.length,
+        message: "Semua siswa aktif sudah memiliki tagihan untuk periode bulan ini (termasuk tagihan LUNAS).",
+      });
+    }
+
+    // Standardize ISO Date for Jatuh Tempo - Seragam & Ter-sinkronisasi untuk seluruh kelas
+    const tglStr = String(jatuhTempo).split("T")[0];
+    const isoJatuhTempo = new Date(`${tglStr}T12:00:00.000Z`);
+
+    // 4. Batch Create Tagihan
+    await prisma.tagihanSpp.createMany({
+      data: siswaBaru.map((s) => {
+        const nominalKelas =
+          s.kelas?.nominalSpp && Number(s.kelas.nominalSpp) > 0
+            ? Number(s.kelas.nominalSpp)
+            : defaultNominal;
+
+        return {
+          siswaId: s.id,
+          tahunAjaranId,
+          bulan: Number(bulan),
+          tahun: Number(tahun),
+          nominal: nominalKelas,
+          jatuhTempo: isoJatuhTempo,
+          status: "belum_bayar" as const,
+        };
+      }),
+    });
+
+    return NextResponse.json({
+      dibuat: siswaBaru.length,
+      dilewati: siswaAktif.length - siswaBaru.length,
+    });
+  } catch (error: any) {
+    console.error("[POST /api/tagihan/generate] Error:", error);
+    return NextResponse.json(
+      { error: "Gagal generate tagihan massal: " + (error.message || "Terjadi kesalahan server") },
+      { status: 500 }
+    );
+  }
+}

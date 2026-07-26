@@ -1,0 +1,66 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireApiRole } from "@/lib/api-auth";
+
+export async function GET() {
+  try {
+    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
+
+    const kelas = await prisma.kelas.findMany({
+      orderBy: [{ tingkat: "asc" }, { namaKelas: "asc" }],
+      select: {
+        id: true,
+        namaKelas: true,
+        tingkat: true,
+        nominalSpp: true,
+        waliKelas: true,
+        _count: { select: { siswa: true } },
+      },
+    });
+
+    const res = NextResponse.json(kelas);
+    res.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    return res;
+  } catch (error: any) {
+    console.error("[GET /api/kelas] Error:", error);
+    return NextResponse.json(
+      { error: "Gagal mengambil data kelas: " + (error.message || "Unknown error") },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
+
+    const body = await req.json().catch(() => ({}));
+    if (!body.namaKelas || !body.tingkat) {
+      return NextResponse.json({ error: "namaKelas dan tingkat wajib diisi" }, { status: 400 });
+    }
+
+    const kelas = await prisma.kelas.create({
+      data: {
+        namaKelas: String(body.namaKelas).trim(),
+        tingkat: Number(body.tingkat),
+        ...(body.nominalSpp !== undefined ? { nominalSpp: Number(body.nominalSpp) } : {}),
+        ...(body.waliKelas !== undefined ? { waliKelas: String(body.waliKelas).trim() } : {}),
+      },
+    });
+    return NextResponse.json(kelas, { status: 201 });
+  } catch (error: any) {
+    console.error("[POST /api/kelas] Error:", error);
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Nama kelas sudah ada, gunakan nama kelas lain." },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Gagal menyimpan kelas: " + (error.message || "Terjadi kesalahan pada server") },
+      { status: 500 }
+    );
+  }
+}

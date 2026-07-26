@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Migrasi Bootstrap -> Tailwind SELESAI (lihat HANDOFF-UI-TAILWIND.md).
+   Import bootstrap.min.css di app/layout.tsx dan dependency "bootstrap" di
+   package.json udah dicabut. */
+
+:root {
+  --ink-900: #0f172a;
+  --surface: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  background: var(--surface);
+  color: var(--ink-900);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sidebar/layout shell udah full Tailwind di components/admin/sidebar.tsx
+   (dulu .app-shell/.app-sidebar*/.app-topbar*/.app-main/.app-page-enter di
+   sini). Animasi fade-in-up-nya pakai class `animate-fade-in-up` dari
+   tailwind.config.ts (keyframe `fadeInUp` yang sama). */
+
