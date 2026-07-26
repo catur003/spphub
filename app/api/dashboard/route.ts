@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiRole } from "@/lib/api-auth";
 
 export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { error } = await requireApiRole(["owner", "petugas"]);
+  if (error) return error;
 
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
@@ -29,8 +26,8 @@ export async function GET() {
       sppLunasAll,
       pendapatanLainAll,
       pengeluaranAll,
-      tagihanTunggakanAll,
-      utangPegawaiAll,
+      tunggakanGrouped,
+      utangAgg,
     ] = await Promise.all([
       prisma.siswa.count({ where: { status: "aktif" } }),
       prisma.siswa.count({ where: { createdAt: { gte: awalBulanIni } } }),
@@ -73,13 +70,19 @@ export async function GET() {
       prisma.pengeluaran.aggregate({
         _sum: { nominal: true },
       }),
-      prisma.tagihanSpp.findMany({
+      // Dulu ini findMany narik SEMUA baris tagihan belum lunas cuma buat
+      // di-reduce manual di JS. Sekarang groupBy per siswa langsung dari DB
+      // -> hasilnya cuma 1 baris per siswa yang nunggak, bukan 1 baris per tagihan.
+      prisma.tagihanSpp.groupBy({
+        by: ["siswaId"],
         where: { status: { in: ["belum_bayar", "terlambat"] } },
-        select: { nominal: true, siswaId: true },
+        _sum: { nominal: true },
       }),
-      prisma.utangPegawai.findMany({
+      // Sama, ganti findMany+reduce jadi aggregate langsung dari DB.
+      prisma.utangPegawai.aggregate({
         where: { status: "aktif" },
-        select: { nominalPinjaman: true, nominalTerbayar: true },
+        _sum: { nominalPinjaman: true, nominalTerbayar: true },
+        _count: true,
       }),
     ]);
 
@@ -91,11 +94,14 @@ export async function GET() {
     const saldoKas = totalPemasukan - totalPengeluaran;
     const labaRugi = totalPemasukan - totalPengeluaran;
 
-    const sppBelumDibayarTotal = tagihanTunggakanAll.reduce((acc, t) => acc + t.nominal, 0);
-    const sppBelumDibayarCount = new Set(tagihanTunggakanAll.map((t) => t.siswaId)).size;
+    const sppBelumDibayarTotal = tunggakanGrouped.reduce((acc, g) => acc + (g._sum.nominal || 0), 0);
+    const sppBelumDibayarCount = tunggakanGrouped.length;
 
-    const utangPegawaiTotal = utangPegawaiAll.reduce((acc, u) => acc + Math.max(0, u.nominalPinjaman - u.nominalTerbayar), 0);
-    const utangPegawaiCount = utangPegawaiAll.length;
+    const utangPegawaiTotal = Math.max(
+      0,
+      (utangAgg._sum.nominalPinjaman || 0) - (utangAgg._sum.nominalTerbayar || 0)
+    );
+    const utangPegawaiCount = utangAgg._count;
 
     const pendapatanBulanIni = tagihanBulanIni
       .filter((t) => t.status === "lunas")

@@ -1,5 +1,6 @@
 import midtransClient from "midtrans-client";
 import { prisma } from "./prisma";
+import { decrypt } from "./crypto";
 
 /**
  * Ambil baris PengaturanPembayaran (cuma 1 baris, single-tenant).
@@ -24,7 +25,7 @@ export function getActiveKeys(pengaturan: {
   const isProd = pengaturan.environment === "production";
   return {
     clientKey: isProd ? pengaturan.productionClientKey : pengaturan.sandboxClientKey,
-    serverKey: isProd ? pengaturan.productionServerKey : pengaturan.sandboxServerKey,
+    serverKey: decrypt(isProd ? pengaturan.productionServerKey : pengaturan.sandboxServerKey),
     isProduction: isProd,
   };
 }

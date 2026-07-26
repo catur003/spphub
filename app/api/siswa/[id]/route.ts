@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiRole, requireApiOwner } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
-
-async function checkAccess() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-    return null;
-  }
-  return session;
-}
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await checkAccess();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
 
     const { id } = await params;
     const siswa = await prisma.siswa.findUnique({
@@ -49,8 +40,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await checkAccess();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
 
     const { id } = await params;
     const body = await req.json();
@@ -129,8 +120,8 @@ export async function PUT(
       }
 
       if (body.resetPassword && body.passwordBaru) {
-        if (body.passwordBaru.length < 6) {
-          return NextResponse.json({ error: "Password baru minimal 6 karakter" }, { status: 400 });
+        if (body.passwordBaru.length < 8) {
+          return NextResponse.json({ error: "Password baru minimal 8 karakter" }, { status: 400 });
         }
         const hashBaru = await bcrypt.hash(body.passwordBaru, 10);
         await prisma.kredensial.updateMany({
@@ -180,10 +171,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await checkAccess();
-    if (!session || session.user.role !== "owner") {
-      return NextResponse.json({ error: "Hanya Owner yang boleh hapus siswa" }, { status: 403 });
-    }
+    const { error: errAkses } = await requireApiOwner();
+    if (errAkses) return errAkses;
 
     const { id } = await params;
 
@@ -194,6 +183,25 @@ export async function DELETE(
 
     if (!siswa) {
       return NextResponse.json({ error: "Siswa tidak ditemukan" }, { status: 404 });
+    }
+
+    // Penting: relasi Siswa -> Pembayaran pakai onDelete Cascade di schema.
+    // Kalau siswa ini punya riwayat pembayaran yang sudah "success", hapus
+    // permanen akan ikut menghapus bukti transaksi keuangan itu selamanya.
+    // Lebih aman ditolak di sini dan arahkan admin untuk menonaktifkan saja.
+    const punyaRiwayatBayar = await prisma.pembayaran.findFirst({
+      where: { siswaId: id, status: "success" },
+      select: { id: true },
+    });
+
+    if (punyaRiwayatBayar) {
+      return NextResponse.json(
+        {
+          error:
+            "Siswa ini punya riwayat pembayaran yang sudah lunas. Menghapus siswa akan menghapus permanen riwayat keuangannya juga. Ubah status siswa jadi 'nonaktif' atau 'pindah' saja lewat form edit, jangan dihapus.",
+        },
+        { status: 409 }
+      );
     }
 
     await prisma.siswa.delete({ where: { id } });

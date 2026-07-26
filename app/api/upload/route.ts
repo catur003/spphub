@@ -1,20 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiRole } from "@/lib/api-auth";
 import crypto from "crypto";
-
-async function checkAccess() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-    return null;
-  }
-  return session;
-}
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await checkAccess();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
 
     const formData = await req.formData();
     const file = formData.get("file");

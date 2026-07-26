@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiRole } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
-
-async function checkOwnerAccess() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || session.user.role !== "owner") {
-    return null;
-  }
-  return session;
-}
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await checkOwnerAccess();
-    if (!session) return NextResponse.json({ error: "Hanya Owner yang berhak mengelola akun pengguna" }, { status: 403 });
+    const { session, error } = await requireApiRole(["owner"]);
+    if (error) return error;
 
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
@@ -95,8 +86,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await checkOwnerAccess();
-    if (!session) return NextResponse.json({ error: "Hanya Owner yang berhak mengelola akun pengguna" }, { status: 403 });
+    const { session, error } = await requireApiRole(["owner"]);
+    if (error) return error;
 
     const { id } = await params;
 

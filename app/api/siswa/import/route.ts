@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { bacaWorkbook, parseBarisSiswa } from "@/lib/excel-siswa";
+import { requireApiRole } from "@/lib/api-auth";
 
 type HasilBaris = { baris: number; status: "berhasil" | "gagal"; alasan?: string; nama?: string };
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { error } = await requireApiRole(["owner", "petugas"]);
+  if (error) return error;
 
     const form = await req.formData();
     const file = form.get("file");

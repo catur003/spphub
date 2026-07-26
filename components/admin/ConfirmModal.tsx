@@ -112,38 +112,55 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
   if (!show) return null;
 
+  const confirmClass =
+    variant === "danger"
+      ? "bg-red-600 hover:bg-red-700"
+      : "bg-accent hover:bg-accent-hover";
+
   return (
-    <>
-      <div className="modal-backdrop fade show" />
-      <div className="modal fade show d-block" tabIndex={-1} role="dialog" onClick={onClose}>
-        <div
-          className="modal-dialog modal-dialog-centered"
-          role="document"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">{title}</h5>
-              <button type="button" className="btn-close" aria-label="Tutup" onClick={onClose} />
-            </div>
-            <div className="modal-body">
-              <p className="mb-0" style={{ whiteSpace: "pre-line" }}>
-                {message}
-              </p>
-            </div>
-            <div className="modal-footer">
-              {!hideCancel && (
-                <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
-                  {cancelLabel}
-                </button>
-              )}
-              <button type="button" className={`btn btn-${variant}`} onClick={onConfirm}>
-                {confirmLabel || (hideCancel ? "OK" : "Ya, Lanjutkan")}
-              </button>
-            </div>
-          </div>
+    <div
+      className="fixed inset-0 z-[1060] flex items-center justify-center bg-ink-900/50 p-4"
+      role="dialog"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl"
+        role="document"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border-soft px-5 py-4">
+          <h5 className="text-base font-bold text-ink-900">{title}</h5>
+          <button
+            type="button"
+            aria-label="Tutup"
+            className="text-xl leading-none text-ink-500 hover:text-ink-900"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+        <div className="px-5 py-4">
+          <p className="whitespace-pre-line text-sm text-ink-700">{message}</p>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border-soft px-5 py-4">
+          {!hideCancel && (
+            <button
+              type="button"
+              className="rounded-control border border-border-soft px-4 py-2 text-sm font-medium text-ink-700 hover:bg-surface"
+              onClick={onClose}
+            >
+              {cancelLabel}
+            </button>
+          )}
+          <button
+            type="button"
+            className={`rounded-control px-4 py-2 text-sm font-bold text-white transition ${confirmClass}`}
+            onClick={onConfirm}
+          >
+            {confirmLabel || (hideCancel ? "OK" : "Ya, Lanjutkan")}
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

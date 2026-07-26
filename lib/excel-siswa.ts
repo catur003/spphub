@@ -179,8 +179,8 @@ export function parseBarisSiswa(
   const STATUS_VALID = ["aktif", "lulus", "pindah", "nonaktif"];
   const statusClean = STATUS_VALID.includes(statusRaw) ? statusRaw : "aktif";
 
-  if (email && password && password.length < 6) {
-    return { error: "Password akun minimal 6 karakter" };
+  if (email && password && password.length < 8) {
+    return { error: "Password akun minimal 8 karakter" };
   }
 
   const tanggalLahir = parseTanggalExcel(tglRaw);

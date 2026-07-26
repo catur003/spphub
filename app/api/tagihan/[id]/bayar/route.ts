@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-// @ts-ignore
-import midtransClient from "midtrans-client";
+import { getSnapClient } from "@/lib/midtrans";
 
 export async function POST(
   _req: NextRequest,
@@ -34,24 +33,19 @@ export async function POST(
     return NextResponse.json({ error: "Tagihan ini tidak bisa dibayar (sudah lunas / proses)" }, { status: 400 });
   }
 
-  // Ambil pengaturan payment
-  const settings = await prisma.pengaturanPembayaran.findFirst();
-  if (!settings) {
-    return NextResponse.json({ error: "Sistem pembayaran belum dikonfigurasi admin" }, { status: 500 });
+  let snap, clientKey, isProd;
+  try {
+    ({ snap, clientKey, isProduction: isProd } = await getSnapClient());
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Sistem pembayaran belum dikonfigurasi admin" }, { status: 500 });
   }
 
-  const isProd = settings.environment === "production";
-  const serverKey = isProd ? settings.productionServerKey : settings.sandboxServerKey;
-  const clientKey = isProd ? settings.productionClientKey : settings.sandboxClientKey;
-
-  if (!serverKey || !clientKey) {
-    return NextResponse.json({ error: "API Key Midtrans belum dikonfigurasi admin" }, { status: 500 });
-  }
-
-  const snap = new midtransClient.Snap({
-    isProduction: isProd,
-    serverKey: serverKey,
-    clientKey: clientKey,
+  // Siswa suka klik "Bayar Sekarang" berkali-kali (popup ke-close, koneksi
+  // lambat, dll). Daripada numpuk banyak row pending yatim, tandai dulu
+  // pending lama punya tagihan ini sebagai "expired" sebelum bikin yang baru.
+  await prisma.pembayaran.updateMany({
+    where: { tagihanSppId: tagihan.id, status: "pending" },
+    data: { status: "expired" },
   });
 
   // Buat Order ID unik (TagihanID + Timestamp)

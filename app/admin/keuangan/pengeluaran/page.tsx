@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
-import { IconSearch } from "@/components/admin/icons";
 
 type Pengeluaran = {
   id: string;
@@ -24,6 +23,9 @@ const KATEGORI_OPTIONS = [
   "Kegiatan Sekolah / Event",
   "Lain-lain",
 ];
+
+const inputClass =
+  "w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100";
 
 export default function PengeluaranPage() {
   const [daftar, setDaftar] = useState<Pengeluaran[]>([]);
@@ -108,40 +110,40 @@ export default function PengeluaranPage() {
   return (
     <>
       {modal}
-      <div className="container-fluid p-4">
-        <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <div className="w-full p-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>💸 Kelola Pengeluaran Kas Sekolah</h1>
-            <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+            <h1 className="text-xl font-bold text-ink-900">💸 Kelola Pengeluaran Kas Sekolah</h1>
+            <p className="text-sm text-ink-500">
               Pencatatan Beban Operational, Gaji Guru, Listrik, Pembelian Inventaris & Biaya Kegiatan.
             </p>
           </div>
         </div>
 
-        <div className="row g-4">
+        <div className="grid grid-cols-12 gap-4">
           {/* Form Catat Pengeluaran */}
-          <div className="col-12 col-lg-4">
-            <div className="card border-0 shadow-sm" style={{ borderRadius: 16 }}>
-              <div className="card-header bg-danger text-white p-3" style={{ borderRadius: "16px 16px 0 0" }}>
-                <h2 className="h6 mb-0 fw-bold">✚ Catat Pengeluaran Baru</h2>
+          <div className="col-span-12 lg:col-span-4">
+            <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm2">
+              <div className="bg-red-600 p-3">
+                <h2 className="text-sm font-bold text-white">✚ Catat Pengeluaran Baru</h2>
               </div>
-              <div className="card-body p-4">
-                {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
-                <form onSubmit={handleTambah}>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Judul Pengeluaran</label>
+              <div className="p-4">
+                {error && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+                <form onSubmit={handleTambah} className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Judul Pengeluaran</label>
                     <input
-                      className="form-control"
+                      className={inputClass}
                       value={form.judul}
                       onChange={(e) => setForm({ ...form, judul: e.target.value })}
                       placeholder="Contoh: Tagihan Listrik PLN Bulan Juli"
                       required
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Kategori Pengeluaran</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Kategori Pengeluaran</label>
                     <select
-                      className="form-select"
+                      className={inputClass}
                       value={form.kategori}
                       onChange={(e) => setForm({ ...form, kategori: e.target.value })}
                     >
@@ -150,13 +152,13 @@ export default function PengeluaranPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Nominal Pengeluaran (Rp)</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light text-muted fw-semibold">Rp</span>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Nominal Pengeluaran (Rp)</label>
+                    <div className="flex items-stretch">
+                      <span className="flex items-center rounded-l-control border border-r-0 border-border-soft bg-surface px-3 text-sm font-semibold text-ink-500">Rp</span>
                       <input
                         type="number"
-                        className="form-control fw-bold text-danger"
+                        className="w-full rounded-r-control border border-border-soft px-3 py-2 text-sm font-bold text-red-600 outline-none focus:border-red-500 focus:ring-4 focus:ring-red-100"
                         value={form.nominal}
                         onChange={(e) => setForm({ ...form, nominal: e.target.value })}
                         placeholder="Contoh: 1250000"
@@ -165,45 +167,49 @@ export default function PengeluaranPage() {
                       />
                     </div>
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Tanggal Pengeluaran</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Tanggal Pengeluaran</label>
                     <input
                       type="date"
-                      className="form-control"
+                      className={inputClass}
                       value={form.tanggal}
                       onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
                       required
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Penanggung Jawab (Opsional)</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Penanggung Jawab (Opsional)</label>
                     <input
-                      className="form-control"
+                      className={inputClass}
                       value={form.penanggungJawab}
                       onChange={(e) => setForm({ ...form, penanggungJawab: e.target.value })}
                       placeholder="Nama Staf / Bendahara"
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Link Foto / Nota Bukti (Opsional)</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Link Foto / Nota Bukti (Opsional)</label>
                     <input
-                      className="form-control"
+                      className={inputClass}
                       value={form.buktiUrl}
                       onChange={(e) => setForm({ ...form, buktiUrl: e.target.value })}
                       placeholder="https://..."
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Keterangan / Catatan</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Keterangan / Catatan</label>
                     <textarea
-                      className="form-control"
+                      className={inputClass}
                       rows={2}
                       value={form.keterangan}
                       onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
                       placeholder="Detail penggunaan dana..."
                     />
                   </div>
-                  <button type="submit" className="btn btn-danger w-100 fw-bold py-2 shadow-sm" disabled={submitting}>
+                  <button
+                    type="submit"
+                    className="w-full rounded-control bg-red-600 py-2.5 text-sm font-bold text-white shadow-sm2 transition hover:bg-red-700 disabled:opacity-60"
+                    disabled={submitting}
+                  >
                     {submitting ? "Menyimpan..." : "💾 Simpan Pengeluaran"}
                   </button>
                 </form>
@@ -212,22 +218,24 @@ export default function PengeluaranPage() {
           </div>
 
           {/* Tabel Daftar Pengeluaran */}
-          <div className="col-12 col-lg-8">
-            <div className="card border-0 shadow-sm p-4 mb-3" style={{ borderRadius: 16 }}>
-              <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <div className="col-span-12 lg:col-span-8">
+            <div className="rounded-2xl border border-border-soft bg-white p-4 shadow-sm2">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h6 className="fw-bold mb-0 text-dark">📋 Riwayat Pengeluaran Kas</h6>
-                  <small className="text-muted">Total: <strong>Rp {totalPengeluaran.toLocaleString("id-ID")}</strong> ({daftar.length} transaksi)</small>
+                  <h6 className="font-bold text-ink-900">📋 Riwayat Pengeluaran Kas</h6>
+                  <small className="text-ink-500">
+                    Total: <strong>Rp {totalPengeluaran.toLocaleString("id-ID")}</strong> ({daftar.length} transaksi)
+                  </small>
                 </div>
-                <div className="d-flex gap-2">
+                <div className="flex gap-2">
                   <input
-                    className="form-control form-control-sm"
+                    className="rounded-control border border-border-soft px-3 py-1.5 text-sm outline-none focus:border-red-500"
                     placeholder="🔍 Cari pengeluaran..."
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />
                   <select
-                    className="form-select form-select-sm"
+                    className="rounded-control border border-border-soft px-3 py-1.5 text-sm outline-none focus:border-red-500"
                     value={kategoriFilter}
                     onChange={(e) => setKategoriFilter(e.target.value)}
                   >
@@ -239,46 +247,51 @@ export default function PengeluaranPage() {
                 </div>
               </div>
 
-              <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0" style={{ fontSize: "0.88rem" }}>
-                  <thead className="table-light">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-surface text-ink-500">
                     <tr>
-                      <th>Pengeluaran</th>
-                      <th>Kategori</th>
-                      <th>Tanggal</th>
-                      <th>Nominal</th>
-                      <th>PJ</th>
+                      <th className="px-2 py-2 font-medium">Pengeluaran</th>
+                      <th className="px-2 py-2 font-medium">Kategori</th>
+                      <th className="px-2 py-2 font-medium">Tanggal</th>
+                      <th className="px-2 py-2 font-medium">Nominal</th>
+                      <th className="px-2 py-2 font-medium">PJ</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-4 text-muted">Memuat data pengeluaran...</td>
+                        <td colSpan={5} className="py-8 text-center text-ink-500">Memuat data pengeluaran...</td>
                       </tr>
                     ) : daftar.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-4 text-muted">Belum ada catatan pengeluaran kas.</td>
+                        <td colSpan={5} className="py-8 text-center text-ink-500">Belum ada catatan pengeluaran kas.</td>
                       </tr>
                     ) : (
                       daftar.map((item) => (
-                        <tr key={item.id}>
-                          <td>
-                            <div className="fw-bold text-dark">{item.judul}</div>
-                            {item.keterangan && <div className="text-muted small">{item.keterangan}</div>}
+                        <tr key={item.id} className="border-t border-border-soft hover:bg-surface">
+                          <td className="px-2 py-2">
+                            <div className="font-bold text-ink-900">{item.judul}</div>
+                            {item.keterangan && <div className="text-xs text-ink-500">{item.keterangan}</div>}
                             {item.buktiUrl && (
-                              <a href={item.buktiUrl} target="_blank" rel="noreferrer" className="badge bg-light text-primary border me-1 text-decoration-none">
+                              <a
+                                href={item.buktiUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 inline-block rounded-full border border-border-soft bg-surface px-2 py-0.5 text-xs text-accent no-underline"
+                              >
                                 📎 Bukti Nota
                               </a>
                             )}
                           </td>
-                          <td>
-                            <span className="badge bg-danger-subtle text-danger border px-2 py-1">
+                          <td className="px-2 py-2">
+                            <span className="rounded-full bg-red-50 px-2 py-1 text-xs text-red-700">
                               {item.kategori}
                             </span>
                           </td>
-                          <td>{new Date(item.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</td>
-                          <td className="fw-bold text-danger">Rp {item.nominal.toLocaleString("id-ID")}</td>
-                          <td>{item.penanggungJawab || "-"}</td>
+                          <td className="px-2 py-2">{new Date(item.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</td>
+                          <td className="px-2 py-2 font-bold text-red-600">Rp {item.nominal.toLocaleString("id-ID")}</td>
+                          <td className="px-2 py-2">{item.penanggungJawab || "-"}</td>
                         </tr>
                       ))
                     )}

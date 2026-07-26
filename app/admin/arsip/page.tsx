@@ -17,21 +17,24 @@ type Arsip = {
 };
 
 const KATEGORI_LABEL: Record<string, { label: string; badge: string }> = {
-  bukti_transfer: { label: "Bukti Transfer", badge: "bg-success" },
-  kwitansi:       { label: "Kwitansi",       badge: "bg-primary" },
-  surat:          { label: "Surat / Berkas", badge: "bg-info text-dark" },
-  dokumen_siswa:  { label: "Dokumen Siswa",  badge: "bg-warning text-dark" },
+  bukti_transfer: { label: "Bukti Transfer", badge: "bg-status-lunas" },
+  kwitansi:       { label: "Kwitansi",       badge: "bg-accent" },
+  surat:          { label: "Surat / Berkas", badge: "bg-sky-500" },
+  dokumen_siswa:  { label: "Dokumen Siswa",  badge: "bg-status-belum" },
 };
+
+const inputClass =
+  "w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft";
 
 export default function ArsipDigitalPage() {
   const [daftar, setDaftar] = useState<Arsip[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<SiswaOption[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Filters
   const [search, setSearch] = useState("");
   const [kategoriFilter, setKategoriFilter] = useState("");
-  
+
   // Modal Upload & Preview
   const [modalOpen, setModalOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<Arsip | null>(null);
@@ -120,7 +123,7 @@ export default function ArsipDigitalPage() {
 
   async function handleHapus(id: string) {
     if (!(await confirm("Hapus berkas arsip ini dari sistem?", { confirmLabel: "Ya, Hapus" }))) return;
-    
+
     const res = await fetch(`/api/arsip/${id}`, { method: "DELETE" });
     if (!res.ok) {
       await alertMsg("Gagal menghapus arsip digital");
@@ -132,56 +135,42 @@ export default function ArsipDigitalPage() {
 
   return (
     <>
-      <style>{`
-        .arsip-card {
-          background: white; border-radius: 16px; border: 1px solid var(--border-soft);
-          padding: 1.25rem; transition: transform 0.2s, box-shadow 0.2s;
-          display: flex; flex-direction: column; justify-content: space-between;
-          height: 100%;
-        }
-        .arsip-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
-        .arsip-icon {
-          width: 46px; height: 46px; border-radius: 12px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1.4rem; flex-shrink: 0;
-        }
-        .toast-snack-arsip {
-          position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
-          display:flex; align-items:center; gap:10px;
-          padding:0.75rem 1.1rem; border-radius:12px;
-          font-size:0.88rem; font-weight:500;
-          box-shadow:0 8px 24px rgba(15,23,42,.18);
-          background: #fff; border-left: 4px solid #10b981; color: #065f46;
-        }
-      `}</style>
-
       {confirmModal}
-      {toast && <div className="toast-snack-arsip">✅ {toast.msg}</div>}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[9999] flex animate-fade-in-up items-center gap-2.5 rounded-xl border-l-4 border-status-lunas bg-white px-4 py-3 text-sm font-medium text-emerald-800 shadow-lg">
+          ✅ {toast.msg}
+        </div>
+      )}
 
-      <div className="container-fluid p-4">
+      <div className="w-full p-4">
         {/* Header */}
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>🗂️ Arsip Digital Sekolah</h1>
-            <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>Pusat penyimpanan & pencarian bukti transfer, kuitansi, dan berkas siswa</p>
+            <h1 className="text-xl font-bold text-ink-900">🗂️ Arsip Digital Sekolah</h1>
+            <p className="text-sm text-ink-500">Pusat penyimpanan & pencarian bukti transfer, kuitansi, dan berkas siswa</p>
           </div>
-          <button className="btn btn-primary fw-bold px-4 rounded-pill shadow-sm" onClick={() => setModalOpen(true)}>
+          <button
+            className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-white shadow-sm2 transition hover:bg-accent-hover"
+            onClick={() => setModalOpen(true)}
+          >
             + Tambah Berkas Arsip
           </button>
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="card p-3 mb-4 border-0 shadow-sm" style={{ borderRadius: 16 }}>
-          <form onSubmit={handleSearchSubmit} className="row g-2 align-items-center">
-            <div className="col-md-5">
+        <div className="mb-6 rounded-card border border-border-soft bg-white p-4 shadow-sm2">
+          <form onSubmit={handleSearchSubmit} className="grid grid-cols-12 items-center gap-2">
+            <div className="col-span-12 md:col-span-5">
               <input
-                type="text" className="form-control"
+                type="text"
+                className={inputClass}
                 placeholder="🔍 Cari nama berkas, catatan, atau siswa..."
-                value={search} onChange={(e) => setSearch(e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="col-md-4">
-              <select className="form-select" value={kategoriFilter} onChange={(e) => setKategoriFilter(e.target.value)}>
+            <div className="col-span-12 md:col-span-4">
+              <select className={inputClass} value={kategoriFilter} onChange={(e) => setKategoriFilter(e.target.value)}>
                 <option value="">Semua Kategori</option>
                 <option value="bukti_transfer">Bukti Transfer</option>
                 <option value="kwitansi">Kwitansi Pembayaran</option>
@@ -189,8 +178,8 @@ export default function ArsipDigitalPage() {
                 <option value="dokumen_siswa">Dokumen Siswa</option>
               </select>
             </div>
-            <div className="col-md-3">
-              <button type="submit" className="btn btn-secondary w-100 fw-semibold">
+            <div className="col-span-12 md:col-span-3">
+              <button type="submit" className="w-full rounded-control bg-ink-700 py-2 text-sm font-semibold text-white transition hover:bg-ink-900">
                 Cari Berkas
               </button>
             </div>
@@ -199,57 +188,64 @@ export default function ArsipDigitalPage() {
 
         {/* Grid Card Arsip */}
         {loading ? (
-          <div className="text-center py-5 text-muted">
-            <div className="spinner-border text-primary mb-2" />
+          <div className="py-16 text-center text-ink-500">
+            <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
             <p>Memuat arsip digital...</p>
           </div>
         ) : daftar.length === 0 ? (
-          <div className="text-center py-5 bg-white rounded-4 border">
-            <div style={{ fontSize: "3rem", marginBottom: 12 }}>📂</div>
-            <h5 className="fw-bold">Belum Ada Berkas Arsip</h5>
-            <p className="text-muted small">Silakan tambah berkas baru untuk mulai mengarsipkan dokumen sekolah.</p>
+          <div className="rounded-2xl border border-border-soft bg-white py-16 text-center">
+            <div className="mb-3 text-4xl">📂</div>
+            <h5 className="font-bold text-ink-900">Belum Ada Berkas Arsip</h5>
+            <p className="text-sm text-ink-500">Silakan tambah berkas baru untuk mulai mengarsipkan dokumen sekolah.</p>
           </div>
         ) : (
-          <div className="row g-3">
+          <div className="grid grid-cols-12 gap-3">
             {daftar.map((item) => {
-              const kat = KATEGORI_LABEL[item.kategori] || { label: item.kategori, badge: "bg-secondary" };
+              const kat = KATEGORI_LABEL[item.kategori] || { label: item.kategori, badge: "bg-ink-500" };
               const isPdf = item.fileType === "pdf" || item.fileUrl.endsWith(".pdf");
 
               return (
-                <div key={item.id} className="col-md-6 col-lg-4">
-                  <div className="arsip-card">
+                <div key={item.id} className="col-span-12 md:col-span-6 lg:col-span-4">
+                  <div className="flex h-full flex-col justify-between rounded-card border border-border-soft bg-white p-5 transition hover:-translate-y-1 hover:shadow-md2">
                     <div>
-                      <div className="d-flex align-items-start justify-content-between gap-2 mb-2">
-                        <div className="arsip-icon" style={{ background: isPdf ? "#fee2e2" : "#e0e7ff", color: isPdf ? "#dc2626" : "#4338ca" }}>
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <div
+                          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl text-xl"
+                          style={{ background: isPdf ? "#fee2e2" : "#e0e7ff", color: isPdf ? "#dc2626" : "#4338ca" }}
+                        >
                           {isPdf ? "📄" : "🖼️"}
                         </div>
-                        <span className={`badge ${kat.badge} rounded-pill px-3`}>{kat.label}</span>
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold text-white ${kat.badge}`}>{kat.label}</span>
                       </div>
 
-                      <h2 className="h6 fw-bold mb-1" style={{ color: "var(--ink-900)" }}>{item.judul}</h2>
-                      
+                      <h2 className="mb-1 text-sm font-bold text-ink-900">{item.judul}</h2>
+
                       {item.siswa && (
-                        <div className="text-primary small fw-semibold mb-1">
+                        <div className="mb-1 text-sm font-semibold text-accent">
                           👤 {item.siswa.namaLengkap} ({item.siswa.nis})
                         </div>
                       )}
 
-                      <div className="text-muted small mb-2">
+                      <div className="mb-2 text-xs text-ink-500">
                         📅 {new Date(item.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                       </div>
 
                       {item.keterangan && (
-                        <p className="text-muted small mb-3" style={{ fontSize: "0.8rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {item.keterangan}
-                        </p>
+                        <p className="mb-3 line-clamp-2 text-xs text-ink-500">{item.keterangan}</p>
                       )}
                     </div>
 
-                    <div className="d-flex gap-2 pt-2 border-top">
-                      <button className="btn btn-sm btn-outline-primary w-100 fw-semibold" onClick={() => setPreviewItem(item)}>
+                    <div className="flex gap-2 border-t border-border-soft pt-3">
+                      <button
+                        className="w-full rounded-control border border-accent py-1.5 text-sm font-semibold text-accent transition hover:bg-accent-soft"
+                        onClick={() => setPreviewItem(item)}
+                      >
                         👁️ Pratinjau
                       </button>
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleHapus(item.id)}>
+                      <button
+                        className="rounded-control border border-red-500 px-3 py-1.5 text-sm text-red-500 transition hover:bg-red-50"
+                        onClick={() => handleHapus(item.id)}
+                      >
                         🗑️
                       </button>
                     </div>
@@ -263,107 +259,102 @@ export default function ArsipDigitalPage() {
 
       {/* Modal Upload Berkas */}
       {modalOpen && (
-        <>
-          <div className="modal-backdrop fade show" />
-          <div className="modal fade show d-block" tabIndex={-1} onClick={() => setModalOpen(false)}>
-            <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-content" style={{ borderRadius: 18, border: "none" }}>
-                <div className="modal-header bg-primary text-white" style={{ borderRadius: "18px 18px 0 0" }}>
-                  <h5 className="modal-title fw-bold">📤 Tambah Berkas Arsip Digital</h5>
-                  <button type="button" className="btn-close btn-close-white" onClick={() => setModalOpen(false)} />
-                </div>
-                <form onSubmit={handleSimpan}>
-                  <div className="modal-body p-4">
-                    {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
-
-                    <div className="row g-3">
-                      <div className="col-md-8">
-                        <label className="form-label small fw-semibold">Judul / Nama Berkas *</label>
-                        <input type="text" className="form-control" required placeholder="Contoh: Bukti Transfer SPP Ahmad" value={judul} onChange={(e) => setJudul(e.target.value)} />
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label small fw-semibold">Kategori *</label>
-                        <select className="form-select" value={kategori} onChange={(e) => setKategori(e.target.value)}>
-                          <option value="bukti_transfer">Bukti Transfer</option>
-                          <option value="kwitansi">Kwitansi</option>
-                          <option value="surat">Surat / Berkas</option>
-                          <option value="dokumen_siswa">Dokumen Siswa</option>
-                        </select>
-                      </div>
-
-                      <div className="col-md-8">
-                        <label className="form-label small fw-semibold">Link File / URL Berkas *</label>
-                        <input type="text" className="form-control" required placeholder="https://... atau /uploads/..." value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label small fw-semibold">Tipe Format File</label>
-                        <select className="form-select" value={fileType} onChange={(e) => setFileType(e.target.value)}>
-                          <option value="pdf">PDF Document</option>
-                          <option value="image">Gambar (JPG/PNG)</option>
-                        </select>
-                      </div>
-
-                      <div className="col-md-6">
-                        <label className="form-label small fw-semibold">Terkait Siswa (Opsional)</label>
-                        <select className="form-select" value={siswaId} onChange={(e) => setSiswaId(e.target.value)}>
-                          <option value="">-- Pilih Siswa (Opsional) --</option>
-                          {daftarSiswa.map(s => (
-                            <option key={s.id} value={s.id}>{s.namaLengkap} ({s.nis})</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="col-md-6">
-                        <label className="form-label small fw-semibold">Tanggal Berkas</label>
-                        <input type="date" className="form-control" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
-                      </div>
-
-                      <div className="col-12">
-                        <label className="form-label small fw-semibold">Catatan / Keterangan Tambahan</label>
-                        <textarea className="form-control" rows={3} placeholder="Tuliskan nomor referensi, nama bank, atau keterangan..." value={keterangan} onChange={(e) => setKeterangan(e.target.value)} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="modal-footer" style={{ borderTop: "1px solid var(--border-soft)" }}>
-                    <button type="button" className="btn btn-outline-secondary" onClick={() => setModalOpen(false)}>Batal</button>
-                    <button type="submit" className="btn btn-primary px-4 fw-bold" disabled={saving}>
-                      {saving ? "Menyimpan..." : "🚀 Simpan Arsip"}
-                    </button>
-                  </div>
-                </form>
-              </div>
+        <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4" onClick={() => setModalOpen(false)}>
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between bg-accent px-5 py-4">
+              <h5 className="text-base font-bold text-white">📤 Tambah Berkas Arsip Digital</h5>
+              <button type="button" aria-label="Tutup" className="text-xl leading-none text-white/80 hover:text-white" onClick={() => setModalOpen(false)}>×</button>
             </div>
+            <form onSubmit={handleSimpan}>
+              <div className="max-h-[70vh] overflow-y-auto p-5">
+                {error && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+
+                <div className="grid grid-cols-12 gap-3">
+                  <div className="col-span-12 md:col-span-8">
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Judul / Nama Berkas *</label>
+                    <input type="text" className={inputClass} required placeholder="Contoh: Bukti Transfer SPP Ahmad" value={judul} onChange={(e) => setJudul(e.target.value)} />
+                  </div>
+                  <div className="col-span-12 md:col-span-4">
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Kategori *</label>
+                    <select className={inputClass} value={kategori} onChange={(e) => setKategori(e.target.value)}>
+                      <option value="bukti_transfer">Bukti Transfer</option>
+                      <option value="kwitansi">Kwitansi</option>
+                      <option value="surat">Surat / Berkas</option>
+                      <option value="dokumen_siswa">Dokumen Siswa</option>
+                    </select>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-8">
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Link File / URL Berkas *</label>
+                    <input type="text" className={inputClass} required placeholder="https://... atau /uploads/..." value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
+                  </div>
+                  <div className="col-span-12 md:col-span-4">
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Tipe Format File</label>
+                    <select className={inputClass} value={fileType} onChange={(e) => setFileType(e.target.value)}>
+                      <option value="pdf">PDF Document</option>
+                      <option value="image">Gambar (JPG/PNG)</option>
+                    </select>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-6">
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Terkait Siswa (Opsional)</label>
+                    <select className={inputClass} value={siswaId} onChange={(e) => setSiswaId(e.target.value)}>
+                      <option value="">-- Pilih Siswa (Opsional) --</option>
+                      {daftarSiswa.map(s => (
+                        <option key={s.id} value={s.id}>{s.namaLengkap} ({s.nis})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-6">
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Tanggal Berkas</label>
+                    <input type="date" className={inputClass} value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
+                  </div>
+
+                  <div className="col-span-12">
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Catatan / Keterangan Tambahan</label>
+                    <textarea className={inputClass} rows={3} placeholder="Tuliskan nomor referensi, nama bank, atau keterangan..." value={keterangan} onChange={(e) => setKeterangan(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border-soft px-5 py-4">
+                <button type="button" className="rounded-control border border-border-soft px-4 py-2 text-sm font-medium text-ink-700 hover:bg-surface" onClick={() => setModalOpen(false)}>Batal</button>
+                <button type="submit" className="rounded-control bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60" disabled={saving}>
+                  {saving ? "Menyimpan..." : "🚀 Simpan Arsip"}
+                </button>
+              </div>
+            </form>
           </div>
-        </>
+        </div>
       )}
 
       {/* Modal Preview PDF / Image */}
       {previewItem && (
-        <>
-          <div className="modal-backdrop fade show" />
-          <div className="modal fade show d-block" tabIndex={-1} onClick={() => setPreviewItem(null)}>
-            <div className="modal-dialog modal-dialog-centered modal-xl" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-content" style={{ borderRadius: 18, border: "none" }}>
-                <div className="modal-header bg-dark text-white" style={{ borderRadius: "18px 18px 0 0" }}>
-                  <h5 className="modal-title fw-bold">👁️ Pratinjau: {previewItem.judul}</h5>
-                  <div className="d-flex gap-2 align-items-center">
-                    <a href={previewItem.fileUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-light">
-                      Buka di Tab Baru
-                    </a>
-                    <button type="button" className="btn-close btn-close-white" onClick={() => setPreviewItem(null)} />
-                  </div>
-                </div>
-                <div className="modal-body p-0 text-center bg-light" style={{ minHeight: "500px", maxHeight: "80vh", overflow: "auto" }}>
-                  {previewItem.fileType === "pdf" || previewItem.fileUrl.endsWith(".pdf") ? (
-                    <iframe src={previewItem.fileUrl} style={{ width: "100%", height: "70vh", border: "none" }} title="Preview PDF" />
-                  ) : (
-                    <img src={previewItem.fileUrl} alt="Preview" style={{ maxWidth: "100%", maxHeight: "70vh", objectFit: "contain", padding: "20px" }} />
-                  )}
-                </div>
+        <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4" onClick={() => setPreviewItem(null)}>
+          <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between bg-ink-900 px-5 py-4">
+              <h5 className="text-base font-bold text-white">👁️ Pratinjau: {previewItem.judul}</h5>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewItem.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-control border border-white/30 px-3 py-1.5 text-xs font-medium text-white no-underline hover:bg-white/10"
+                >
+                  Buka di Tab Baru
+                </a>
+                <button type="button" aria-label="Tutup" className="text-xl leading-none text-white/80 hover:text-white" onClick={() => setPreviewItem(null)}>×</button>
               </div>
             </div>
+            <div className="max-h-[80vh] min-h-[500px] overflow-auto bg-surface text-center">
+              {previewItem.fileType === "pdf" || previewItem.fileUrl.endsWith(".pdf") ? (
+                <iframe src={previewItem.fileUrl} className="h-[70vh] w-full border-none" title="Preview PDF" />
+              ) : (
+                <img src={previewItem.fileUrl} alt="Preview" className="mx-auto max-h-[70vh] max-w-full object-contain p-5" />
+              )}
+            </div>
           </div>
-        </>
+        </div>
       )}
     </>
   );

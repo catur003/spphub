@@ -38,6 +38,23 @@ function rupiah(n: number) {
   return n.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 });
 }
 
+const selectClass = "w-full rounded-control border border-border-soft px-2.5 py-1.5 text-sm outline-none focus:border-accent";
+
+function SummaryCard({
+  label, value, sub, labelClass = "", valueClass = "", accentBar,
+}: { label: string; value: React.ReactNode; sub: string; labelClass?: string; valueClass?: string; accentBar?: string }) {
+  return (
+    <div
+      className="rounded-card border border-border-soft bg-white p-5 text-center shadow-sm2"
+      style={accentBar ? { borderBottom: `4px solid ${accentBar}` } : undefined}
+    >
+      <div className={`mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-500 ${labelClass}`}>{label}</div>
+      <div className={`flex items-center justify-center gap-1 text-2xl font-extrabold leading-none text-ink-900 ${valueClass}`}>{value}</div>
+      <div className={`mt-1 text-sm text-ink-500 ${valueClass}`}>{sub}</div>
+    </div>
+  );
+}
+
 export default function LaporanPage() {
   const [kelasList, setKelasList] = useState<Kelas[]>([]);
   const [bulan, setBulan] = useState(String(new Date().getMonth() + 1));
@@ -126,234 +143,176 @@ export default function LaporanPage() {
   }
 
   return (
-    <>
-      <style>{`
-        /* ——— Print Styles ——— */
-        @media print {
-          body * { visibility: hidden; }
-          .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-          .no-print { display: none !important; }
-          .print-header { display: block !important; margin-bottom: 2rem; text-align: center; border-bottom: 2px solid #000; padding-bottom: 1rem; }
-          .card { border: none !important; box-shadow: none !important; }
-          .table { width: 100% !important; border-collapse: collapse !important; }
-          .table th, .table td { border: 1px solid #000 !important; padding: 8px !important; }
-          .badge { border: 1px solid #000; color: #000 !important; background: transparent !important; }
-        }
-
-        .print-header { display: none; }
-
-        .filter-card {
-          background: white; border-radius: 16px; padding: 1.5rem;
-          border: 1px solid var(--border-soft); margin-bottom: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
-
-        .summary-card {
-          background: white; border-radius: 16px; padding: 1.25rem 1.5rem;
-          border: 1px solid var(--border-soft); text-align: center;
-        }
-        .summary-card__label { font-size: 0.78rem; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
-        .summary-card__value { font-size: 1.7rem; font-weight: 800; color: var(--ink-900); line-height: 1; }
-        .summary-card__sub { font-size: 0.82rem; color: var(--ink-500); margin-top: 0.3rem; }
-
-        .laporan-table th {
-          font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
-          color: var(--ink-500); font-weight: 600; background: var(--surface);
-          padding: 0.75rem 0.9rem; border-bottom: 2px solid var(--border-soft);
-        }
-        .laporan-table td { padding: 0.75rem 0.9rem; vertical-align: middle; font-size: 0.88rem; }
-
-        .status-chip {
-          display: inline-flex; align-items: center; padding: 4px 12px;
-          border-radius: 20px; font-size: 0.75rem; font-weight: 600;
-        }
-      `}</style>
-
-      <div className="container-fluid p-4 print-area">
-        <div className="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
-          <div>
-            <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Laporan Keuangan & Riwayat SPP</h1>
-            <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>Filter riwayat pembayaran, cetak laporan PDF, atau export data Excel CSV</p>
-          </div>
-          <div className="d-flex gap-2">
-            <button className="btn btn-outline-secondary rounded-pill px-3 fw-semibold" onClick={handlePrint}>
-              🖨️ Cetak PDF
-            </button>
-            <button className="btn btn-success rounded-pill px-3 fw-semibold text-white" onClick={exportCSV}>
-              📊 Export CSV / Excel
-            </button>
-          </div>
+    <div className="w-full p-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2 print:hidden">
+        <div>
+          <h1 className="text-xl font-bold text-ink-900">Laporan Keuangan & Riwayat SPP</h1>
+          <p className="text-sm text-ink-500">Filter riwayat pembayaran, cetak laporan PDF, atau export data Excel CSV</p>
         </div>
-
-        {/* Header saat print */}
-        <div className="print-header">
-          <h2 style={{ margin: 0 }}>Laporan Pembayaran SPP Sekolah</h2>
-          <p style={{ margin: 0, fontSize: "14px" }}>
-            Periode: {bulan ? BULAN_LABEL[Number(bulan)] : "Semua Bulan"} {tahun ? tahun : "Semua Tahun"}
-          </p>
+        <div className="flex gap-2">
+          <button className="rounded-full border border-border-soft px-3 py-1.5 text-sm font-semibold text-ink-700 transition hover:bg-surface" onClick={handlePrint}>
+            🖨️ Cetak PDF
+          </button>
+          <button className="rounded-full bg-status-lunas px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700" onClick={exportCSV}>
+            📊 Export CSV / Excel
+          </button>
         </div>
+      </div>
 
-        {/* Filter Lengkap */}
-        <div className="filter-card no-print">
-          <div className="row g-3 align-items-end">
-            <div className="col-12 col-sm-6 col-md-3">
-              <label className="form-label small fw-semibold">Cari Nama Siswa / NIS</label>
-              <input
-                className="form-control form-control-sm"
-                placeholder="Kata kunci pencarian..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </div>
-            <div className="col-12 col-sm-6 col-md-2">
-              <label className="form-label small fw-semibold">Tingkat</label>
-              <select
-                className="form-select form-select-sm"
-                value={filterTingkat}
-                onChange={(e) => {
-                  setFilterTingkat(e.target.value);
-                  setKelasId("");
-                }}
-              >
-                <option value="">Semua Tingkat</option>
-                {Array.from(new Set(kelasList.map((k) => k.tingkat).filter(Boolean)))
-                  .sort((a, b) => Number(a) - Number(b))
-                  .map((t) => (
-                    <option key={t} value={t}>Tingkat {t}</option>
-                  ))}
-              </select>
-            </div>
-            <div className="col-12 col-sm-6 col-md-2">
-              <label className="form-label small fw-semibold">Kelas</label>
-              <select className="form-select form-select-sm" value={kelasId} onChange={(e) => setKelasId(e.target.value)}>
-                <option value="">Semua Kelas {filterTingkat ? `(Tingkat ${filterTingkat})` : ""}</option>
-                {(filterTingkat ? kelasList.filter((k) => String(k.tingkat) === filterTingkat) : kelasList).map((k) => (
-                  <option key={k.id} value={k.id}>{k.namaKelas}</option>
+      {/* Header saat print */}
+      <div className="hidden print:block print:mb-8 print:border-b-2 print:border-black print:pb-4 print:text-center">
+        <h2 className="m-0 text-lg font-bold">Laporan Pembayaran SPP Sekolah</h2>
+        <p className="m-0 text-sm">
+          Periode: {bulan ? BULAN_LABEL[Number(bulan)] : "Semua Bulan"} {tahun ? tahun : "Semua Tahun"}
+        </p>
+      </div>
+
+      {/* Filter Lengkap */}
+      <div className="mb-6 rounded-card border border-border-soft bg-white p-6 shadow-sm2 print:hidden">
+        <div className="grid grid-cols-12 items-end gap-3">
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Cari Nama Siswa / NIS</label>
+            <input
+              className={selectClass}
+              placeholder="Kata kunci pencarian..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <div className="col-span-12 sm:col-span-6 md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Tingkat</label>
+            <select
+              className={selectClass}
+              value={filterTingkat}
+              onChange={(e) => {
+                setFilterTingkat(e.target.value);
+                setKelasId("");
+              }}
+            >
+              <option value="">Semua Tingkat</option>
+              {Array.from(new Set(kelasList.map((k) => k.tingkat).filter(Boolean)))
+                .sort((a, b) => Number(a) - Number(b))
+                .map((t) => (
+                  <option key={t} value={t}>Tingkat {t}</option>
                 ))}
-              </select>
-            </div>
-            <div className="col-12 col-sm-6 col-md-2">
-              <label className="form-label small fw-semibold">Status Bayar</label>
-              <select className="form-select form-select-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="">Semua Status</option>
-                <option value="lunas">Lunas</option>
-                <option value="belum_bayar">Belum Bayar</option>
-                <option value="terlambat">Terlambat</option>
-              </select>
-            </div>
-            <div className="col-12 col-sm-6 col-md-2">
-              <label className="form-label small fw-semibold">Dari Jatuh Tempo</label>
-              <input
-                type="date"
-                className="form-control form-control-sm"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="col-12 col-sm-6 col-md-2">
-              <label className="form-label small fw-semibold">Sampai Jatuh Tempo</label>
-              <input
-                type="date"
-                className="form-control form-control-sm"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-            <div className="col-12 col-md-1">
-              <button className="btn btn-primary btn-sm w-100 fw-bold py-2" onClick={() => muatLaporan()} disabled={loading}>
-                {loading ? <span className="spinner-border spinner-border-sm" /> : "Filter"}
-              </button>
-            </div>
+            </select>
           </div>
-        </div>
-
-        {/* Ringkasan Laporan */}
-        {ringkasan && (
-          <div className="row g-3 mb-4">
-            <div className="col-12 col-sm-6 col-md-3">
-              <div className="summary-card shadow-sm">
-                <div className="summary-card__label">Total Tagihan</div>
-                <div className="summary-card__value">{ringkasan.totalTagihan}</div>
-                <div className="summary-card__sub">{rupiah(ringkasan.totalNominal)}</div>
-              </div>
-            </div>
-            <div className="col-12 col-sm-6 col-md-3">
-              <div className="summary-card shadow-sm" style={{ borderBottom: "4px solid #10b981" }}>
-                <div className="summary-card__label text-success">Sudah Lunas</div>
-                <div className="summary-card__value text-success">{ringkasan.totalLunas}</div>
-                <div className="summary-card__sub text-success">{rupiah(ringkasan.nominalLunas)}</div>
-              </div>
-            </div>
-            <div className="col-12 col-sm-6 col-md-3">
-              <div className="summary-card shadow-sm" style={{ borderBottom: "4px solid #ef4444" }}>
-                <div className="summary-card__label text-danger">Belum Lunas</div>
-                <div className="summary-card__value text-danger">{ringkasan.totalBelumLunas}</div>
-                <div className="summary-card__sub text-danger">{rupiah(ringkasan.nominalBelumLunas)}</div>
-              </div>
-            </div>
-            <div className="col-12 col-sm-6 col-md-3">
-              <div className="summary-card shadow-sm" style={{ background: "linear-gradient(135deg, #f8fafc, #e2e8f0)" }}>
-                <div className="summary-card__label">Persentase Lunas</div>
-                <div className="summary-card__value d-flex align-items-center justify-content-center gap-1">
-                  {ringkasan.totalTagihan > 0 ? Math.round((ringkasan.totalLunas / ringkasan.totalTagihan) * 100) : 0}
-                  <span style={{ fontSize: "1rem" }}>%</span>
-                </div>
-                <div className="summary-card__sub">Tingkat keberhasilan bayar</div>
-              </div>
-            </div>
+          <div className="col-span-12 sm:col-span-6 md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Kelas</label>
+            <select className={selectClass} value={kelasId} onChange={(e) => setKelasId(e.target.value)}>
+              <option value="">Semua Kelas {filterTingkat ? `(Tingkat ${filterTingkat})` : ""}</option>
+              {(filterTingkat ? kelasList.filter((k) => String(k.tingkat) === filterTingkat) : kelasList).map((k) => (
+                <option key={k.id} value={k.id}>{k.namaKelas}</option>
+              ))}
+            </select>
           </div>
-        )}
-
-        {/* Tabel Riwayat Pembayaran Detail */}
-        <div className="card p-0 border-0 shadow-sm overflow-hidden" style={{ borderRadius: 16 }}>
-          <div className="table-responsive">
-            <table className="table laporan-table mb-0">
-              <thead>
-                <tr>
-                  <th>Siswa</th>
-                  <th>NIS</th>
-                  <th>Kelas</th>
-                  <th>Periode Tagihan</th>
-                  <th>Nominal</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {daftar.map((t) => {
-                  const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
-                  return (
-                    <tr key={t.id}>
-                      <td className="fw-semibold text-dark">{t.siswa?.namaLengkap || "Siswa Tidak Ditemukan"}</td>
-                      <td style={{ fontFamily: "monospace", color: "var(--ink-500)" }}>{t.siswa?.nis || "-"}</td>
-                      <td>{t.siswa?.kelas?.namaKelas || "-"}</td>
-                      <td>
-                        <span className="badge bg-light text-dark border px-2 py-1">
-                          {BULAN_LABEL[t.bulan]} {t.tahun}
-                        </span>
-                      </td>
-                      <td className="fw-bold">Rp {t.nominal.toLocaleString("id-ID")}</td>
-                      <td>
-                        <span className="status-chip" style={{ background: info.bg, color: info.color }}>
-                          {info.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {daftar.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center text-muted py-5 no-print">
-                      <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📄</div>
-                      Tidak ada data tagihan yang sesuai dengan filter.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="col-span-12 sm:col-span-6 md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Status Bayar</label>
+            <select className={selectClass} value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="">Semua Status</option>
+              <option value="lunas">Lunas</option>
+              <option value="belum_bayar">Belum Bayar</option>
+              <option value="terlambat">Terlambat</option>
+            </select>
+          </div>
+          <div className="col-span-12 sm:col-span-6 md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Dari Jatuh Tempo</label>
+            <input type="date" className={selectClass} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </div>
+          <div className="col-span-12 sm:col-span-6 md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Sampai Jatuh Tempo</label>
+            <input type="date" className={selectClass} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
+          <div className="col-span-12 md:col-span-1">
+            <button
+              className="w-full rounded-control bg-accent py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60"
+              onClick={() => muatLaporan()}
+              disabled={loading}
+            >
+              {loading ? "..." : "Filter"}
+            </button>
           </div>
         </div>
       </div>
-    </>
+
+      {/* Ringkasan Laporan */}
+      {ringkasan && (
+        <div className="mb-6 grid grid-cols-12 gap-3">
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <SummaryCard label="Total Tagihan" value={ringkasan.totalTagihan} sub={rupiah(ringkasan.totalNominal)} />
+          </div>
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <SummaryCard
+              label="Sudah Lunas" labelClass="!text-status-lunas" valueClass="!text-status-lunas"
+              value={ringkasan.totalLunas} sub={rupiah(ringkasan.nominalLunas)} accentBar="#10b981"
+            />
+          </div>
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <SummaryCard
+              label="Belum Lunas" labelClass="!text-red-600" valueClass="!text-red-600"
+              value={ringkasan.totalBelumLunas} sub={rupiah(ringkasan.nominalBelumLunas)} accentBar="#ef4444"
+            />
+          </div>
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <div className="rounded-card border border-border-soft bg-gradient-to-br from-surface to-slate-200 p-5 text-center shadow-sm2">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-500">Persentase Lunas</div>
+              <div className="flex items-center justify-center gap-1 text-2xl font-extrabold text-ink-900">
+                {ringkasan.totalTagihan > 0 ? Math.round((ringkasan.totalLunas / ringkasan.totalTagihan) * 100) : 0}
+                <span className="text-base">%</span>
+              </div>
+              <div className="mt-1 text-sm text-ink-500">Tingkat keberhasilan bayar</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabel Riwayat Pembayaran Detail */}
+      <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left print:border-collapse">
+            <thead>
+              <tr>
+                {["Siswa", "NIS", "Kelas", "Periode Tagihan", "Nominal", "Status"].map((h) => (
+                  <th key={h} className="border-b-2 border-border-soft bg-surface px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-500 print:border print:border-black">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {daftar.map((t) => {
+                const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
+                return (
+                  <tr key={t.id} className="border-b border-border-soft last:border-0">
+                    <td className="px-4 py-3 align-middle text-sm font-semibold text-ink-900 print:border print:border-black">{t.siswa?.namaLengkap || "Siswa Tidak Ditemukan"}</td>
+                    <td className="px-4 py-3 align-middle font-mono text-sm text-ink-500 print:border print:border-black">{t.siswa?.nis || "-"}</td>
+                    <td className="px-4 py-3 align-middle text-sm print:border print:border-black">{t.siswa?.kelas?.namaKelas || "-"}</td>
+                    <td className="px-4 py-3 align-middle print:border print:border-black">
+                      <span className="rounded-full border border-border-soft bg-surface px-2 py-1 text-xs text-ink-700">
+                        {BULAN_LABEL[t.bulan]} {t.tahun}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 align-middle text-sm font-bold text-ink-900 print:border print:border-black">Rp {t.nominal.toLocaleString("id-ID")}</td>
+                    <td className="px-4 py-3 align-middle print:border print:border-black">
+                      <span className="rounded-full px-3 py-1 text-xs font-semibold" style={{ background: info.bg, color: info.color }}>
+                        {info.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {daftar.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-ink-500 print:hidden">
+                    <div className="mb-2 text-3xl">📄</div>
+                    Tidak ada data tagihan yang sesuai dengan filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }

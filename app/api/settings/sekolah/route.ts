@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-
-async function checkAccess() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || !["owner", "petugas"].includes(session.user.role as string)) return null;
-  return session;
-}
+import { requireApiRole, requireApiOwner } from "@/lib/api-auth";
 
 export async function GET() {
-  const session = await checkAccess();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { session, error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
 
   let profil = await prisma.profilSekolah.findFirst();
   if (!profil) {
@@ -23,10 +16,8 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || session.user.role !== "owner") {
-    return NextResponse.json({ error: "Hanya Owner yang boleh ubah Profil Sekolah & WhatsApp" }, { status: 403 });
-  }
+  const { error } = await requireApiOwner();
+  if (error) return error;
 
   const body = await req.json();
   const { nama, alamat, logoUrl, nominalSppDefault, noHpBendahara, fonnteToken } = body;

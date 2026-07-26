@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { buatLaporanWorkbook } from "@/lib/excel-laporan";
+import { requireApiRole } from "@/lib/api-auth";
 
 export async function GET(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { error } = await requireApiRole(["owner", "petugas"]);
+  if (error) return error;
 
   const { searchParams } = new URL(req.url);
   const bulan = searchParams.get("bulan");

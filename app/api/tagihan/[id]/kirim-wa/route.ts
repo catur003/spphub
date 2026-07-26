@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { kirimPesanFonnte, normalisasiNoHp } from "@/lib/fonnte";
+import { requireApiRole } from "@/lib/api-auth";
 
 const BULAN_LABEL = [
   "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -14,10 +13,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { error } = await requireApiRole(["owner", "petugas"]);
+  if (error) return error;
 
     const { id } = await params;
     const tagihan = await prisma.tagihanSpp.findUnique({

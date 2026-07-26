@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiRole } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
-
-async function checkAccess() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || !["owner", "petugas"].includes(session.user.role as string)) {
-    return null;
-  }
-  return session;
-}
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await checkAccess();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
 
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || "";
@@ -71,8 +62,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await checkAccess();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
 
     const body = await req.json();
     if (!body.namaLengkap || !body.nis || !body.jenisKelamin) {

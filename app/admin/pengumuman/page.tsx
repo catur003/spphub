@@ -13,10 +13,10 @@ type Pengumuman = {
 export default function PengumumanPage() {
   const [daftar, setDaftar] = useState<Pengumuman[]>([]);
   const [editItem, setEditItem] = useState<Pengumuman | null>(null);
-  
+
   const [judul, setJudul] = useState("");
   const [isi, setIsi] = useState("");
-  
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -101,63 +101,60 @@ export default function PengumumanPage() {
 
   return (
     <>
-      <style>{`
-        .pg-table th {
-          font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
-          color: var(--ink-500); font-weight: 600; background: var(--surface);
-          padding: 0.65rem 0.9rem; border-bottom: 2px solid var(--border-soft);
-        }
-        .pg-table td { padding: 0.75rem 0.9rem; vertical-align: middle; font-size: 0.88rem; }
-        .toast-snack-pg {
-          position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
-          display:flex; align-items:center; gap:10px;
-          padding:0.75rem 1.1rem; border-radius:12px;
-          font-size:0.88rem; font-weight:500;
-          box-shadow:0 8px 24px rgba(15,23,42,.18);
-          animation:toastIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        @keyframes toastIn {
-          from { opacity:0; transform:translateY(12px) scale(0.95); }
-          to   { opacity:1; transform:translateY(0) scale(1); }
-        }
-      `}</style>
-
       {modal}
       {toast && (
-        <div className={`toast-snack-pg toast-snack-ta--${toast.type}`}>
+        <div
+          className={`fixed bottom-6 right-6 z-[9999] flex animate-fade-in-up items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
+            toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
+          }`}
+        >
           {toast.type === "success" ? "✅" : "⚠️"} {toast.msg}
         </div>
       )}
 
-      <div className="container-fluid p-4">
-        <div className="mb-4">
-          <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Pengumuman Sekolah</h1>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>Broadcast informasi penting ke dashboard seluruh siswa</p>
+      <div className="w-full p-4">
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-ink-900">Pengumuman Sekolah</h1>
+          <p className="text-sm text-ink-500">Broadcast informasi penting ke dashboard seluruh siswa</p>
         </div>
 
-        <div className="row">
+        <div className="grid grid-cols-12 gap-4">
           {/* Form Tambah */}
-          <div className="col-lg-4 mb-4">
-            <div className="card card-tambah-ta">
-              <div className="card-header bg-primary text-white" style={{ borderRadius: "14px 14px 0 0", borderBottom: "none" }}>
-                <h2 className="h6 mb-0 fw-bold">📢 Tulis Pengumuman Baru</h2>
+          <div className="col-span-12 lg:col-span-4">
+            <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
+              <div className="bg-accent px-4 py-3">
+                <h2 className="text-sm font-bold text-white">📢 Tulis Pengumuman Baru</h2>
               </div>
-              <div className="card-body">
-                {error && !editItem && <div className="alert alert-danger py-2 small">{error}</div>}
-                <form onSubmit={handleTambah}>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Judul Pengumuman</label>
-                    <input className="form-control" value={judul}
-                      onChange={(e) => setJudul(e.target.value)} required
-                      placeholder="Contoh: Pemberitahuan Libur" />
+              <div className="p-4">
+                {error && !editItem && (
+                  <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+                )}
+                <form onSubmit={handleTambah} className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Judul Pengumuman</label>
+                    <input
+                      className="w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                      value={judul}
+                      onChange={(e) => setJudul(e.target.value)}
+                      required
+                      placeholder="Contoh: Pemberitahuan Libur"
+                    />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Isi Pesan</label>
-                    <textarea className="form-control" rows={5} value={isi}
-                      onChange={(e) => setIsi(e.target.value)} required
-                      placeholder="Tulis pesan lengkap di sini..." />
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Isi Pesan</label>
+                    <textarea
+                      className="w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                      rows={5}
+                      value={isi}
+                      onChange={(e) => setIsi(e.target.value)}
+                      required
+                      placeholder="Tulis pesan lengkap di sini..."
+                    />
                   </div>
-                  <button className="btn btn-primary w-100 fw-bold" disabled={loading}>
+                  <button
+                    className="w-full rounded-control bg-accent py-2.5 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60"
+                    disabled={loading}
+                  >
                     {loading ? "Menerbitkan..." : "🚀 Broadcast Sekarang"}
                   </button>
                 </form>
@@ -166,37 +163,45 @@ export default function PengumumanPage() {
           </div>
 
           {/* Tabel Pengumuman */}
-          <div className="col-lg-8">
-            <div className="card p-0 overflow-hidden">
-              <div className="table-responsive">
-                <table className="table pg-table mb-0">
+          <div className="col-span-12 lg:col-span-8">
+            <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
                   <thead>
                     <tr>
-                      <th style={{ width: "20%" }}>Tanggal</th>
-                      <th style={{ width: "60%" }}>Pengumuman</th>
-                      <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
+                      <th className="w-1/5 border-b-2 border-border-soft bg-surface px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500">Tanggal</th>
+                      <th className="w-3/5 border-b-2 border-border-soft bg-surface px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500">Pengumuman</th>
+                      <th className="whitespace-nowrap border-b-2 border-border-soft bg-surface px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-ink-500">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {daftar.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          <div className="fw-semibold text-primary">{new Date(p.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                          <div className="small text-muted">{new Date(p.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</div>
-                        </td>
-                        <td>
-                          <div className="fw-bold" style={{ color: "var(--ink-900)" }}>{p.judul}</div>
-                          <div className="text-muted small mt-1" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                            {p.isi}
+                      <tr key={p.id} className="border-b border-border-soft last:border-0">
+                        <td className="px-4 py-3 align-middle">
+                          <div className="text-sm font-semibold text-accent">
+                            {new Date(p.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                          <div className="text-xs text-ink-500">
+                            {new Date(p.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                           </div>
                         </td>
-                        <td className="text-end" style={{ whiteSpace: "nowrap" }}>
-                          <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
-                            <button className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
-                              onClick={() => bukaEdit(p)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
+                        <td className="px-4 py-3 align-middle">
+                          <div className="text-sm font-bold text-ink-900">{p.judul}</div>
+                          <div className="mt-1 line-clamp-2 text-sm text-ink-500">{p.isi}</div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right align-middle">
+                          <div className="flex flex-nowrap items-center justify-end gap-1.5">
+                            <button
+                              className="rounded-full border border-accent px-3 py-1 text-xs font-semibold text-accent transition hover:bg-accent-soft"
+                              onClick={() => bukaEdit(p)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="rounded-full border border-red-500 px-3 py-1 text-xs font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-60"
                               disabled={deletingId === p.id}
-                              onClick={() => handleDelete(p.id)}>
+                              onClick={() => handleDelete(p.id)}
+                            >
                               {deletingId === p.id ? "..." : "Hapus"}
                             </button>
                           </div>
@@ -205,8 +210,8 @@ export default function PengumumanPage() {
                     ))}
                     {daftar.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="text-center text-muted py-5">
-                          <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>📭</div>
+                        <td colSpan={3} className="py-12 text-center text-ink-500">
+                          <div className="mb-3 text-4xl">📭</div>
                           Belum ada pengumuman yang diterbitkan.
                         </td>
                       </tr>
@@ -221,42 +226,61 @@ export default function PengumumanPage() {
 
       {/* Modal Edit */}
       {editItem && (
-        <>
-          <div className="modal-backdrop fade show" />
-          <div className="modal fade show d-block" tabIndex={-1} onClick={tutupEdit}>
-            <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-content" style={{ border: "none", borderRadius: "18px" }}>
-                <div className="modal-header bg-primary text-white" style={{ borderRadius: "18px 18px 0 0" }}>
-                  <h5 className="modal-title fw-bold">📝 Edit Pengumuman</h5>
-                  <button type="button" className="btn-close btn-close-white" onClick={tutupEdit} />
-                </div>
-                <form onSubmit={handleSimpanEdit}>
-                  <div className="modal-body p-4">
-                    {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
-                    <div className="mb-3">
-                      <label className="form-label small fw-semibold">Judul Pengumuman</label>
-                      <input className="form-control" value={editItem.judul}
-                        onChange={(e) => setEditItem({ ...editItem, judul: e.target.value })}
-                        required />
-                    </div>
-                    <div className="mb-2">
-                      <label className="form-label small fw-semibold">Isi Pesan</label>
-                      <textarea className="form-control" rows={5} value={editItem.isi}
-                        onChange={(e) => setEditItem({ ...editItem, isi: e.target.value })}
-                        required />
-                    </div>
-                  </div>
-                  <div className="modal-footer" style={{ borderTop: "1px solid var(--border-soft)" }}>
-                    <button type="button" className="btn btn-outline-secondary" onClick={tutupEdit}>Batal</button>
-                    <button type="submit" className="btn btn-primary px-4" disabled={loading}>
-                      {loading ? "Menyimpan..." : "💾 Simpan Perubahan"}
-                    </button>
-                  </div>
-                </form>
-              </div>
+        <div
+          className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4"
+          onClick={tutupEdit}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between bg-accent px-5 py-4">
+              <h5 className="text-base font-bold text-white">📝 Edit Pengumuman</h5>
+              <button
+                type="button"
+                aria-label="Tutup"
+                className="text-xl leading-none text-white/80 hover:text-white"
+                onClick={tutupEdit}
+              >
+                ×
+              </button>
             </div>
+            <form onSubmit={handleSimpanEdit}>
+              <div className="space-y-3 p-5">
+                {error && (
+                  <div className="rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+                )}
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink-700">Judul Pengumuman</label>
+                  <input
+                    className="w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                    value={editItem.judul}
+                    onChange={(e) => setEditItem({ ...editItem, judul: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink-700">Isi Pesan</label>
+                  <textarea
+                    className="w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                    rows={5}
+                    value={editItem.isi}
+                    onChange={(e) => setEditItem({ ...editItem, isi: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border-soft px-5 py-4">
+                <button type="button" className="rounded-control border border-border-soft px-4 py-2 text-sm font-medium text-ink-700 hover:bg-surface" onClick={tutupEdit}>
+                  Batal
+                </button>
+                <button type="submit" className="rounded-control bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60" disabled={loading}>
+                  {loading ? "Menyimpan..." : "💾 Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
           </div>
-        </>
+        </div>
       )}
     </>
   );

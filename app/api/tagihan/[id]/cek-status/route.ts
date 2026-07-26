@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { decrypt } from "@/lib/crypto";
 
 const STATUS_SUKSES = ["capture", "settlement"];
 const STATUS_GAGAL = ["deny", "cancel", "failure"];
@@ -55,7 +56,7 @@ export async function GET(
   }
 
   const isProd = settings.environment === "production";
-  const serverKey = isProd ? settings.productionServerKey : settings.sandboxServerKey;
+  const serverKey = decrypt(isProd ? settings.productionServerKey : settings.sandboxServerKey);
 
   if (!serverKey) {
     return NextResponse.json({ error: "Server key Midtrans belum diset" }, { status: 500 });

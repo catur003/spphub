@@ -14,6 +14,9 @@ type Utang = {
   keterangan: string | null;
 };
 
+const inputClass =
+  "w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-ink-900 focus:ring-4 focus:ring-ink-900/10";
+
 export default function UtangPegawaiPage() {
   const [daftar, setDaftar] = useState<Utang[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,52 +127,52 @@ export default function UtangPegawaiPage() {
   return (
     <>
       {modal}
-      <div className="container-fluid p-4">
-        <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <div className="w-full p-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>💳 Kelola Utang Pegawai (Kasbon Staf & Guru)</h1>
-            <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
+            <h1 className="text-xl font-bold text-ink-900">💳 Kelola Utang Pegawai (Kasbon Staf & Guru)</h1>
+            <p className="text-sm text-ink-500">
               Pencatatan Pinjaman Kasbon Guru dan Staf Sekolah beserta Pengembalian & Pelunasan.
             </p>
           </div>
         </div>
 
-        <div className="row g-4">
+        <div className="grid grid-cols-12 gap-4">
           {/* Form Tambah Kasbon */}
-          <div className="col-12 col-lg-4">
-            <div className="card border-0 shadow-sm" style={{ borderRadius: 16 }}>
-              <div className="card-header bg-dark text-white p-3" style={{ borderRadius: "16px 16px 0 0" }}>
-                <h2 className="h6 mb-0 fw-bold">✚ Catat Pinjaman / Kasbon Baru</h2>
+          <div className="col-span-12 lg:col-span-4">
+            <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm2">
+              <div className="bg-ink-900 p-3">
+                <h2 className="text-sm font-bold text-white">✚ Catat Pinjaman / Kasbon Baru</h2>
               </div>
-              <div className="card-body p-4">
-                {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
-                <form onSubmit={handleTambah}>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Nama Pegawai / Guru</label>
+              <div className="p-4">
+                {error && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+                <form onSubmit={handleTambah} className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Nama Pegawai / Guru</label>
                     <input
-                      className="form-control"
+                      className={inputClass}
                       value={form.namaPegawai}
                       onChange={(e) => setForm({ ...form, namaPegawai: e.target.value })}
                       placeholder="Contoh: Pak Budi Santoso"
                       required
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Jabatan (Opsional)</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Jabatan (Opsional)</label>
                     <input
-                      className="form-control"
+                      className={inputClass}
                       value={form.jabatan}
                       onChange={(e) => setForm({ ...form, jabatan: e.target.value })}
                       placeholder="Contoh: Guru Matematika / Staf TU"
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Nominal Pinjaman (Rp)</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light text-muted fw-semibold">Rp</span>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Nominal Pinjaman (Rp)</label>
+                    <div className="flex items-stretch">
+                      <span className="flex items-center rounded-l-control border border-r-0 border-border-soft bg-surface px-3 text-sm font-semibold text-ink-500">Rp</span>
                       <input
                         type="number"
-                        className="form-control fw-bold text-dark"
+                        className="w-full rounded-r-control border border-border-soft px-3 py-2 text-sm font-bold text-ink-900 outline-none focus:border-ink-900 focus:ring-4 focus:ring-ink-900/10"
                         value={form.nominalPinjaman}
                         onChange={(e) => setForm({ ...form, nominalPinjaman: e.target.value })}
                         placeholder="Contoh: 500000"
@@ -178,27 +181,31 @@ export default function UtangPegawaiPage() {
                       />
                     </div>
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Tanggal Pinjaman</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Tanggal Pinjaman</label>
                     <input
                       type="date"
-                      className="form-control"
+                      className={inputClass}
                       value={form.tanggalPinjam}
                       onChange={(e) => setForm({ ...form, tanggalPinjam: e.target.value })}
                       required
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Keterangan / Keperluan</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Keterangan / Keperluan</label>
                     <textarea
-                      className="form-control"
+                      className={inputClass}
                       rows={2}
                       value={form.keterangan}
                       onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
                       placeholder="Catatan keperluan pinjaman..."
                     />
                   </div>
-                  <button type="submit" className="btn btn-dark w-100 fw-bold py-2 shadow-sm" disabled={submitting}>
+                  <button
+                    type="submit"
+                    className="w-full rounded-control bg-ink-900 py-2.5 text-sm font-bold text-white shadow-sm2 transition hover:bg-black disabled:opacity-60"
+                    disabled={submitting}
+                  >
                     {submitting ? "Menyimpan..." : "💾 Simpan Kasbon Pegawai"}
                   </button>
                 </form>
@@ -207,24 +214,24 @@ export default function UtangPegawaiPage() {
           </div>
 
           {/* Tabel Daftar Utang Pegawai */}
-          <div className="col-12 col-lg-8">
-            <div className="card border-0 shadow-sm p-4 mb-3" style={{ borderRadius: 16 }}>
-              <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <div className="col-span-12 lg:col-span-8">
+            <div className="rounded-2xl border border-border-soft bg-white p-4 shadow-sm2">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h6 className="fw-bold mb-0 text-dark">📋 Daftar Pinjaman Pegawai (Kasbon)</h6>
-                  <small className="text-muted">
-                    Total Sisa Kasbon: <strong className="text-danger">Rp {totalSisaKasbon.toLocaleString("id-ID")}</strong> ({pegawaiAktifCount} pegawai aktif)
+                  <h6 className="font-bold text-ink-900">📋 Daftar Pinjaman Pegawai (Kasbon)</h6>
+                  <small className="text-ink-500">
+                    Total Sisa Kasbon: <strong className="text-red-600">Rp {totalSisaKasbon.toLocaleString("id-ID")}</strong> ({pegawaiAktifCount} pegawai aktif)
                   </small>
                 </div>
-                <div className="d-flex gap-2">
+                <div className="flex gap-2">
                   <input
-                    className="form-control form-control-sm"
+                    className="rounded-control border border-border-soft px-3 py-1.5 text-sm outline-none focus:border-ink-900"
                     placeholder="🔍 Cari nama pegawai..."
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />
                   <select
-                    className="form-select form-select-sm"
+                    className="rounded-control border border-border-soft px-3 py-1.5 text-sm outline-none focus:border-ink-900"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
@@ -235,58 +242,56 @@ export default function UtangPegawaiPage() {
                 </div>
               </div>
 
-              <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0" style={{ fontSize: "0.88rem" }}>
-                  <thead className="table-light">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-surface text-ink-500">
                     <tr>
-                      <th>Nama Pegawai</th>
-                      <th>Pinjaman Initial</th>
-                      <th>Sisa Utang</th>
-                      <th>Status</th>
-                      <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
+                      <th className="px-2 py-2 font-medium">Nama Pegawai</th>
+                      <th className="px-2 py-2 font-medium">Pinjaman Initial</th>
+                      <th className="px-2 py-2 font-medium">Sisa Utang</th>
+                      <th className="px-2 py-2 font-medium">Status</th>
+                      <th className="whitespace-nowrap px-2 py-2 text-right font-medium">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-4 text-muted">Memuat data kasbon...</td>
+                        <td colSpan={5} className="py-8 text-center text-ink-500">Memuat data kasbon...</td>
                       </tr>
                     ) : daftar.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-4 text-muted">Belum ada catatan utang pegawai.</td>
+                        <td colSpan={5} className="py-8 text-center text-ink-500">Belum ada catatan utang pegawai.</td>
                       </tr>
                     ) : (
                       daftar.map((item) => {
                         const sisa = Math.max(0, item.nominalPinjaman - item.nominalTerbayar);
                         return (
-                          <tr key={item.id}>
-                            <td>
-                              <div className="fw-bold text-dark">{item.namaPegawai}</div>
-                              <div className="text-muted small">{item.jabatan || "Pegawai/Guru"} • {new Date(item.tanggalPinjam).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</div>
+                          <tr key={item.id} className="border-t border-border-soft hover:bg-surface">
+                            <td className="px-2 py-2">
+                              <div className="font-bold text-ink-900">{item.namaPegawai}</div>
+                              <div className="text-xs text-ink-500">{item.jabatan || "Pegawai/Guru"} • {new Date(item.tanggalPinjam).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</div>
                             </td>
-                            <td className="fw-semibold">Rp {item.nominalPinjaman.toLocaleString("id-ID")}</td>
-                            <td className="fw-bold text-danger">Rp {sisa.toLocaleString("id-ID")}</td>
-                            <td>
+                            <td className="px-2 py-2 font-semibold">Rp {item.nominalPinjaman.toLocaleString("id-ID")}</td>
+                            <td className="px-2 py-2 font-bold text-red-600">Rp {sisa.toLocaleString("id-ID")}</td>
+                            <td className="px-2 py-2">
                               {item.status === "lunas" ? (
-                                <span className="badge bg-success-subtle text-success px-2 py-1">✓ Lunas</span>
+                                <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-status-lunas">✓ Lunas</span>
                               ) : (
-                                <span className="badge bg-warning-subtle text-warning-emphasis px-2 py-1">⏳ Aktif</span>
+                                <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-status-belum">⏳ Aktif</span>
                               )}
                             </td>
-                            <td className="text-end" style={{ whiteSpace: "nowrap" }}>
-                              <div className="d-flex gap-1 justify-content-end align-items-center">
+                            <td className="whitespace-nowrap px-2 py-2 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
                                 {item.status !== "lunas" && (
                                   <button
-                                    className="btn btn-sm btn-outline-success rounded-pill px-2 py-1 fw-bold"
-                                    style={{ fontSize: "0.75rem" }}
+                                    className="rounded-full border border-status-lunas px-2.5 py-1 text-xs font-bold text-status-lunas transition hover:bg-emerald-50"
                                     onClick={() => handleBayarLunas(item.id, item.namaPegawai)}
                                   >
                                     ✓ Pelunasan
                                   </button>
                                 )}
                                 <button
-                                  className="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 fw-bold"
-                                  style={{ fontSize: "0.75rem" }}
+                                  className="rounded-full border border-red-500 px-2.5 py-1 text-xs font-bold text-red-500 transition hover:bg-red-50"
                                   onClick={() => handleHapus(item.id, item.namaPegawai)}
                                 >
                                   Hapus

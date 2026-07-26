@@ -9,6 +9,29 @@ type TahunAjaran = {
   aktif: boolean;
 };
 
+function ToggleAktifRow({
+  checked, onChange,
+}: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label
+      className={`flex cursor-pointer items-center justify-between rounded-control border-[1.5px] px-4 py-3 transition ${
+        checked ? "border-accent bg-accent-soft" : "border-border-soft"
+      }`}
+    >
+      <div>
+        <div className="text-sm font-semibold text-ink-900">Jadikan Aktif</div>
+        <div className="text-xs text-ink-500">Hanya satu tahun ajaran yang bisa aktif sekaligus</div>
+      </div>
+      <input
+        type="checkbox"
+        className="ml-2 h-4 w-4 accent-accent"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+    </label>
+  );
+}
+
 export default function TahunAjaranPage() {
   const [daftar, setDaftar] = useState<TahunAjaran[]>([]);
   const [editTahun, setEditTahun] = useState<TahunAjaran | null>(null);
@@ -102,98 +125,46 @@ export default function TahunAjaranPage() {
 
   return (
     <>
-      <style>{`
-        .ta-table th {
-          font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
-          color: var(--ink-500); font-weight: 600; background: var(--surface);
-          padding: 0.65rem 0.9rem; border-bottom: 2px solid var(--border-soft);
-        }
-        .ta-table td { padding: 0.75rem 0.9rem; vertical-align: middle; font-size: 0.88rem; }
-        .ta-table tbody tr { transition: background 0.12s ease; }
-        .ta-table tbody tr:hover { background: #f5f7ff; }
-        .toast-snack-ta {
-          position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
-          display:flex; align-items:center; gap:10px;
-          padding:0.75rem 1.1rem; border-radius:12px;
-          font-size:0.88rem; font-weight:500;
-          box-shadow:0 8px 24px rgba(15,23,42,.18);
-          animation:toastInTA 0.28s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        .toast-snack-ta--success { background:#fff; border-left:4px solid #10b981; color:#065f46; }
-        .toast-snack-ta--error   { background:#fff; border-left:4px solid #ef4444; color:#991b1b; }
-        @keyframes toastInTA {
-          from { opacity:0; transform:translateY(12px) scale(0.95); }
-          to   { opacity:1; transform:translateY(0) scale(1); }
-        }
-        .modal-ta .modal-content { border:none; border-radius:18px; box-shadow:0 24px 60px rgba(15,23,42,.18); }
-        .modal-ta .modal-header { background:linear-gradient(135deg,#4f46e5,#7c3aed); border-radius:18px 18px 0 0; padding:1.1rem 1.4rem; border-bottom:none; }
-        .modal-ta .modal-title  { color:#fff; font-weight:700; font-size:1.05rem; }
-        .modal-ta .btn-close     { filter:invert(1) brightness(2); opacity:.85; }
-        .modal-ta .modal-body    { padding:1.4rem; }
-        .modal-ta .modal-footer  { border-top:1px solid var(--border-soft); padding:0.9rem 1.4rem; border-radius:0 0 18px 18px; }
-        .card-tambah-ta .card-header { background:linear-gradient(135deg,#4f46e5,#7c3aed); border-radius:14px 14px 0 0; padding:0.9rem 1.1rem; border-bottom:none; }
-        .card-tambah-ta .card-header h2 { color:#fff; font-size:0.92rem; margin:0; font-weight:700; }
-        .badge-aktif    { background:#dcfce7; color:#15803d; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; }
-        .badge-nonaktif { background:#f3f4f6; color:#6b7280; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; }
-        .ta-icon {
-          width:38px; height:38px; border-radius:10px; flex-shrink:0;
-          display:inline-flex; align-items:center; justify-content:center;
-          background: linear-gradient(135deg,#eef2ff,#e0e7ff);
-          font-size:1rem;
-        }
-        .aktif-toggle-row {
-          display:flex; align-items:center; justify-content:space-between;
-          padding:0.75rem 1rem; border-radius:10px;
-          border:1.5px solid var(--border-soft); cursor:pointer;
-          transition:border-color 0.15s ease, background 0.15s ease;
-        }
-        .aktif-toggle-row:has(input:checked) {
-          border-color:#6366f1; background:#eef2ff;
-        }
-      `}</style>
-
+      {modal}
       {toast && (
-        <div className={`toast-snack-ta toast-snack-ta--${toast.type}`}>
+        <div
+          className={`fixed bottom-6 right-6 z-[9999] flex animate-fade-in-up items-center gap-2.5 rounded-xl border-l-4 bg-white px-4 py-3 text-sm font-medium shadow-lg ${
+            toast.type === "success" ? "border-status-lunas text-emerald-800" : "border-red-500 text-red-800"
+          }`}
+        >
           {toast.type === "success" ? "✓" : "✕"} {toast.msg}
         </div>
       )}
 
-      <div className="container-fluid p-4">
-        <div className="mb-4">
-          <h1 className="h4 mb-0 fw-bold" style={{ color: "var(--ink-900)" }}>Tahun Ajaran</h1>
-          <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>{daftar.length} tahun ajaran terdaftar</p>
+      <div className="w-full p-4">
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-ink-900">Tahun Ajaran</h1>
+          <p className="text-sm text-ink-500">{daftar.length} tahun ajaran terdaftar</p>
         </div>
 
-        <div className="row">
+        <div className="grid grid-cols-12 gap-4">
           {/* Form Tambah */}
-          <div className="col-lg-4 mb-4">
-            <div className="card card-tambah-ta">
-              <div className="card-header"><h2>✚ Tambah Tahun Ajaran</h2></div>
-              <div className="card-body">
-                {error && !editTahun && <div className="alert alert-danger py-2 small">{error}</div>}
-                <form onSubmit={handleTambah}>
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Nama Tahun Ajaran</label>
-                    <input className="form-control" value={nama}
-                      onChange={(e) => setNama(e.target.value)} required
-                      placeholder="Contoh: 2025/2026" />
+          <div className="col-span-12 lg:col-span-4">
+            <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
+              <div className="bg-gradient-to-br from-accent to-purple-600 px-4 py-3.5">
+                <h2 className="text-sm font-bold text-white">✚ Tambah Tahun Ajaran</h2>
+              </div>
+              <div className="p-4">
+                {error && !editTahun && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+                <form onSubmit={handleTambah} className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink-700">Nama Tahun Ajaran</label>
+                    <input
+                      className="w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                      value={nama}
+                      onChange={(e) => setNama(e.target.value)}
+                      required
+                      placeholder="Contoh: 2025/2026"
+                    />
                   </div>
-                  <div className="mb-3">
-                    <label className="aktif-toggle-row">
-                      <div>
-                        <div className="fw-semibold" style={{ fontSize: "0.88rem" }}>Jadikan Aktif</div>
-                        <div className="text-muted" style={{ fontSize: "0.78rem" }}>
-                          Hanya satu tahun ajaran yang bisa aktif sekaligus
-                        </div>
-                      </div>
-                      <input type="checkbox" className="form-check-input ms-2"
-                        checked={aktif} onChange={(e) => setAktif(e.target.checked)} />
-                    </label>
-                  </div>
-                  <button className="btn btn-primary w-100" disabled={loading}>
-                    {loading
-                      ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
-                      : "Tambah Tahun Ajaran"}
+                  <ToggleAktifRow checked={aktif} onChange={setAktif} />
+                  <button className="w-full rounded-control bg-accent py-2.5 text-sm font-semibold text-white transition hover:bg-accent-hover disabled:opacity-60" disabled={loading}>
+                    {loading ? "Menyimpan..." : "Tambah Tahun Ajaran"}
                   </button>
                 </form>
               </div>
@@ -201,41 +172,47 @@ export default function TahunAjaranPage() {
           </div>
 
           {/* Tabel */}
-          <div className="col-lg-8">
-            <div className="card p-0 overflow-hidden">
-              <div className="table-responsive">
-                <table className="table ta-table mb-0">
+          <div className="col-span-12 lg:col-span-8">
+            <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
                   <thead>
                     <tr>
-                      <th>Tahun Ajaran</th>
-                      <th>Status</th>
-                      <th style={{ width: "1%", whiteSpace: "nowrap", textAlign: "right" }}>Aksi</th>
+                      <th className="border-b-2 border-border-soft bg-surface px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500">Tahun Ajaran</th>
+                      <th className="border-b-2 border-border-soft bg-surface px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500">Status</th>
+                      <th className="whitespace-nowrap border-b-2 border-border-soft bg-surface px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-ink-500">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {daftar.map((t) => (
-                      <tr key={t.id}>
-                        <td>
-                          <div className="d-flex align-items-center gap-2">
-                            <div className="ta-icon">📅</div>
-                            <span className="fw-semibold">{t.nama}</span>
+                      <tr key={t.id} className="border-b border-border-soft transition last:border-0 hover:bg-accent-soft/40">
+                        <td className="px-4 py-3 align-middle">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-control bg-gradient-to-br from-accent-soft to-indigo-100 text-base">
+                              📅
+                            </div>
+                            <span className="text-sm font-semibold text-ink-900">{t.nama}</span>
                           </div>
                         </td>
-                        <td>
+                        <td className="px-4 py-3 align-middle">
                           {t.aktif
-                            ? <span className="badge-aktif">✓ Aktif</span>
-                            : <span className="badge-nonaktif">Nonaktif</span>}
+                            ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">✓ Aktif</span>
+                            : <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">Nonaktif</span>}
                         </td>
-                        <td className="text-end" style={{ whiteSpace: "nowrap" }}>
-                          <div className="d-flex gap-1 justify-content-end align-items-center flex-nowrap">
-                            <button className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
-                              onClick={() => bukaEdit(t)}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-semibold" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}
+                        <td className="whitespace-nowrap px-4 py-3 text-right align-middle">
+                          <div className="flex flex-nowrap items-center justify-end gap-1.5">
+                            <button
+                              className="rounded-full border border-accent px-3 py-1 text-xs font-semibold text-accent transition hover:bg-accent-soft"
+                              onClick={() => bukaEdit(t)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="rounded-full border border-red-500 px-3 py-1 text-xs font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-60"
                               disabled={deletingId === t.id}
-                              onClick={() => handleDelete(t.id)}>
-                              {deletingId === t.id
-                                ? <span className="spinner-border spinner-border-sm" />
-                                : "Hapus"}
+                              onClick={() => handleDelete(t.id)}
+                            >
+                              {deletingId === t.id ? "..." : "Hapus"}
                             </button>
                           </div>
                         </td>
@@ -243,8 +220,8 @@ export default function TahunAjaranPage() {
                     ))}
                     {daftar.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="text-center text-muted py-5">
-                          <div style={{ fontSize: "2rem", marginBottom: 8 }}>📅</div>
+                        <td colSpan={3} className="py-12 text-center text-ink-500">
+                          <div className="mb-2 text-3xl">📅</div>
                           Belum ada data tahun ajaran.
                         </td>
                       </tr>
@@ -259,55 +236,40 @@ export default function TahunAjaranPage() {
 
       {/* Modal Edit Tahun Ajaran */}
       {editTahun && (
-        <>
-          <div className="modal-backdrop fade show" />
-          <div className="modal fade show d-block modal-ta" tabIndex={-1} role="dialog" onClick={tutupEdit}>
-            <div className="modal-dialog modal-dialog-centered" role="document"
-              onClick={(e) => e.stopPropagation()}>
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Tahun Ajaran</h5>
-                  <button type="button" className="btn-close" onClick={tutupEdit} />
-                </div>
-                <form onSubmit={handleSimpanEdit}>
-                  <div className="modal-body">
-                    {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
-                    <div className="mb-3">
-                      <label className="form-label small fw-semibold">Nama Tahun Ajaran</label>
-                      <input className="form-control" value={editTahun.nama}
-                        onChange={(e) => setEditTahun({ ...editTahun, nama: e.target.value })}
-                        required placeholder="Contoh: 2025/2026" />
-                    </div>
-                    <div className="mb-2">
-                      <label className="aktif-toggle-row">
-                        <div>
-                          <div className="fw-semibold" style={{ fontSize: "0.88rem" }}>Jadikan Aktif</div>
-                          <div className="text-muted" style={{ fontSize: "0.78rem" }}>
-                            Hanya satu tahun ajaran yang bisa aktif sekaligus
-                          </div>
-                        </div>
-                        <input type="checkbox" className="form-check-input ms-2"
-                          checked={editTahun.aktif}
-                          onChange={(e) => setEditTahun({ ...editTahun, aktif: e.target.checked })} />
-                      </label>
-                    </div>
-                  </div>
-                  <div className="modal-footer">
-                    <button type="button" className="btn btn-outline-secondary" onClick={tutupEdit}>Batal</button>
-                    <button type="submit" className="btn btn-primary px-4" disabled={loading}>
-                      {loading
-                        ? <><span className="spinner-border spinner-border-sm me-1" />Menyimpan...</>
-                        : "💾 Simpan Perubahan"}
-                    </button>
-                  </div>
-                </form>
-              </div>
+        <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4" onClick={tutupEdit}>
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between bg-gradient-to-br from-accent to-purple-600 px-5 py-4">
+              <h5 className="text-base font-bold text-white">Edit Tahun Ajaran</h5>
+              <button type="button" aria-label="Tutup" className="text-xl leading-none text-white/80 hover:text-white" onClick={tutupEdit}>×</button>
             </div>
+            <form onSubmit={handleSimpanEdit}>
+              <div className="space-y-3 p-5">
+                {error && <div className="rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink-700">Nama Tahun Ajaran</label>
+                  <input
+                    className="w-full rounded-control border border-border-soft px-3 py-2 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                    value={editTahun.nama}
+                    onChange={(e) => setEditTahun({ ...editTahun, nama: e.target.value })}
+                    required
+                    placeholder="Contoh: 2025/2026"
+                  />
+                </div>
+                <ToggleAktifRow
+                  checked={editTahun.aktif}
+                  onChange={(v) => setEditTahun({ ...editTahun, aktif: v })}
+                />
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border-soft px-5 py-4">
+                <button type="button" className="rounded-control border border-border-soft px-4 py-2 text-sm font-medium text-ink-700 hover:bg-surface" onClick={tutupEdit}>Batal</button>
+                <button type="submit" className="rounded-control bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60" disabled={loading}>
+                  {loading ? "Menyimpan..." : "💾 Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
           </div>
-        </>
+        </div>
       )}
-
-      {modal}
     </>
   );
 }
