@@ -23,7 +23,7 @@ html, body {
 }
 
 /* Sidebar/layout shell udah full Tailwind di components/admin/sidebar.tsx
-   (dulu .app-shell/.app-sidebar*/.app-topbar*/.app-main/.app-page-enter di
+   (dulu .app-shell/.app-sidebar/.app-topbar/.app-main/.app-page-enter di
    sini). Animasi fade-in-up-nya pakai class `animate-fade-in-up` dari
    tailwind.config.ts (keyframe `fadeInUp` yang sama). */
 

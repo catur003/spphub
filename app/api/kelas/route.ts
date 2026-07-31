@@ -20,7 +20,12 @@ export async function GET() {
     });
 
     const res = NextResponse.json(kelas);
-    res.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    // no-store: sebelumnya max-age=60 bikin browser nyimpen response GET
+    // /api/kelas selama 60 detik. Setelah "Set SPP"/edit, halaman manggil
+    // ulang fetch tapi browser ngasih data lama dari cache -> nominal SPP
+    // kelihatannya belum keupdate sampai user refresh manual (hard refresh
+    // yang skip cache). Ini akar masalah bug #2.
+    res.headers.set("Cache-Control", "no-store");
     return res;
   } catch (error: any) {
     console.error("[GET /api/kelas] Error:", error);

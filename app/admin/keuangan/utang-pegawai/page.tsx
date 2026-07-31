@@ -243,7 +243,7 @@ export default function UtangPegawaiPage() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="w-full min-w-[640px] text-left text-sm">
                   <thead className="bg-surface text-ink-500">
                     <tr>
                       <th className="px-2 py-2 font-medium">Nama Pegawai</th>

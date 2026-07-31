@@ -25,6 +25,14 @@ export const auth = betterAuth({
     fields: {
       userId: "akunId",
     },
+    // Cache sesi di cookie (signed, short-lived) supaya requireRole() di setiap
+    // layout/page admin TIDAK query DB tiap kali pindah tab menu.
+    // Tanpa ini, getSession() hit database di SETIAP navigasi -> lemot & tidak
+    // konsisten tergantung kondisi koneksi DB saat itu.
+    cookieCache: {
+      enabled: true,
+      maxAge: 60, // detik — sesi divalidasi ulang ke DB paling lama tiap 60 detik
+    },
   },
   account: {
     modelName: "kredensial",

@@ -160,7 +160,10 @@ export async function GET() {
       tahun: currentYear,
     });
 
-    response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    // Diperpendek dari 60s -> 5s. Dashboard sering dibuka lagi setelah owner
+    // barusan generate tagihan/verifikasi bayar; 60 detik kelamaan buat angka
+    // ringkasan kelihatan basi.
+    response.headers.set("Cache-Control", "private, max-age=5, stale-while-revalidate=10");
     return response;
   } catch (error: any) {
     console.error("[GET /api/dashboard] Error:", error);

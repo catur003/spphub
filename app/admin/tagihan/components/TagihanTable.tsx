@@ -74,7 +74,7 @@ export default function TagihanTable({
   return (
     <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
       <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-0">
+        <table className="w-full min-w-[720px] border-separate border-spacing-0">
           <thead>
             <tr>
               <SortHeader label="Identitas Siswa" field="siswa" width="30%" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />

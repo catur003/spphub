@@ -64,8 +64,8 @@ export default function SiswaImportExport({
             diimport.
           </div>
           {hasilImport.gagal.length > 0 && (
-            <div className="max-h-[180px] overflow-y-auto rounded-control border border-border-soft p-2">
-              <table className="w-full text-sm">
+            <div className="max-h-[180px] overflow-auto rounded-control border border-border-soft p-2">
+              <table className="w-full min-w-[560px] text-sm">
                 <thead>
                   <tr className="text-left text-ink-500">
                     <th className="pb-1 pr-2">Baris</th>

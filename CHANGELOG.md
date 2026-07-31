@@ -5,6 +5,67 @@ yang paling baru.
 
 ---
 
+## [Audit Bug + Optimisasi] Cache-Control, session, tabel responsive, terminologi, ikon
+
+### Diperbaiki (bug)
+- **Harus refresh manual setelah "Set SPP"/edit kelas/edit tagihan** — akar
+  masalah: `GET /api/kelas` & `GET /api/tagihan` ngirim header
+  `Cache-Control: max-age=60` / `max-age=15`. Browser nyuguhin response GET
+  yang di-cache walau halaman udah manggil ulang `fetch()` setelah
+  update/hapus, jadi data kelihatan belum berubah sampai user hard-refresh.
+  Diganti jadi `Cache-Control: no-store` di `app/api/kelas/route.ts` dan
+  `app/api/tagihan/route.ts`. `app/api/dashboard/route.ts` diperpendek dari
+  `max-age=60` ke `max-age=5` (dashboard gak sekritis itu soal freshness,
+  tapi 60 detik kelamaan).
+- **Tab menu admin lemot & gak konsisten (kadang cepet kadang lambat)** —
+  akar masalah: `requireRole()` di `app/admin/layout.tsx` manggil
+  `auth.api.getSession()` yang query database di **setiap** perpindahan
+  menu/halaman, tanpa cache sama sekali. Diaktifkan `session.cookieCache`
+  di `lib/auth.ts` (cache sesi di signed cookie, re-validasi ke DB paling
+  lama tiap 60 detik) — DB gak lagi di-hit tiap klik menu.
+- **Tabel gak responsive di HP** — akar masalah: elemen `<table>` dikasih
+  `w-full` tanpa `min-w`, jadi di layar sempit kolom-kolom kejepit/rusak
+  alih-alih tabelnya scroll ke samping (padahal wrapper `overflow-x-auto`
+  udah ada di sebagian besar tabel, cuma gak ada gunanya tanpa
+  `min-width`). Ditambahin `min-w-[...]` (480–720px tergantung jumlah
+  kolom) ke 14 tabel: `KelasTable`, `KelasDetailModal`, `SiswaTable`,
+  `SiswaDetailModal`, `SiswaImportExport`, `TagihanTable`,
+  `keuangan/pendapatan`, `keuangan/pengeluaran`, `keuangan/utang-pegawai`,
+  `laporan`, `pengguna`, `pengumuman`, `tahun-ajaran`, `dashboard`. Tiga di
+  antaranya (`SiswaImportExport`, `SiswaDetailModal` riwayat tagihan)
+  ketauan cuma punya `overflow-y-auto` tanpa scroll horizontal — diganti ke
+  `overflow-auto` biar dua arah.
+
+### Diubah (terminologi UI — baru modul Kelas, lihat rencana lanjutan)
+- `app/admin/kelas/components/KelasTable.tsx`: label kolom "Nama Kelas" →
+  "Nama Jurusan", badge "Tingkat X" → "Kelas X". **Catatan penting**: ini
+  cuma ganti teks yang tampil ke user. Nama field di database/Prisma
+  (`namaKelas`, `tingkat`) SENGAJA gak diubah — ganti nama kolom database
+  butuh migration Prisma dan bakal nyentuh puluhan file API/komponen
+  sekaligus (siswa, tagihan, laporan, import/export Excel), resikonya
+  gede kalau digas sekaligus. Lihat rencana lanjutan di bawah.
+
+### Diubah (ikon, baru modul Kelas)
+- `components/admin/icons.tsx`: nambah 9 ikon SVG baru —
+  `IconWarning`, `IconEdit`, `IconEye`, `IconTrash`, `IconPlus`,
+  `IconSave`, `IconMoney`, `IconSchool`, `IconCheckCircle` — buat
+  gantiin emoji satu-satu di seluruh halaman (lihat rencana lanjutan).
+- `app/admin/kelas/components/KelasTable.tsx`: semua emoji (⚠️ 👥 ✏️ 🏫)
+  diganti ikon SVG di atas.
+
+### Belum dikerjakan di sesi ini (lihat `RENCANA-LANJUTAN.md`)
+- Rename label "Tingkat"/"Nama Kelas" di file lain yang masih nyebut
+  istilah lama: `KelasFormTambah`, `KelasEditModal`, `KelasDetailModal`,
+  `SiswaFilterBar`, `NaikKelasModal`, `FilterToolbar` (tagihan),
+  `laporan/page.tsx`.
+- Ganti emoji jadi ikon SVG di 32 file lain yang masih pakai emoji
+  (keuangan/*, pengguna, arsip, pengumuman, tahun-ajaran, dashboard,
+  settings, siswa portal, invoice, kwitansi).
+- Background gradient bermotif (non-repeating) — belum disentuh sama
+  sekali.
+
+---
+
 ## [Migrasi UI] Tailwind — 4 halaman tambahan (di luar daftar 15) + cabut Bootstrap
 
 ### Diubah

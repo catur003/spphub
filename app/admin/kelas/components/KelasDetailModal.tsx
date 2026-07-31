@@ -84,7 +84,7 @@ export default function KelasDetailModal({
 
                 {detailTab === "siswa" ? (
                   <div className="max-h-[380px] overflow-auto">
-                    <table className="w-full border-collapse text-[0.86rem]">
+                    <table className="w-full min-w-[480px] border-collapse text-[0.86rem]">
                       <thead className="bg-surface">
                         <tr>
                           {["No", "Nama Siswa", "NIS / NISN", "Gender", "Orang Tua / Wali", "Status"].map(

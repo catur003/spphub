@@ -269,7 +269,7 @@ export default function LaporanPage() {
       {/* Tabel Riwayat Pembayaran Detail */}
       <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
         <div className="overflow-x-auto">
-          <table className="w-full text-left print:border-collapse">
+          <table className="w-full min-w-[640px] text-left print:border-collapse">
             <thead>
               <tr>
                 {["Siswa", "NIS", "Kelas", "Periode Tagihan", "Nominal", "Status"].map((h) => (

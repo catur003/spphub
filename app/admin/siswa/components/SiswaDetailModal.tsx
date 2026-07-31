@@ -92,8 +92,8 @@ export default function SiswaDetailModal({ detailSiswa, loadingDetail, onClose }
               </div>
 
               <h6 className="mb-2 text-sm font-bold text-ink-900">📜 Riwayat Tagihan SPP Siswa</h6>
-              <div className="max-h-[220px] overflow-y-auto rounded-card border border-border-soft">
-                <table className="w-full text-sm">
+              <div className="max-h-[220px] overflow-auto rounded-card border border-border-soft">
+                <table className="w-full min-w-[560px] text-sm">
                   <thead className="sticky top-0 bg-surface">
                     <tr className="text-left text-ink-500">
                       <th className="px-3 py-2 font-semibold">Periode</th>

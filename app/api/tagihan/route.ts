@@ -70,7 +70,12 @@ export async function GET(req: NextRequest) {
     });
 
     const res = NextResponse.json(tagihan);
-    res.headers.set("Cache-Control", "private, max-age=15, stale-while-revalidate=30");
+    // no-store: data ini sering berubah (bayar, generate massal, dll) dan
+    // di-fetch ulang manual (muatData) tiap kali ada aksi. Cache-Control lama
+    // (max-age=15) bikin browser sempet nyuguhin data basi sampai ~15 detik
+    // walau fetch ulang udah dipanggil setelah update -> user ngerasa "harus
+    // refresh manual".
+    res.headers.set("Cache-Control", "no-store");
     return res;
   } catch (error: any) {
     console.error("[GET /api/tagihan] error:", error);

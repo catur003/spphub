@@ -175,7 +175,7 @@ export default function TahunAjaranPage() {
           <div className="col-span-12 lg:col-span-8">
             <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
               <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full min-w-[560px] text-left">
                   <thead>
                     <tr>
                       <th className="border-b-2 border-border-soft bg-surface px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500">Tahun Ajaran</th>
