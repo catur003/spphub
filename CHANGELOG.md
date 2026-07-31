@@ -5,6 +5,59 @@ yang paling baru.
 
 ---
 
+## [Bugfix] Pengingat "tagihan belum dibuat" gak ilang + chart Rasio Status SPP blank
+
+### Bug 1 — Banner "Ada N siswa belum dibuatkan tagihan" gak ilang
+`app/api/dashboard/route.ts` nentuin "bulan & tahun berjalan" pakai
+`new Date().getMonth()/getFullYear()` — ini kebaca dari **timezone proses
+server**, yang di hosting kayak Railway/Vercel defaultnya **UTC**.
+Sementara form "Generate Tagihan Massal" di `app/admin/tagihan/page.tsx`
+nentuin default bulan/tahun-nya dari `new Date()` di **browser admin**,
+yang otomatis WIB (Asia/Jakarta, UTC+7).
+
+Selisih 7 jam ini bikin, di sekitar jam **00.00–06.59 WIB**, server (UTC)
+masih ngitung "bulan berjalan" = bulan yang lama, padahal tagihan yang
+barusan di-generate (dari sisi admin, WIB) udah kesimpen di bulan yang
+baru. Akibatnya `jumlahTagihanBelumDibuat` (dihitung dari selisih total
+siswa aktif vs jumlah tagihan bulan-server-yang-lama) tetep nunjukkin
+angka positif walau tagihan buat bulan itu (versi WIB, yang bener) udah
+lengkap dibuat semua.
+
+**Fix**: `currentMonth`/`currentYear` di `/api/dashboard` sekarang dihitung
+eksplisit pakai `Intl.DateTimeFormat` dengan `timeZone: "Asia/Jakarta"`,
+gak lagi gantung ke timezone server. Perhitungan turunannya
+(`awalBulanIni`, `enamBulanLalu`, urutan 6 bulan buat bar chart) ikut
+disamain ke acuan WIB yang sama, biar semuanya konsisten satu timezone.
+
+> Catatan: kalau setelah fix ini banner masih nunjukkin angka padahal
+> tagihan buat bulan itu kerasa udah lengkap, kemungkinan bukan lagi bug
+> timezone — coba cek halaman Tagihan (filter ke bulan yang sama) apa ada
+> siswa aktif yang emang belum punya baris tagihan (misal siswa baru yang
+> ditambahin setelah generate massal terakhir jalan). Itu perilaku yang
+> disengaja (bukan bug), soalnya generate massal cuma nyentuh siswa yang
+> aktif PAS tombol generate ditekan.
+
+### Bug 2 — "Rasio Status SPP" (donut chart di dashboard) blank, gak ada legend/label
+`pieChartData` isinya 3 slice (Lunas/Belum Bayar/Terlambat) yang dihitung
+dari tagihan bulan berjalan doang. Kalau bulan itu belum ada tagihan sama
+sekali (nilainya 0-0-0 — termasuk skenario Bug 1 di atas sebelum di-fix),
+Recharts nge-render `<PieChart>` kosong total tanpa legend/label/keterangan
+apapun — kelihatan kayak komponennya rusak, padahal cuma gak ada data.
+
+**Fix**: `app/admin/dashboard/page.tsx` sekarang ngecek total
+`pieChartData` dulu — kalau 0, tampilin placeholder teks "Belum ada
+tagihan untuk bulan ini" + ikon, bukan chart kosong tanpa keterangan.
+
+### ⚠️ Perlu dicek manual
+- Server production perlu di-restart abis deploy biar Node re-evaluate
+  perhitungan tanggal (bukan cuma build).
+- Kalau server disetel `TZ=Asia/Jakarta` di environment variable-nya,
+  fix ini gak ngubah apa-apa (udah otomatis bener sebelumnya) — tapi tetep
+  aman dipasang sebagai jaga-jaga kalau env var itu kehapus/keganti pas
+  pindah hosting.
+
+---
+
 ## [Bugfix] Laporan SPP kelihatan gak update, padahal Laporan Kas ke-update
 
 ### Bug

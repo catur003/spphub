@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { IconFileText } from "@/components/admin/icons";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -289,17 +290,24 @@ export default function DashboardPage() {
             <div className="text-base font-bold text-ink-900">🍩 Rasio Status SPP</div>
             <div className="mb-3 text-sm text-ink-500">Bulan {BULAN_LABEL[bulan]} {tahun}</div>
             <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4}>
-                    {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                  <RechartsTooltip formatter={(val: number) => [`${val} Siswa`, 'Jumlah']} />
-                </PieChart>
-              </ResponsiveContainer>
+              {pieChartData.reduce((sum, d) => sum + (d.value || 0), 0) === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-ink-500">
+                  <IconFileText className="h-8 w-8 text-ink-500/50" />
+                  <span className="text-sm">Belum ada tagihan untuk bulan ini</span>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4}>
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                    <RechartsTooltip formatter={(val: number) => [`${val} Siswa`, 'Jumlah']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>

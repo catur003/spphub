@@ -8,11 +8,28 @@ export async function GET() {
   if (error) return error;
 
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const awalBulanIni = new Date(currentYear, currentMonth - 1, 1);
-    const enamBulanLalu = new Date(currentYear, now.getMonth() - 5, 1);
-    enamBulanLalu.setHours(0, 0, 0, 0);
+    // PENTING: jangan pakai now.getMonth()/getFullYear() langsung. Method itu
+    // baca timezone SERVER (kalau di-hosting kayak Railway, defaultnya UTC),
+    // sedangkan form "Generate Tagihan" di app/admin/tagihan/page.tsx pakai
+    // new Date() di BROWSER admin (otomatis WIB/Asia-Jakarta). Beda ~7 jam
+    // ini bikin bulan yang dicek dashboard (UTC) vs bulan yang beneran
+    // di-generate (WIB) bisa gak sinkron di sekitar jam 00.00-07.00 WIB —
+    // efeknya "Pengingat tagihan belum dibuat" gak ilang walau tagihan buat
+    // bulan itu (versi WIB) udah lengkap dibuat. Dikunci eksplisit ke
+    // Asia/Jakarta biar konsisten sama browser admin.
+    const jakartaParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "numeric",
+    }).formatToParts(now);
+    const currentMonth = Number(jakartaParts.find((p) => p.type === "month")!.value);
+    const currentYear = Number(jakartaParts.find((p) => p.type === "year")!.value);
+    // Dikonstruksi sebagai instant UTC yang collay sama "00:00 WIB tanggal 1"
+    // (WIB = UTC+7, jadi 00:00 WIB = 17:00 UTC hari sebelumnya) — konsisten
+    // sama currentMonth/currentYear di atas yang udah dikunci Asia/Jakarta.
+    const awalBulanIni = new Date(Date.UTC(currentYear, currentMonth - 1, 1, -7, 0, 0));
+    const enamBulanLaluBase = new Date(Date.UTC(currentYear, currentMonth - 1 - 5, 1, -7, 0, 0));
+    const enamBulanLalu = enamBulanLaluBase;
 
     // Parallel queries including financial modules
     const [
@@ -125,7 +142,7 @@ export async function GET() {
     const BULAN_LABEL_SHORT = ["", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
     const barChartMap: Record<string, number> = {};
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(currentYear, now.getMonth() - i, 1);
+      const d = new Date(currentYear, currentMonth - 1 - i, 1);
       const mm = String(d.getMonth() + 1).padStart(2, "0");
       barChartMap[`${d.getFullYear()}-${mm}`] = 0;
     }
