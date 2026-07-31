@@ -57,8 +57,8 @@ function SummaryCard({
 
 export default function LaporanPage() {
   const [kelasList, setKelasList] = useState<Kelas[]>([]);
-  const [bulan, setBulan] = useState(String(new Date().getMonth() + 1));
-  const [tahun, setTahun] = useState(String(new Date().getFullYear()));
+  const [bulan, setBulan] = useState("");
+  const [tahun, setTahun] = useState("");
   const [filterTingkat, setFilterTingkat] = useState("");
   const [kelasId, setKelasId] = useState("");
   const [status, setStatus] = useState("");
@@ -170,6 +170,24 @@ export default function LaporanPage() {
       {/* Filter Lengkap */}
       <div className="mb-6 rounded-card border border-border-soft bg-white p-6 shadow-sm2 print:hidden">
         <div className="grid grid-cols-12 items-end gap-3">
+          <div className="col-span-12 sm:col-span-6 md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Bulan</label>
+            <select className={selectClass} value={bulan} onChange={(e) => setBulan(e.target.value)}>
+              <option value="">Semua Bulan</option>
+              {BULAN_LABEL.slice(1).map((label, i) => (
+                <option key={i + 1} value={i + 1}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-span-12 sm:col-span-6 md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Tahun</label>
+            <select className={selectClass} value={tahun} onChange={(e) => setTahun(e.target.value)}>
+              <option value="">Semua Tahun</option>
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
           <div className="col-span-12 sm:col-span-6 md:col-span-3">
             <label className="mb-1 block text-sm font-semibold text-ink-700">Cari Nama Siswa / NIS</label>
             <input

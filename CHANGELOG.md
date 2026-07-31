@@ -5,6 +5,53 @@ yang paling baru.
 
 ---
 
+## [Bugfix] Laporan SPP kelihatan gak update, padahal Laporan Kas ke-update
+
+### Bug
+Setelah verifikasi/bayar tagihan SPP, angka di **Laporan Kas**
+(`app/admin/keuangan/laporan`, sumber datanya `/api/dashboard`) langsung
+naik — tapi **Laporan SPP** (`app/admin/laporan`) kelihatan gak berubah
+sama sekali, seolah datanya gak ke-update.
+
+### Akar masalah
+`app/admin/laporan/page.tsx` punya state `bulan` & `tahun` yang di-`default`-in
+ke **bulan & tahun berjalan** (`useState(String(new Date().getMonth()+1))`,
+dst), dan dua-duanya ikut dikirim ke `/api/laporan` di setiap request
+(`queryString()`). Masalahnya: **gak ada dropdown/kontrol apapun di form
+filter buat ganti nilai `bulan`/`tahun` itu** — `setBulan`/`setTahun` gak
+pernah dipanggil di mana pun selain inisialisasi awal. Jadi filter bulan+
+tahun ini nyala terus secara diam-diam, gak kelihatan oleh admin, dan gak
+bisa dimatikan lewat UI.
+
+Akibatnya: begitu ada tagihan SPP yang dibayar/diverifikasi untuk **bulan
+selain bulan berjalan** (tunggakan dari bulan lalu itu hal biasa banget di
+sistem SPP), datanya kefilter otomatis dan gak nongol di Laporan SPP —
+padahal datanya di database udah bener-bener berubah. Sementara itu,
+`totalSppLunas` di `/api/dashboard` (dipake buat "Laporan Kas") ngitung
+SEMUA tagihan lunas tanpa filter periode sama sekali, jadi kelihatan
+"kok yang ke-update malah kas."
+
+Bukti tambahan: teks header cetak PDF di halaman yang sama nulis
+`Periode: {bulan ? BULAN_LABEL[...] : "Semua Bulan"}` — ini nunjukkin
+dulu emang niatnya ada dropdown "Semua Bulan / pilih bulan", tapi
+kontrolnya ilang (kemungkinan kepotong pas migrasi Tailwind), state-nya
+doang yang ketinggalan.
+
+### Fix
+`app/admin/laporan/page.tsx`:
+- Default `bulan`/`tahun` diganti dari "bulan & tahun berjalan" jadi
+  string kosong (`""` = Semua Periode), biar begitu halaman dibuka gak
+  ada filter tersembunyi yang aktif.
+- Ditambahin dropdown **"Bulan"** (Semua Bulan / Januari–Desember) dan
+  **"Tahun"** (Semua Tahun / 5 tahun terakhir) di form filter, disambungin
+  ke `setBulan`/`setTahun` yang sebelumnya nganggur.
+
+### ⚠️ Perlu dicek manual
+Coba filter per-bulan/per-tahun di Laporan SPP abis narik zip ini — pastiin
+angkanya cocok sama Laporan Kas kalau filter di-set ke periode yang sama.
+
+---
+
 ## [Audit Bug + Optimisasi] Cache-Control, session, tabel responsive, terminologi, ikon
 
 ### Diperbaiki (bug)
