@@ -49,9 +49,6 @@ const BULAN_LABEL = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 
-const CACHE_KEY = "dashboard_cache";
-const CACHE_TTL_MS = 60_000;
-
 // Gradient tiap kartu ringkasan — dipertahankan persis dari desain lama,
 // cuma dipindah dari <style> block ke sini biar gak ada CSS global tambahan.
 const CARD_GRADIENTS = {
@@ -90,25 +87,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { payload, ts } = JSON.parse(cached);
-        if (payload && Date.now() - ts < CACHE_TTL_MS * 5) {
-          setData(payload);
-          setLoading(false);
-        }
-      }
-    } catch {}
-
     fetch("/api/dashboard")
       .then((res) => (res.ok ? res.json() : null))
       .then((resData) => {
         if (resData && !resData.error) {
           setData(resData);
-          try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ payload: resData, ts: Date.now() }));
-          } catch {}
         }
         setLoading(false);
       })
@@ -121,9 +104,6 @@ export default function DashboardPage() {
           .then((resData) => {
             if (resData && !resData.error) {
               setData(resData);
-              try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({ payload: resData, ts: Date.now() }));
-              } catch {}
             }
           })
           .catch(() => {});

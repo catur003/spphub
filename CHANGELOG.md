@@ -5,6 +5,51 @@ yang paling baru.
 
 ---
 
+## [Bugfix + Reorder] Sidebar Pengeluaran hilang, localStorage cache dashboard, reorder menu
+
+### Bug — Menu "Kelola Pengeluaran" gak ada di sidebar
+Halaman `app/admin/keuangan/pengeluaran/page.tsx` udah lengkap & bisa
+diakses langsung lewat URL, tapi memang gak pernah didaftarin ke
+`NAV_GROUPS` di `components/admin/sidebar.tsx` — bukan ke-cache atau
+ke-hide, murni ketinggalan pas nyusun menu. Sekarang udah ditambahin.
+
+### Kontributor tambahan — Pengingat "tagihan belum dibuat" masih nongol
+Selain fix timezone sesi sebelumnya, ketauan `app/admin/dashboard/page.tsx`
+nyimpen hasil fetch dashboard ke `localStorage` (`dashboard_cache`) dan
+nampilin itu DULU begitu halaman dibuka (bisa sampai 5 menit basi) sebelum
+data asli nyusul di belakang layar. Ini lapisan cache TAMBAHAN di atas
+Cache-Control server yang udah dibenerin sesi lalu — jadi walau server
+udah bener, browser tetep sempet nyuguhin snapshot lama tiap buka
+Dashboard. Dicabut total; sekarang selalu fetch fresh ke server tiap
+halaman dibuka. Detail kenapa ini mungkin BELUM 100% nyelesein masalah
+kalau masih kejadian ada di `RENCANA-LANJUTAN.md`.
+
+### Reorder menu sidebar
+`components/admin/sidebar.tsx` — struktur grup diubah dari
+`TRANSAKSI`/`LAPORAN` jadi:
+- **SPP**: Tagihan SPP, Laporan SPP
+- **KEUANGAN**: Kelola Pendapatan, Kelola Pengeluaran, Utang Pegawai,
+  Laporan Kas
+
+Grup **"Tagihan Lainnya"** (buat fitur seragam/daftar ulang) SENGAJA
+belum dipasang — halamannya belum ada, nge-link ke situ bakal jadi menu
+404. Placeholder + cara masangnya udah disiapin sebagai komentar persis
+di titik yang tepat di `sidebar.tsx`, tinggal isi pas fiturnya jadi
+(lihat `RENCANA-LANJUTAN.md` Tahap 6).
+
+### Ditambahkan ke backlog (lihat `RENCANA-LANJUTAN.md` Tahap 5–8)
+- Kartu saldo kas dikasih pewarnaan yang lebih jelas (hijau/merah/amber
+  per kategori).
+- Fitur baru **Tagihan Lainnya** (seragam, pendaftaran/daftar ulang) —
+  bisa dibayar siswa di halaman portal, reuse pola tabel/format dari
+  pembayaran SPP. Ini fitur paling besar, dipecah jadi 3 milestone.
+- Saldo kas dibikin lebih informatif (breakdown sumber, bulan-ini vs
+  all-time, tren).
+- Custom print laporan (bukan `window.print()` niru tampilan layar) —
+  dua opsi diajuin (halaman print khusus vs generate PDF beneran).
+
+---
+
 ## [Bugfix] Pengingat "tagihan belum dibuat" gak ilang + chart Rasio Status SPP blank
 
 ### Bug 1 — Banner "Ada N siswa belum dibuatkan tagihan" gak ilang

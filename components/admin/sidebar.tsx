@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import {
   IconDashboard, IconUsers, IconLayers, IconCalendar, IconReceipt,
   IconChart, IconSettings, IconLogout, IconMenu, IconX, IconChevronLeft, IconMegaphone,
+  IconMoney,
 } from "./icons";
 
 type NavItem = {
@@ -34,18 +35,27 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    header: "TRANSAKSI",
+    header: "SPP",
     items: [
       { href: "/admin/tagihan", label: "Tagihan SPP", icon: IconReceipt },
-      { href: "/admin/keuangan/pendapatan", label: "Pembayaran (Kas)", icon: IconReceipt, isSubItem: true },
-      { href: "/admin/keuangan/utang-pegawai", label: "Utang Pegawai", icon: IconUsers, isSubItem: true },
+      { href: "/admin/laporan", label: "Laporan SPP", icon: IconChart, isSubItem: true },
     ],
   },
+  // NOTE: grup "Tagihan Lainnya" (seragam, pendaftaran/daftar ulang, dll)
+  // BELUM dipasang di sini sengaja — halamannya belum dibikin (lihat
+  // RENCANA-LANJUTAN.md Fase 3). Nge-link ke halaman yang belum ada bakal
+  // jadi menu mati/404. Tambahin grup ini pas fiturnya udah jadi:
+  // { header: "TAGIHAN LAINNYA", items: [
+  //   { href: "/admin/tagihan-lainnya", label: "Tagihan Lainnya", icon: ... },
+  //   { href: "/admin/tagihan-lainnya/laporan", label: "Laporan", icon: ..., isSubItem: true },
+  // ]},
   {
-    header: "LAPORAN",
+    header: "KEUANGAN",
     items: [
-      { href: "/admin/keuangan/laporan", label: "Laporan Kas", icon: IconChart },
-      { href: "/admin/laporan", label: "Laporan SPP", icon: IconChart },
+      { href: "/admin/keuangan/pendapatan", label: "Kelola Pendapatan", icon: IconMoney },
+      { href: "/admin/keuangan/pengeluaran", label: "Kelola Pengeluaran", icon: IconMoney },
+      { href: "/admin/keuangan/utang-pegawai", label: "Utang Pegawai", icon: IconUsers },
+      { href: "/admin/keuangan/laporan", label: "Laporan Kas", icon: IconChart, isSubItem: true },
     ],
   },
   {

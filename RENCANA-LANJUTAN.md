@@ -13,6 +13,41 @@ Status per poin bug awal:
 | 3 | Tingkat → Kelas, Nama Kelas → Nama Jurusan | 🔶 Baru modul Kelas (`KelasTable`) |
 | 4 | Emoji → ikon profesional + gradient bermotif | 🔶 Baru `KelasTable` + 9 ikon baru disiapin |
 | 5 | Tab menu lemot | ✅ Selesai (akar masalah: session gak di-cache) |
+| 6 | Laporan SPP kelihatan gak update | ✅ Selesai (filter bulan/tahun tersembunyi) |
+| 7 | Rasio Status SPP blank tanpa keterangan | ✅ Selesai (empty state ditambahin) |
+| 8 | Pengingat "tagihan belum dibuat" gak ilang | 🔶 2 kontributor udah di-fix (timezone + localStorage cache), lihat catatan di bawah |
+| 9 | Menu "Kelola Pengeluaran" gak ada di sidebar | ✅ Selesai |
+| 10 | Reorder menu sidebar (SPP / Tagihan Lainnya / Keuangan) | 🔶 Sebagian — grup SPP & Keuangan udah, "Tagihan Lainnya" nunggu Tahap 6 |
+| 11 | Kartu saldo kas dikasih warna biar jelas | ⬜ Belum — lihat Tahap 5 |
+| 12 | Fitur Tagihan Lainnya (seragam, daftar ulang, dll) | ⬜ Belum — lihat Tahap 6 |
+| 13 | Info saldo kas lebih informatif | ⬜ Belum — lihat Tahap 7 |
+| 14 | Custom print laporan (bukan screenshot halaman) | ⬜ Belum — lihat Tahap 8 |
+
+### Catatan soal bug #8 (pengingat tagihan belum dibuat)
+Dua penyebab konkret udah di-fix sesi ini:
+1. `currentMonth`/`currentYear` di `/api/dashboard` sekarang dikunci ke
+   timezone Asia/Jakarta (dulu ngikut timezone server, bisa beda ~7 jam
+   sama browser admin).
+2. Dashboard sempet nyimpen hasil fetch ke `localStorage` selama maks 5
+   menit dan nampilin itu DULUAN sebelum data asli nyusul — udah dicabut,
+   sekarang selalu fetch fresh ke server tiap buka halaman.
+
+**Kalau setelah dua fix ini banner masih muncul padahal generate udah
+bilang "semua dilewati karena sudah ada"**, kemungkinan besar penyebabnya
+BUKAN lagi kode, tapi salah satu dari:
+- Server production belum di-restart abis deploy (perhitungan tanggal
+  baru kepakai kalau proses Node-nya beneran restart, bukan cuma build).
+- Klik "Generate Massal" dari banner Dashboard bawa admin ke halaman
+  Tagihan dengan bulan/tahun **default browser saat itu**, yang seharusnya
+  sama dengan yang di-flag banner — tapi kalau device admin jamnya salah
+  (timezone HP/laptop bukan WIB), tetep bisa beda. Cara ngecek manual:
+  buka halaman Tagihan, filter ke bulan+tahun yang sama persis kayak yang
+  disebut di teks banner, terus lihat manual apa masih ada siswa aktif
+  yang barisnya kosong.
+
+Kalau abis dicek manual ternyata masih ketemu kasusnya, kasih tau bulan/
+tahun yang di-generate vs yang disebut banner-nya — itu bakal langsung
+nunjukkin apa masih ada bug atau ini soal data/deploy.
 
 ---
 
@@ -85,7 +120,146 @@ butuh feedback langsung, karena "modern clean" itu subjektif).
 
 ---
 
-## Catatan tambahan (di luar 5 bug awal, ketauan pas audit)
+## Tahap 4 — Reorder menu sidebar (udah jalan sebagian)
+
+Struktur baru yang diterapin di `components/admin/sidebar.tsx`:
+
+```
+Dashboard
+MASTER      → Siswa, Kelas, Tahun Ajaran
+SPP         → Tagihan SPP, Laporan SPP
+[TAGIHAN LAINNYA → nunggu Tahap 6, belum dipasang biar ga jadi menu mati]
+KEUANGAN    → Kelola Pendapatan, Kelola Pengeluaran, Utang Pegawai, Laporan Kas
+SISTEM      → Pengumuman, Kelola User (+ Pengaturan khusus owner)
+```
+
+Begitu Tahap 6 (Tagihan Lainnya) jadi, tinggal buka komentar yang udah
+disiapin di `sidebar.tsx` (persis di bawah grup "SPP") dan isi href-nya.
+
+---
+
+## Tahap 5 — Kartu Saldo Kas jadi card berwarna
+
+Sekarang saldo kas/laba-rugi di dashboard masih dalam bentuk angka polos
+di `ExecutiveCard`. Rencana: tetep pakai komponen `ExecutiveCard` yang
+udah ada (udah support prop `gradient`), tapi perjelas maknanya per warna:
+- **Hijau** — saldo/laba positif
+- **Merah** — saldo/laba negatif (rugi atau kas minus)
+- **Kuning/amber** — tunggakan & utang pegawai (butuh perhatian)
+- **Biru** — angka netral (total siswa, jumlah transaksi)
+
+Perlu keputusan kecil dari Zen: kalau saldo kas negatif, mau kartunya
+otomatis ganti gradient jadi merah (dinamis ngikutin nilai), atau warna
+tiap kartu tetap fix per kategori? Ini nentuin apa perlu logic tambahan
+di `ExecutiveCard` (terima prop `variant` yang mapping ke warna) atau
+cukup pilih gradient yang lebih jelas kontrasnya doang.
+
+Estimasi: setengah sesi kerja.
+
+---
+
+## Tahap 6 — Fitur baru: Tagihan Lainnya (seragam, pendaftaran/daftar ulang)
+
+Fitur PALING BESAR di antara semua request. Rencana implementasi, niru
+pola yang udah ada di modul SPP (`TagihanSpp`/`Pembayaran`) biar
+konsisten dan gak reinvent:
+
+**Skema database (baru)**
+- Model `JenisTagihanLain` (master jenis: "Seragam", "Daftar Ulang", dll
+  — nama, nominal default, aktif/nonaktif) — supaya bisa nambah jenis
+  baru tanpa ubah kode.
+- Model `TagihanLain` (mirip `TagihanSpp` tapi generik: siswaId,
+  jenisTagihanLainId, nominal, status, jatuhTempo, tahunAjaranId).
+- Model `PembayaranLain` (mirip `Pembayaran`: tagihanLainId, orderId,
+  jumlah, metode, status, paidAt) — atau, kalau mau lebih hemat,
+  `Pembayaran` yang ada di-generalize (tambah kolom nullable
+  `tagihanLainId` di samping `tagihanSppId`) supaya satu tabel pembayaran
+  nyimpen dua jenis transaksi. Perlu didiskusiin mana yang lebih gampang
+  dirawat sebelum mulai — generalize 1 tabel lebih rapi tapi nyentuh
+  kode existing (`bayar`, `verifikasi`, webhook Midtrans) yang udah jalan
+  dan udah ditest; bikin tabel terpisah lebih aman (gak sentuh kode SPP
+  yang udah stabil) tapi sedikit duplikasi.
+- **Rekomendasi**: tabel terpisah dulu (lebih aman, SPP yang udah stabil
+  gak keutak-atik), bisa di-refactor gabung belakangan kalau perlu.
+
+**Halaman admin (niru 1:1 pola tagihan SPP)**
+- `/admin/tagihan-lainnya` — generate massal per jenis + tabel riwayat,
+  hasil copy struktur dari `app/admin/tagihan/` (StatCards,
+  GenerateForm, FilterToolbar, TagihanTable → tinggal ganti field
+  spesifik SPP jadi generik).
+- `/admin/tagihan-lainnya/laporan` — copy dari `app/admin/laporan/`.
+- API: `/api/tagihan-lain`, `/api/tagihan-lain/generate`,
+  `/api/tagihan-lain/[id]/verifikasi`, dll — copy pola dari
+  `/api/tagihan/*`.
+
+**Halaman siswa (portal)**
+- Tambah section baru di `app/siswa/page.tsx` (atau halaman terpisah)
+  buat nampilin tagihan-lain yang belum dibayar, pakai tabel/format yang
+  sama persis kayak tampilan tagihan SPP siswa sekarang, plus tombol
+  bayar (Midtrans Snap, reuse `lib/midtrans.ts`).
+
+**Estimasi**: ini bukan setengah/1 sesi — realistisnya 3-5 sesi kerja
+kalau mau kualitasnya sama kayak modul SPP (skema+migration, API CRUD +
+generate + verifikasi, 2 halaman admin, 1 halaman siswa, testing).
+Saran: pecah lagi jadi milestone kecil (1) skema+API dulu, (2) halaman
+admin, (3) halaman siswa+pembayaran — supaya bisa direview bertahap,
+bukan sekali gede.
+
+---
+
+## Tahap 7 — Info saldo kas lebih informatif
+
+Sekarang saldo kas cuma 1 angka (`saldoKas = totalSppLunas +
+totalPendapatanLain - totalPengeluaran`, akumulasi SEPANJANG MASA, bukan
+per periode). Rencana perbaikan tampilan (bukan cuma warna doang, ini
+soal ISI informasinya):
+- Breakdown sumbernya: berapa dari SPP, berapa dari pendapatan lain,
+  berapa yang udah kepake buat pengeluaran — jangan cuma net saldo.
+- Bedain "saldo kas total (all-time)" vs "arus kas bulan ini" — sekarang
+  dua hal ini gampang ketuker karena cuma ada satu angka gede.
+  `pendapatanBulanIni`/`tunggakanBulanIni` sebenernya udah dihitung di
+  `/api/dashboard` tapi belum ditonjolkan di kartu saldo.
+- Tren singkat (naik/turun dibanding bulan lalu) — data buat ini udah
+  ada di `barChartData` (6 bulan terakhir), tinggal diringkas jadi badge
+  kecil di kartu saldo ("+12% dari bulan lalu").
+
+Estimasi: 1 sesi kerja (data-nya kebanyakan udah ada di API, ini lebih
+ke nyusun ulang tampilan + nambah 1-2 hitungan turunan kecil).
+
+---
+
+## Tahap 8 — Custom print (bukan screenshot halaman)
+
+Print sekarang (`window.print()` + CSS `print:` di Tailwind) pada
+dasarnya nyetak PERSIS tampilan layar dikondisiin dikit — makanya
+kerasa kayak "screenshot halaman", bukan dokumen laporan yang didesain
+buat dicetak. Halaman yang kepengaruh: `app/admin/laporan/page.tsx`
+(print) dan kemungkinan `app/admin/keuangan/laporan/page.tsx`.
+
+Rencana: bikin **template cetak terpisah**, bukan nyetak DOM halaman
+yang sama:
+- Opsi A (lebih ringan): halaman print khusus (`/admin/laporan/print`
+  atau modal khusus) dengan HTML/CSS yang didesain dari nol buat kertas
+  (kop surat sekolah, tabel rapi ala dokumen resmi, nomor halaman,
+  tanggal cetak, tanda tangan) — masih pakai `window.print()` tapi
+  targetnya halaman yang emang didesain buat print, bukan reuse
+  tampilan admin.
+- Opsi B (lebih niat, ada infrastrukturnya): generate PDF di server
+  pakai library PDF (liat skill `pdf` yang saya punya buat referensi
+  cara bikin PDF terstruktur), didownload langsung sebagai file
+  `laporan-spp-{bulan}-{tahun}.pdf` — hasilnya lebih konsisten
+  antar-browser/printer dibanding `window.print()`.
+
+Perlu keputusan dari Zen: cukup Opsi A (cepat, tetep pakai print
+browser) atau langsung Opsi B (PDF generate, lebih bagus hasilnya tapi
+kerjanya lebih banyak)?
+
+Estimasi: Opsi A ~1 sesi, Opsi B ~2 sesi (perlu setup generator PDF +
+desain layout).
+
+---
+
+## Catatan tambahan (di luar bug awal, ketauan pas audit)
 
 - Belum ada testing end-to-end di sandbox (gak ada akses `npm install`/
   network buat jalanin dev server). Semua fix di atas udah diverifikasi
