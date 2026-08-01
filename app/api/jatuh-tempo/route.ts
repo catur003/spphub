@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
         ...(tahunAjaranId ? { tahunAjaranId } : {}),
       },
       include: { tahunAjaran: { select: { id: true, nama: true, aktif: true } } },
-      orderBy: { tanggal: "asc" },
+      orderBy: { tanggalAkhir: "asc" },
     });
 
     const res = NextResponse.json(preset);
@@ -40,13 +40,16 @@ export async function POST(req: NextRequest) {
     if (error) return error;
 
     const body = await req.json().catch(() => ({}));
-    const { nama, tanggal, jenis, tahunAjaranId } = body;
+    const { nama, tanggalAwal, tanggalAkhir, jenis, tahunAjaranId } = body;
 
     if (!nama || typeof nama !== "string" || !nama.trim()) {
       return NextResponse.json({ error: "Nama preset wajib diisi" }, { status: 400 });
     }
-    if (!tanggal) {
-      return NextResponse.json({ error: "Tanggal jatuh tempo wajib diisi" }, { status: 400 });
+    if (!tanggalAwal || !tanggalAkhir) {
+      return NextResponse.json({ error: "Tanggal awal dan akhir jatuh tempo wajib diisi" }, { status: 400 });
+    }
+    if (new Date(tanggalAkhir) < new Date(tanggalAwal)) {
+      return NextResponse.json({ error: "Tanggal akhir gak boleh sebelum tanggal awal" }, { status: 400 });
     }
     if (!jenis || !JENIS_VALID.includes(jenis)) {
       return NextResponse.json(
@@ -61,7 +64,8 @@ export async function POST(req: NextRequest) {
     const preset = await prisma.jatuhTempoPreset.create({
       data: {
         nama: nama.trim(),
-        tanggal: new Date(tanggal),
+        tanggalAwal: new Date(tanggalAwal),
+        tanggalAkhir: new Date(tanggalAkhir),
         jenis,
         tahunAjaranId,
       },

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { IconPrinter, IconChart, IconFileText } from "@/components/admin/icons";
-import { JenisTagihanLain, KelasOption, STATUS_INFO, formatRupiah } from "../types";
+import { JenisTagihanLain, KelasOption, STATUS_INFO, formatRupiah, formatTanggalPanjang } from "../types";
 import type { TagihanLain } from "../types";
 
 const selectClass = "w-full rounded-control border border-border-soft px-2.5 py-1.5 text-sm outline-none focus:border-accent";
@@ -246,7 +246,7 @@ export default function LaporanTagihanLainPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 align-middle text-sm text-ink-700 print:border print:border-black">
-                      {new Date(t.jatuhTempo).toLocaleDateString("id-ID")}
+                      {formatTanggalPanjang(t.jatuhTempo)}
                     </td>
                     <td className="px-4 py-3 align-middle text-sm font-bold text-ink-900 print:border print:border-black">{formatRupiah(t.nominal)}</td>
                     <td className="px-4 py-3 align-middle print:border print:border-black">

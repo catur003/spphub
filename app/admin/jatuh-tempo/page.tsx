@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
-import { IconClock, IconPlus, IconEdit, IconTrash, IconX, IconWarning } from "@/components/admin/icons";
+import { IconClock, IconPlus, IconEdit, IconTrash, IconX, IconWarning, IconCalendar } from "@/components/admin/icons";
 import { TahunAjaran, JenisPreset, JatuhTempoPreset } from "./types";
+import { formatTanggalPanjang } from "@/app/admin/tagihan/types";
 
 const selectClass =
   "w-full rounded-control border border-border-soft px-2.5 py-1.5 text-sm text-ink-900 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft";
@@ -29,14 +30,16 @@ export default function JatuhTempoPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [nama, setNama] = useState("");
-  const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0]);
+  const [tanggalAwal, setTanggalAwal] = useState(new Date().toISOString().split("T")[0]);
+  const [tanggalAkhir, setTanggalAkhir] = useState(new Date().toISOString().split("T")[0]);
   const [tahunAjaranId, setTahunAjaranId] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [editTarget, setEditTarget] = useState<JatuhTempoPreset | null>(null);
   const [editNama, setEditNama] = useState("");
-  const [editTanggal, setEditTanggal] = useState("");
+  const [editTanggalAwal, setEditTanggalAwal] = useState("");
+  const [editTanggalAkhir, setEditTanggalAkhir] = useState("");
   const [editTahunAjaranId, setEditTahunAjaranId] = useState("");
   const [editError, setEditError] = useState("");
   const [editSaving, setEditSaving] = useState(false);
@@ -96,13 +99,17 @@ export default function JatuhTempoPage() {
       setError("Tahun ajaran wajib dipilih");
       return;
     }
+    if (tanggalAkhir < tanggalAwal) {
+      setError("Tanggal akhir gak boleh sebelum tanggal awal");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
       const res = await fetch("/api/jatuh-tempo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nama: nama.trim(), tanggal, jenis: tab, tahunAjaranId }),
+        body: JSON.stringify({ nama: nama.trim(), tanggalAwal, tanggalAkhir, jenis: tab, tahunAjaranId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -122,7 +129,8 @@ export default function JatuhTempoPage() {
   function openEdit(p: JatuhTempoPreset) {
     setEditTarget(p);
     setEditNama(p.nama);
-    setEditTanggal(p.tanggal.split("T")[0]);
+    setEditTanggalAwal(p.tanggalAwal.split("T")[0]);
+    setEditTanggalAkhir(p.tanggalAkhir.split("T")[0]);
     setEditTahunAjaranId(p.tahunAjaranId);
     setEditError("");
   }
@@ -133,13 +141,22 @@ export default function JatuhTempoPage() {
       setEditError("Nama preset wajib diisi");
       return;
     }
+    if (editTanggalAkhir < editTanggalAwal) {
+      setEditError("Tanggal akhir gak boleh sebelum tanggal awal");
+      return;
+    }
     setEditSaving(true);
     setEditError("");
     try {
       const res = await fetch(`/api/jatuh-tempo/${editTarget.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nama: editNama.trim(), tanggal: editTanggal, tahunAjaranId: editTahunAjaranId }),
+        body: JSON.stringify({
+          nama: editNama.trim(),
+          tanggalAwal: editTanggalAwal,
+          tanggalAkhir: editTanggalAkhir,
+          tahunAjaranId: editTahunAjaranId,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -174,7 +191,7 @@ export default function JatuhTempoPage() {
   }
 
   const sortedDaftar = useMemo(
-    () => [...daftar].sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime()),
+    () => [...daftar].sort((a, b) => new Date(a.tanggalAkhir).getTime() - new Date(b.tanggalAkhir).getTime()),
     [daftar]
   );
 
@@ -220,7 +237,7 @@ export default function JatuhTempoPage() {
 
           {showForm && (
             <form onSubmit={handleCreate} className="mt-3 grid grid-cols-1 items-end gap-2 sm:grid-cols-2 md:grid-cols-12">
-              <div className="md:col-span-5">
+              <div className="md:col-span-4">
                 <label className={labelClass}>Nama Preset</label>
                 <input
                   className={selectClass}
@@ -229,13 +246,23 @@ export default function JatuhTempoPage() {
                   onChange={(e) => setNama(e.target.value)}
                 />
               </div>
-              <div className="md:col-span-3">
-                <label className={labelClass}>Tanggal Jatuh Tempo</label>
+              <div className="md:col-span-2">
+                <label className={labelClass}>Tanggal Awal</label>
                 <input
                   type="date"
                   className={selectClass}
-                  value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
+                  value={tanggalAwal}
+                  onChange={(e) => setTanggalAwal(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelClass}>Tanggal Akhir</label>
+                <input
+                  type="date"
+                  className={selectClass}
+                  value={tanggalAkhir}
+                  onChange={(e) => setTanggalAkhir(e.target.value)}
                   required
                 />
               </div>
@@ -279,29 +306,39 @@ export default function JatuhTempoPage() {
             Belum ada preset {TAB_INFO[tab].label.toLowerCase()}. Tambah dulu di atas.
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {sortedDaftar.map((p) => (
-              <div key={p.id} className="flex items-center gap-2 rounded-control border border-border-soft bg-surface px-3 py-2 text-sm">
-                <span className="font-semibold text-ink-900">{p.nama}</span>
-                <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[0.68rem] text-accent-hover">
-                  {new Date(p.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-                </span>
-                <span className="text-xs text-ink-500">{p.tahunAjaran?.nama || "-"}</span>
-                <button onClick={() => openEdit(p)} className="text-ink-500 hover:text-accent" title="Edit">
-                  <IconEdit width={13} height={13} />
-                </button>
-                <button
-                  onClick={() => handleHapus(p)}
-                  disabled={deletingId === p.id}
-                  className="text-ink-500 hover:text-red-600 disabled:opacity-60"
-                  title="Hapus"
-                >
-                  {deletingId === p.id ? (
-                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-200 border-t-red-600" />
-                  ) : (
-                    <IconTrash width={13} height={13} />
-                  )}
-                </button>
+              <div
+                key={p.id}
+                className="flex flex-col gap-2.5 rounded-card border border-border-soft bg-white p-4 shadow-sm2 transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-bold leading-snug text-ink-900">{p.nama}</span>
+                  <div className="flex shrink-0 gap-1">
+                    <button onClick={() => openEdit(p)} className="text-ink-500 hover:text-accent" title="Edit">
+                      <IconEdit width={14} height={14} />
+                    </button>
+                    <button
+                      onClick={() => handleHapus(p)}
+                      disabled={deletingId === p.id}
+                      className="text-ink-500 hover:text-red-600 disabled:opacity-60"
+                      title="Hapus"
+                    >
+                      {deletingId === p.id ? (
+                        <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-200 border-t-red-600" />
+                      ) : (
+                        <IconTrash width={14} height={14} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 rounded-control bg-accent-soft px-2.5 py-1.5 text-xs font-semibold text-accent-hover">
+                  <IconCalendar width={13} height={13} />
+                  {formatTanggalPanjang(p.tanggalAwal)} &ndash; {formatTanggalPanjang(p.tanggalAkhir)}
+                </div>
+
+                <div className="text-xs text-ink-500">Tahun Ajaran: {p.tahunAjaran?.nama || "-"}</div>
               </div>
             ))}
           </div>
@@ -323,8 +360,12 @@ export default function JatuhTempoPage() {
               <input className={selectClass} value={editNama} onChange={(e) => setEditNama(e.target.value)} autoFocus />
             </div>
             <div className="mb-3">
-              <label className={labelClass}>Tanggal Jatuh Tempo</label>
-              <input type="date" className={selectClass} value={editTanggal} onChange={(e) => setEditTanggal(e.target.value)} />
+              <label className={labelClass}>Tanggal Awal</label>
+              <input type="date" className={selectClass} value={editTanggalAwal} onChange={(e) => setEditTanggalAwal(e.target.value)} />
+            </div>
+            <div className="mb-3">
+              <label className={labelClass}>Tanggal Akhir</label>
+              <input type="date" className={selectClass} value={editTanggalAkhir} onChange={(e) => setEditTanggalAkhir(e.target.value)} />
             </div>
             <div className="mb-4">
               <label className={labelClass}>Tahun Ajaran</label>

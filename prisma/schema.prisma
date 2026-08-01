@@ -170,7 +170,8 @@ enum JenisPreset {
 model JatuhTempoPreset {
   id            String      @id @default(cuid())
   nama          String // Label bebas, misal "Seragam Gel.1 - 30 Agt"
-  tanggal       DateTime
+  tanggalAwal   DateTime
+  tanggalAkhir  DateTime
   jenis         JenisPreset // "spp" atau "lainnya" — dipisah biar gak campur di dropdown Generate
   tahunAjaranId String
   tahunAjaran   TahunAjaran @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)

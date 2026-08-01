@@ -9,6 +9,7 @@ import {
   IconCreditCard, IconCheckCircle, IconCalendar, IconMegaphone, IconWarning,
   IconUser, IconRefresh, IconSearch, IconFileText, IconWhatsapp,
 } from "@/components/admin/icons";
+import TagihanLainSection from "./components/TagihanLainSection";
 
 type SiswaProfile = {
   id: string;
@@ -328,13 +329,6 @@ export default function SiswaPortalPage() {
         </div>
         <div className="flex items-center gap-2">
           <a
-            href="/siswa/tagihan-lain"
-            className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
-            title="Tagihan Lainnya (seragam, daftar ulang, dll)"
-          >
-            <span className="inline-flex items-center gap-1"><IconClipboard className="h-4 w-4" /> <span className="hidden sm:inline">Tagihan Lainnya</span></span>
-          </a>
-          <a
             href={waUrl}
             target="_blank"
             rel="noreferrer"
@@ -630,6 +624,10 @@ export default function SiswaPortalPage() {
                   </div>
                 );
               })
+            )}
+
+            {!loading && !pageError && (
+              <TagihanLainSection midtransReady={!!midtrans} onToast={tampilToast} />
             )}
           </div>
         )}

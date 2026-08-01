@@ -14,7 +14,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
-    const data: { nama?: string; tanggal?: Date; jenis?: string; tahunAjaranId?: string } = {};
+    const data: { nama?: string; tanggalAwal?: Date; tanggalAkhir?: Date; jenis?: string; tahunAjaranId?: string } = {};
 
     if (body.nama !== undefined) {
       if (!String(body.nama).trim()) {
@@ -22,7 +22,11 @@ export async function PATCH(
       }
       data.nama = String(body.nama).trim();
     }
-    if (body.tanggal !== undefined) data.tanggal = new Date(body.tanggal);
+    if (body.tanggalAwal !== undefined) data.tanggalAwal = new Date(body.tanggalAwal);
+    if (body.tanggalAkhir !== undefined) data.tanggalAkhir = new Date(body.tanggalAkhir);
+    if (data.tanggalAwal && data.tanggalAkhir && data.tanggalAkhir < data.tanggalAwal) {
+      return NextResponse.json({ error: "Tanggal akhir gak boleh sebelum tanggal awal" }, { status: 400 });
+    }
     if (body.jenis !== undefined) {
       if (!JENIS_VALID.includes(body.jenis)) {
         return NextResponse.json(

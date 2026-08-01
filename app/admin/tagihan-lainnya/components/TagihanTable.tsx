@@ -1,7 +1,7 @@
 "use client";
 
 import { IconRefresh, IconSearch, IconWarning, IconCheck, IconFileText, IconTrash } from "@/components/admin/icons";
-import { TagihanLain, SortField, STATUS_INFO, getAvatarColor, getInisial } from "../types";
+import { TagihanLain, SortField, STATUS_INFO, getAvatarColor, getInisial, formatTanggalPanjang } from "../types";
 
 type Props = {
   loadingData: boolean;
@@ -204,7 +204,7 @@ export default function TagihanTable({
                       {t.keterangan && <div className="text-xs text-ink-500">{t.keterangan}</div>}
                     </td>
                     <td className="border-b border-slate-100 bg-white px-5 py-4 align-middle text-sm text-ink-900">
-                      {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                      {formatTanggalPanjang(t.jatuhTempo)}
                     </td>
                     <td className="border-b border-slate-100 bg-white px-5 py-4 align-middle text-sm">
                       <div className="font-bold text-ink-900">Rp {t.nominal.toLocaleString("id-ID")}</div>

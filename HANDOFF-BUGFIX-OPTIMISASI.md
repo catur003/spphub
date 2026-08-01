@@ -117,6 +117,57 @@ investigasi dari nol.**
 
 ---
 
+## 0b. Penyesuaian lanjutan (sesi kedua) — ⬜ BELUM di-push/compile
+
+Setelah fitur di atas (0) jadi, Zen minta beberapa penyesuaian:
+
+1. **Preset jatuh tempo sekarang rentang (awal–akhir)**, bukan tanggal
+   tunggal. Schema `JatuhTempoPreset` diubah: `tanggal` → `tanggalAwal` +
+   `tanggalAkhir`. **Field lama `tanggal` udah gak ada** — kalau ada data
+   lama di tabel `jatuh_tempo_preset` dari `db push` sebelumnya, bakal
+   perlu di-drop/re-create (belum ada preset asli yang dibuat user kok,
+   jadi aman di-push ulang).
+2. **Halaman Kelola Jatuh Tempo** — form input jadi 2 field tanggal
+   (awal + akhir), list preset diubah dari chip flex-wrap jadi **card
+   grid** (`sm:grid-cols-2 lg:grid-cols-3`).
+3. **Generate Tagihan (SPP & Lainnya)** — dropdown preset sekarang
+   **controlled** (state lokal `selectedPresetId` di tiap `GenerateForm`)
+   biar teks dropdown ikut berubah nunjukin preset yang dipilih (sebelumnya
+   bug: `value=""` bikin teks selalu balik ke "-- Pilih Preset --").
+   Setelah preset dipilih, input tanggal manual diganti tampilan
+   **read-only** nunjukin rentang awal–akhir (format baru, lihat poin 4).
+   Kalau presetList kosong (tahun ajaran belum punya preset), tetap
+   fallback ke input tanggal manual biar generate gak keblokir total.
+4. **Format tanggal baru**: `formatTanggalPanjang()` di
+   `app/admin/tagihan/types.ts` — hasilnya `"12-Juli-2026"` (dash,
+   nama bulan panjang), dipakai di: kartu preset Kelola Jatuh Tempo,
+   dropdown+readonly range di GenerateForm (SPP & Lainnya), kolom Tempo
+   di TagihanTable (SPP & Lainnya), tabel Laporan Tagihan Lainnya, dan
+   section Tagihan Lainnya di portal siswa. Diexport ulang dari
+   `tagihan-lainnya/types.ts` biar gampang diimport dari mana aja.
+5. **Filter Data Tagihan (SPP)** — filter rentang tanggal manual yang
+   ditambahin di sesi pertama, sekarang diganti **dropdown pilih preset**
+   (`filterPresetId`, ambil dari list preset SPP lengkap tanpa dibatasi
+   tahun ajaran — fetch sekali via `muatFilterPresetList()`). Saat submit,
+   `page.tsx` nerjemahin preset terpilih jadi `jatuhTempoStart`/
+   `jatuhTempoEnd` sebelum kirim ke API (API `/api/tagihan` gak berubah).
+6. **Portal siswa — Tagihan Lainnya digabung ke halaman utama**. Route
+   terpisah `/siswa/tagihan-lain` **dihapus total**. Logikanya sekarang di
+   komponen baru `app/siswa/components/TagihanLainSection.tsx` (card list,
+   fetch sendiri, terima `midtransReady` + `onToast` dari parent biar
+   gak load ulang script Snap). Dirender di `app/siswa/page.tsx` persis
+   di bawah daftar Tagihan SPP (masih di dalam tab "Tagihan SPP"), dikasih
+   pemisah `mt-8 border-t border-dashed`. Tombol navbar "Tagihan Lainnya"
+   yang link ke halaman terpisah juga dihapus.
+
+⚠️ Sama kayak poin 0 — **belum pernah dicompile**, cuma diverifikasi
+manual (grep referensi field lama + cek balance kurung kurawal/parentheses
+di semua file yang disentuh). Prioritas pertama pas ada akses build:
+`npx prisma db push` dulu (schema berubah lagi di sesi ini), baru
+`npm run build`.
+
+---
+
 ## 2. Keputusan yang udah dikonfirmasi Zen (PENTING — jangan tanya ulang)
 
 ### Tahap 6 — Fitur Tagihan Lainnya

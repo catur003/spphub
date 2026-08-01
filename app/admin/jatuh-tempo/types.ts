@@ -5,7 +5,8 @@ export type JenisPreset = "spp" | "lainnya";
 export type JatuhTempoPreset = {
   id: string;
   nama: string;
-  tanggal: string;
+  tanggalAwal: string;
+  tanggalAkhir: string;
   jenis: JenisPreset;
   tahunAjaranId: string;
   tahunAjaran?: TahunAjaran | null;

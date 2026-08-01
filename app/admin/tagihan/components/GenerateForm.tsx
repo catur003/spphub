@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { IconSync, IconZap, IconWarning, IconCheckCircle, IconClock } from "@/components/admin/icons";
-import { TahunAjaran, KelasOption, BULAN_LABEL, TAHUN_OPTIONS } from "../types";
+import { TahunAjaran, KelasOption, BULAN_LABEL, TAHUN_OPTIONS, formatTanggalPanjang } from "../types";
 
 type GenState = {
   tahunAjaranId: string;
@@ -12,7 +13,7 @@ type GenState = {
   jatuhTempo: string;
 };
 
-export type JatuhTempoPreset = { id: string; nama: string; tanggal: string };
+export type JatuhTempoPreset = { id: string; nama: string; tanggalAwal: string; tanggalAkhir: string };
 
 type Props = {
   gen: GenState;
@@ -45,6 +46,15 @@ export default function GenerateForm({
   onSubmit,
   onSyncNominal,
 }: Props) {
+  const [selectedPresetId, setSelectedPresetId] = useState("");
+
+  // Reset pilihan preset kalau daftar preset berubah (misal ganti tahun ajaran)
+  useEffect(() => {
+    setSelectedPresetId("");
+  }, [presetList]);
+
+  const selectedPreset = presetList.find((p) => p.id === selectedPresetId) || null;
+
   return (
     <div className="mb-4 rounded-card border border-border-soft bg-white p-5 shadow-sm2">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -154,30 +164,41 @@ export default function GenerateForm({
           <label className={labelClass}>
             <span className="inline-flex items-center gap-1"><IconClock width={12} height={12} /> Jatuh Tempo</span>
           </label>
-          {presetList.length > 0 && (
-            <select
-              className={`${selectClass} mb-1`}
-              value=""
-              onChange={(e) => {
-                const p = presetList.find((x) => x.id === e.target.value);
-                if (p) setGen((g) => ({ ...g, jatuhTempo: p.tanggal.split("T")[0] }));
-              }}
-            >
-              <option value="">-- Pilih Preset --</option>
-              {presetList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nama} ({new Date(p.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short" })})
-                </option>
-              ))}
-            </select>
+          {presetList.length > 0 ? (
+            <>
+              <select
+                className={selectClass}
+                value={selectedPresetId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelectedPresetId(id);
+                  const p = presetList.find((x) => x.id === id);
+                  if (p) setGen((g) => ({ ...g, jatuhTempo: p.tanggalAkhir.split("T")[0] }));
+                }}
+                required
+              >
+                <option value="">-- Pilih Preset --</option>
+                {presetList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nama}
+                  </option>
+                ))}
+              </select>
+              {selectedPreset && (
+                <div className="mt-1 rounded-control border border-border-soft bg-surface px-2.5 py-1.5 text-xs text-ink-700">
+                  {formatTanggalPanjang(selectedPreset.tanggalAwal)} &ndash; {formatTanggalPanjang(selectedPreset.tanggalAkhir)}
+                </div>
+              )}
+            </>
+          ) : (
+            <input
+              type="date"
+              className={selectClass}
+              value={gen.jatuhTempo}
+              onChange={(e) => setGen((g) => ({ ...g, jatuhTempo: e.target.value }))}
+              required
+            />
           )}
-          <input
-            type="date"
-            className={selectClass}
-            value={gen.jatuhTempo}
-            onChange={(e) => setGen((g) => ({ ...g, jatuhTempo: e.target.value }))}
-            required
-          />
         </div>
         <div className="md:col-span-2">
           <button

@@ -1,5 +1,5 @@
 export type { KelasOption, TahunAjaran, SiswaDetail } from "@/app/admin/tagihan/types";
-export { formatRupiah, getAvatarColor, getInisial, STATUS_INFO } from "@/app/admin/tagihan/types";
+export { formatRupiah, formatTanggalPanjang, getAvatarColor, getInisial, STATUS_INFO } from "@/app/admin/tagihan/types";
 import type { SiswaDetail } from "@/app/admin/tagihan/types";
 
 export type JenisTagihanLain = {

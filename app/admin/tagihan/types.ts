@@ -56,6 +56,12 @@ export function getInisial(nama: string = "Siswa") {
   return nama.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase() || "").join("");
 }
 
+// Format tanggal "12-Juli-2026" (dash-separated, nama bulan panjang)
+export function formatTanggalPanjang(d: string | Date): string {
+  const date = typeof d === "string" ? new Date(d) : d;
+  return `${date.getDate()}-${BULAN_LABEL[date.getMonth() + 1]}-${date.getFullYear()}`;
+}
+
 export function formatRupiah(n: number): string {
   return n.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 });
 }

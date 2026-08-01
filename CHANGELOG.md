@@ -5,6 +5,31 @@ yang paling baru.
 
 ---
 
+## [Penyesuaian] Preset jadi rentang tanggal, card list, format tanggal baru, filter by preset, siswa page digabung
+
+⚠️ Belum di-`prisma db push` ulang (schema berubah lagi), belum pernah
+dicompile. Detail lengkap ada di bagian 0b `HANDOFF-BUGFIX-OPTIMISASI.md`.
+
+- **Schema**: `JatuhTempoPreset.tanggal` → `tanggalAwal` + `tanggalAkhir`.
+- **Kelola Jatuh Tempo**: form 2 tanggal (awal-akhir), list preset jadi
+  card grid (bukan chip flex-wrap lagi).
+- **Generate Tagihan (SPP & Lainnya)**: dropdown preset controlled (teks
+  ikut berubah pas dipilih — sebelumnya bug selalu balik ke placeholder),
+  field tanggal jadi read-only nunjukin rentang awal-akhir setelah preset
+  dipilih (fallback ke manual kalau belum ada preset).
+- **Format tanggal baru** `formatTanggalPanjang()` (contoh: `12-Juli-2026`)
+  dipakai konsisten di: kartu preset, dropdown+readonly Generate, kolom
+  Tempo TagihanTable (SPP & Lainnya), tabel Laporan Tagihan Lainnya,
+  section Tagihan Lainnya di portal siswa.
+- **Filter Data Tagihan (SPP)**: filter rentang tanggal manual diganti
+  dropdown pilih preset jatuh tempo.
+- **Portal Siswa**: route terpisah `/siswa/tagihan-lain` dihapus, kontennya
+  (card list) sekarang nempel di bawah daftar Tagihan SPP di halaman
+  utama siswa (`app/siswa/components/TagihanLainSection.tsx`), dikasih
+  pemisah gap. Tombol navbar terpisah juga dihapus.
+
+---
+
 ## [Fitur Baru] Kelola Jatuh Tempo (preset) + Hapus Massal SPP + Filter Jatuh Tempo
 
 ⚠️ Belum di-`prisma db push`, belum pernah dicompile (sandbox gak ada

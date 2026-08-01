@@ -3,6 +3,8 @@
 import { IconSearch, IconX } from "@/components/admin/icons";
 import { KelasOption, BULAN_LABEL, STATUS_INFO } from "../types";
 
+type PresetOption = { id: string; nama: string };
+
 type Props = {
   filterQ: string;
   setFilterQ: (v: string) => void;
@@ -14,10 +16,9 @@ type Props = {
   setFilterBulan: (v: string) => void;
   filterStatus: string;
   setFilterStatus: (v: string) => void;
-  filterJatuhTempoStart: string;
-  setFilterJatuhTempoStart: (v: string) => void;
-  filterJatuhTempoEnd: string;
-  setFilterJatuhTempoEnd: (v: string) => void;
+  filterPresetId: string;
+  setFilterPresetId: (v: string) => void;
+  filterPresetList: PresetOption[];
   tingkatOptions: (number | undefined)[];
   filteredKelasList: KelasOption[];
   kelasList: KelasOption[];
@@ -40,10 +41,9 @@ export default function FilterToolbar({
   setFilterBulan,
   filterStatus,
   setFilterStatus,
-  filterJatuhTempoStart,
-  setFilterJatuhTempoStart,
-  filterJatuhTempoEnd,
-  setFilterJatuhTempoEnd,
+  filterPresetId,
+  setFilterPresetId,
+  filterPresetList,
   tingkatOptions,
   filteredKelasList,
   kelasList,
@@ -127,22 +127,15 @@ export default function FilterToolbar({
           </select>
         </div>
 
-        <div className="col-span-2 flex items-center gap-1 md:col-span-3">
-          <input
-            type="date"
-            className={selectClass}
-            title="Jatuh Tempo Dari"
-            value={filterJatuhTempoStart}
-            onChange={(e) => setFilterJatuhTempoStart(e.target.value)}
-          />
-          <span className="text-xs text-ink-500">s/d</span>
-          <input
-            type="date"
-            className={selectClass}
-            title="Jatuh Tempo Sampai"
-            value={filterJatuhTempoEnd}
-            onChange={(e) => setFilterJatuhTempoEnd(e.target.value)}
-          />
+        <div className="col-span-2 md:col-span-3">
+          <select className={selectClass} value={filterPresetId} onChange={(e) => setFilterPresetId(e.target.value)}>
+            <option value="">Semua Jatuh Tempo</option>
+            {filterPresetList.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nama}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -173,9 +166,9 @@ export default function FilterToolbar({
             {filterQ && (
               <span className="rounded-full bg-ink-900 px-2 py-1 text-white">Cari: "{filterQ}"</span>
             )}
-            {(filterJatuhTempoStart || filterJatuhTempoEnd) && (
+            {(filterPresetId && filterPresetList.find((p) => p.id === filterPresetId)) && (
               <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">
-                Jatuh Tempo: {filterJatuhTempoStart || "…"} s/d {filterJatuhTempoEnd || "…"}
+                Jatuh Tempo: {filterPresetList.find((p) => p.id === filterPresetId)?.nama}
               </span>
             )}
           </div>

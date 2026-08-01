@@ -1,7 +1,7 @@
 "use client";
 
 import { IconWhatsapp, IconFileText, IconCheck, IconRefresh, IconSearch, IconWarning, IconTrash } from "@/components/admin/icons";
-import { Tagihan, SortField, BULAN_LABEL, STATUS_INFO, getAvatarColor, getInisial } from "../types";
+import { Tagihan, SortField, BULAN_LABEL, STATUS_INFO, getAvatarColor, getInisial, formatTanggalPanjang } from "../types";
 
 type Props = {
   loadingData: boolean;
@@ -206,7 +206,7 @@ export default function TagihanTable({
                         {BULAN_LABEL[t.bulan]} {t.tahun}
                       </div>
                       <div className="text-xs text-ink-500">
-                        Tempo: {new Date(t.jatuhTempo).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                        Tempo: {formatTanggalPanjang(t.jatuhTempo)}
                       </div>
                     </td>
                     <td className="border-b border-slate-100 bg-white px-5 py-4 align-middle text-sm">

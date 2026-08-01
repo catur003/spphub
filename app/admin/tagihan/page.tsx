@@ -24,8 +24,8 @@ export default function TagihanPage() {
   const [filterTingkat, setFilterTingkat] = useState("");
   const [filterKelasId, setFilterKelasId] = useState("");
   const [filterQ, setFilterQ] = useState("");
-  const [filterJatuhTempoStart, setFilterJatuhTempoStart] = useState("");
-  const [filterJatuhTempoEnd, setFilterJatuhTempoEnd] = useState("");
+  const [filterPresetId, setFilterPresetId] = useState("");
+  const [filterPresetList, setFilterPresetList] = useState<JatuhTempoPreset[]>([]);
   const [sortField, setSortField] = useState<SortField>("periode");
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -125,6 +125,11 @@ export default function TagihanPage() {
     if (res.ok) setPresetList(await res.json());
   }, []);
 
+  const muatFilterPresetList = useCallback(async () => {
+    const res = await fetch(`/api/jatuh-tempo?jenis=spp`);
+    if (res.ok) setFilterPresetList(await res.json());
+  }, []);
+
   const muatTagihan = useCallback(
     async (signal?: AbortSignal) => {
       setLoadingData(true);
@@ -136,8 +141,11 @@ export default function TagihanPage() {
       if (filterTingkat) params.set("tingkat", filterTingkat);
       if (filterKelasId) params.set("kelasId", filterKelasId);
       if (filterQ) params.set("q", filterQ);
-      if (filterJatuhTempoStart) params.set("jatuhTempoStart", filterJatuhTempoStart);
-      if (filterJatuhTempoEnd) params.set("jatuhTempoEnd", filterJatuhTempoEnd);
+      const presetTerpilih = filterPresetList.find((p) => p.id === filterPresetId);
+      if (presetTerpilih) {
+        params.set("jatuhTempoStart", presetTerpilih.tanggalAwal.split("T")[0]);
+        params.set("jatuhTempoEnd", presetTerpilih.tanggalAkhir.split("T")[0]);
+      }
 
       try {
         const res = await fetch(`/api/tagihan?${params.toString()}`, { signal });
@@ -157,12 +165,13 @@ export default function TagihanPage() {
         setLoadingData(false);
       }
     },
-    [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ, filterJatuhTempoStart, filterJatuhTempoEnd]
+    [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ, filterPresetId, filterPresetList]
   );
 
   useEffect(() => {
     muatTahunAjaran();
     muatKelas();
+    muatFilterPresetList();
   }, []);
 
   useEffect(() => {
@@ -187,8 +196,7 @@ export default function TagihanPage() {
     filterTingkat,
     filterKelasId,
     filterQ,
-    filterJatuhTempoStart,
-    filterJatuhTempoEnd,
+    filterPresetId,
     sortField,
     sortAsc,
   ]);
@@ -370,8 +378,7 @@ export default function TagihanPage() {
     filterKelasId ||
     filterTingkat ||
     filterQ ||
-    filterJatuhTempoStart ||
-    filterJatuhTempoEnd
+    filterPresetId
   );
 
   function resetFilter() {
@@ -381,8 +388,7 @@ export default function TagihanPage() {
     setFilterKelasId("");
     setFilterTingkat("");
     setFilterQ("");
-    setFilterJatuhTempoStart("");
-    setFilterJatuhTempoEnd("");
+    setFilterPresetId("");
   }
 
   return (
@@ -445,10 +451,9 @@ export default function TagihanPage() {
           setFilterBulan={setFilterBulan}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
-          filterJatuhTempoStart={filterJatuhTempoStart}
-          setFilterJatuhTempoStart={setFilterJatuhTempoStart}
-          filterJatuhTempoEnd={filterJatuhTempoEnd}
-          setFilterJatuhTempoEnd={setFilterJatuhTempoEnd}
+          filterPresetId={filterPresetId}
+          setFilterPresetId={setFilterPresetId}
+          filterPresetList={filterPresetList}
           tingkatOptions={tingkatOptions}
           filteredKelasList={filteredKelasList}
           kelasList={kelasList}
