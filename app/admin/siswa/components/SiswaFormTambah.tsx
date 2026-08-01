@@ -1,6 +1,7 @@
 "use client";
 
 import { FormTambah, Kelas, STATUS_LABEL } from "../types";
+import { IconPlus, IconCheck, IconKey } from "@/components/admin/icons";
 
 type Props = {
   formTambah: FormTambah;
@@ -30,7 +31,7 @@ export default function SiswaFormTambah({
   return (
     <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
       <div className="bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] px-4 py-3.5">
-        <h2 className="m-0 text-sm font-bold text-white">✚ Tambah Siswa Baru</h2>
+        <h2 className="m-0 flex items-center gap-1.5 text-sm font-bold text-white"><IconPlus className="h-4 w-4" /> Tambah Siswa Baru</h2>
       </div>
       <div className="p-4">
         {errorTambah && (
@@ -118,7 +119,7 @@ export default function SiswaFormTambah({
                   alt="Preview"
                   className="h-10 w-10 rounded-control object-cover"
                 />
-                <span className="text-sm font-semibold text-green-700">✓ Foto Terpilih</span>
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-700"><IconCheck className="h-3.5 w-3.5" /> Foto Terpilih</span>
               </div>
             )}
           </div>
@@ -165,7 +166,7 @@ export default function SiswaFormTambah({
                 checked={formTambah.buatAkun}
                 onChange={(e) => setFormTambah((f) => ({ ...f, buatAkun: e.target.checked }))}
               />
-              🔑 Buat Akun Login Portal Siswa
+              <span className="inline-flex items-center gap-1.5"><IconKey className="h-3.5 w-3.5" /> Buat Akun Login Portal Siswa</span>
             </label>
             {formTambah.buatAkun && (
               <div className="mt-2 border-t border-border-soft pt-2">

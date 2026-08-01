@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import { IconCreditCard, IconPlus, IconSave, IconClipboard, IconSearch, IconCheck, IconClock } from "@/components/admin/icons";
 
 type Utang = {
   id: string;
@@ -83,7 +84,7 @@ export default function UtangPegawaiPage() {
         tanggalPinjam: new Date().toISOString().split("T")[0],
         keterangan: "",
       });
-      await alertMsg("🎉 Pinjaman kasbon pegawai berhasil dicatat!");
+      await alertMsg("Pinjaman kasbon pegawai berhasil dicatat!");
       muatData();
     } catch (err: any) {
       setSubmitting(false);
@@ -100,7 +101,7 @@ export default function UtangPegawaiPage() {
         body: JSON.stringify({ tandaiLunas: true }),
       });
       if (res.ok) {
-        await alertMsg(`✅ Kasbon atas nama ${nama} berhasil dilunasi!`);
+        await alertMsg(`Kasbon atas nama ${nama} berhasil dilunasi!`);
         muatData();
       }
     } catch (err: any) {
@@ -130,7 +131,7 @@ export default function UtangPegawaiPage() {
       <div className="w-full p-4">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl font-bold text-ink-900">💳 Kelola Utang Pegawai (Kasbon Staf & Guru)</h1>
+            <h1 className="flex items-center gap-2 text-xl font-bold text-ink-900"><IconCreditCard className="h-5 w-5" /> Kelola Utang Pegawai (Kasbon Staf &amp; Guru)</h1>
             <p className="text-sm text-ink-500">
               Pencatatan Pinjaman Kasbon Guru dan Staf Sekolah beserta Pengembalian & Pelunasan.
             </p>
@@ -142,7 +143,7 @@ export default function UtangPegawaiPage() {
           <div className="col-span-12 lg:col-span-4">
             <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm2">
               <div className="bg-ink-900 p-3">
-                <h2 className="text-sm font-bold text-white">✚ Catat Pinjaman / Kasbon Baru</h2>
+                <h2 className="flex items-center gap-1.5 text-sm font-bold text-white"><IconPlus className="h-4 w-4" /> Catat Pinjaman / Kasbon Baru</h2>
               </div>
               <div className="p-4">
                 {error && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -206,7 +207,7 @@ export default function UtangPegawaiPage() {
                     className="w-full rounded-control bg-ink-900 py-2.5 text-sm font-bold text-white shadow-sm2 transition hover:bg-black disabled:opacity-60"
                     disabled={submitting}
                   >
-                    {submitting ? "Menyimpan..." : "💾 Simpan Kasbon Pegawai"}
+                    {submitting ? "Menyimpan..." : <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Kasbon Pegawai</span>}
                   </button>
                 </form>
               </div>
@@ -218,18 +219,21 @@ export default function UtangPegawaiPage() {
             <div className="rounded-2xl border border-border-soft bg-white p-4 shadow-sm2">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h6 className="font-bold text-ink-900">📋 Daftar Pinjaman Pegawai (Kasbon)</h6>
+                  <h6 className="flex items-center gap-1.5 font-bold text-ink-900"><IconClipboard className="h-4 w-4" /> Daftar Pinjaman Pegawai (Kasbon)</h6>
                   <small className="text-ink-500">
                     Total Sisa Kasbon: <strong className="text-red-600">Rp {totalSisaKasbon.toLocaleString("id-ID")}</strong> ({pegawaiAktifCount} pegawai aktif)
                   </small>
                 </div>
                 <div className="flex gap-2">
-                  <input
-                    className="rounded-control border border-border-soft px-3 py-1.5 text-sm outline-none focus:border-ink-900"
-                    placeholder="🔍 Cari nama pegawai..."
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                  />
+                  <div className="relative">
+                    <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-500/50" />
+                    <input
+                      className="rounded-control border border-border-soft py-1.5 pl-8 pr-3 text-sm outline-none focus:border-ink-900"
+                      placeholder="Cari nama pegawai..."
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                    />
+                  </div>
                   <select
                     className="rounded-control border border-border-soft px-3 py-1.5 text-sm outline-none focus:border-ink-900"
                     value={statusFilter}
@@ -275,9 +279,9 @@ export default function UtangPegawaiPage() {
                             <td className="px-2 py-2 font-bold text-red-600">Rp {sisa.toLocaleString("id-ID")}</td>
                             <td className="px-2 py-2">
                               {item.status === "lunas" ? (
-                                <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-status-lunas">✓ Lunas</span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs text-status-lunas"><IconCheck className="h-3 w-3" /> Lunas</span>
                               ) : (
-                                <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-status-belum">⏳ Aktif</span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs text-status-belum"><IconClock className="h-3 w-3" /> Aktif</span>
                               )}
                             </td>
                             <td className="whitespace-nowrap px-2 py-2 text-right">
@@ -287,7 +291,7 @@ export default function UtangPegawaiPage() {
                                     className="rounded-full border border-status-lunas px-2.5 py-1 text-xs font-bold text-status-lunas transition hover:bg-emerald-50"
                                     onClick={() => handleBayarLunas(item.id, item.namaPegawai)}
                                   >
-                                    ✓ Pelunasan
+                                    <span className="inline-flex items-center gap-1"><IconCheck className="h-3.5 w-3.5" /> Pelunasan</span>
                                   </button>
                                 )}
                                 <button

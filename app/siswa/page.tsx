@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import {
+  IconCheck, IconX, IconGraduationCap, IconLogout, IconClipboard, IconChart,
+  IconCreditCard, IconCheckCircle, IconCalendar, IconMegaphone, IconWarning,
+  IconUser, IconRefresh, IconSearch, IconFileText, IconWhatsapp,
+} from "@/components/admin/icons";
 
 type SiswaProfile = {
   id: string;
@@ -306,14 +311,14 @@ export default function SiswaPortalPage() {
             "border-red-500 text-red-800"
           }`}
         >
-          {toast.type === "success" ? "✓" : toast.type === "info" ? "ℹ" : "✕"} {toast.msg}
+          {toast.type === "success" ? <IconCheck className="inline h-4 w-4" /> : toast.type === "info" ? <IconWarning className="inline h-4 w-4" /> : <IconX className="inline h-4 w-4" />} {toast.msg}
         </div>
       )}
 
       {/* Top Navbar */}
       <div className="group sticky top-0 z-[100] flex items-center justify-between gap-2 bg-gradient-to-br from-[#1e1b4b] via-[#3730a3] to-[#4f46e5] px-4 py-3 text-white shadow-[0_4px_20px_rgba(30,27,75,0.25)] backdrop-blur-md md:px-6">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="text-2xl transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110">🎓</span>
+          <IconGraduationCap className="h-6 w-6 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" />
           <div className="min-w-0 truncate">
             <h1 className="truncate text-sm font-bold text-white">SPP Sekolah Digital</h1>
             <span className="hidden rounded-full border border-white/15 bg-white/[0.18] px-2.5 py-[3px] text-[0.7rem] font-semibold tracking-wide text-indigo-100 backdrop-blur-sm md:inline-block">
@@ -329,7 +334,7 @@ export default function SiswaPortalPage() {
             className="hidden items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink-900 shadow-[0_2px_8px_rgba(0,0,0,0.1)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(255,255,255,0.3)] md:inline-flex"
             title="Hubungi Bendahara via WhatsApp"
           >
-            💬 Hubungi Bendahara
+            <span className="inline-flex items-center gap-1"><IconWhatsapp className="h-4 w-4" /> Hubungi Bendahara</span>
           </a>
           <button
             className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:border-red-400/90 hover:bg-red-500/85 hover:shadow-[0_4px_12px_rgba(239,68,68,0.3)]"
@@ -342,7 +347,7 @@ export default function SiswaPortalPage() {
                 Keluar...
               </span>
             ) : (
-              <><span>Keluar</span> 🚪</>
+              <span className="inline-flex items-center gap-1"><span>Keluar</span> <IconLogout className="h-4 w-4" /></span>
             )}
           </button>
         </div>
@@ -381,7 +386,7 @@ export default function SiswaPortalPage() {
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 transition-all duration-150 hover:scale-105 hover:bg-slate-200 hover:text-slate-800 active:scale-95"
                     onClick={() => copyToClipboard(siswa.nis, "NIS")}
                   >
-                    📋 Salin NIS
+                    <span className="inline-flex items-center gap-1"><IconClipboard className="h-3.5 w-3.5" /> Salin NIS</span>
                   </button>
                 )}
                 {siswa?.nisn && (
@@ -392,7 +397,7 @@ export default function SiswaPortalPage() {
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 transition-all duration-150 hover:scale-105 hover:bg-slate-200 hover:text-slate-800 active:scale-95"
                       onClick={() => copyToClipboard(siswa.nisn!, "NISN")}
                     >
-                      📋 Salin NISN
+                      <span className="inline-flex items-center gap-1"><IconClipboard className="h-3.5 w-3.5" /> Salin NISN</span>
                     </button>
                   </>
                 )}
@@ -400,7 +405,7 @@ export default function SiswaPortalPage() {
 
               {siswa?.namaWali && (
                 <p className="mt-2 text-[0.82rem] italic text-ink-500">
-                  👨‍👩‍👧 Wali: <strong className="not-italic">{siswa.namaWali}</strong> {siswa.kontakWali ? `(${siswa.kontakWali})` : ""}
+                  <IconUser className="mr-1 inline h-3.5 w-3.5" /> Wali: <strong className="not-italic">{siswa.namaWali}</strong> {siswa.kontakWali ? `(${siswa.kontakWali})` : ""}
                 </p>
               )}
             </div>
@@ -415,7 +420,7 @@ export default function SiswaPortalPage() {
         <div className="mb-6 animate-fade-in-up-lg rounded-[18px] border border-border-soft bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.03)] transition-all duration-200 [animation-delay:0.08s] hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
             <div>
-              <span className="text-sm font-bold text-ink-900">📊 Capaian SPP Sekolah</span>
+              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-ink-900"><IconChart className="h-4 w-4" /> Capaian SPP Sekolah</span>
               <span className="ml-2 hidden text-sm text-ink-500 sm:inline">({lunasCount} dari {totalBulanCount} bulan terbayar)</span>
             </div>
             <span className="rounded-full bg-status-lunas px-3 py-1 text-sm font-bold text-white shadow-sm2">{persenLunas}% Lunas</span>
@@ -435,7 +440,7 @@ export default function SiswaPortalPage() {
         {/* Ringkasan Stats Cards */}
         <div className="mb-6 grid animate-fade-in-up-lg grid-cols-1 gap-3 [animation-delay:0.16s] sm:grid-cols-2 md:grid-cols-3">
           <div className="group flex h-full items-center gap-4 rounded-[18px] border border-border-soft bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
-            <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl bg-red-100 text-2xl text-red-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[5deg]">💳</div>
+            <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[5deg]"><IconCreditCard className="h-6 w-6" /></div>
             <div>
               <div className="text-sm font-semibold text-ink-500">Total Tunggakan</div>
               <div className="text-lg font-bold text-red-600">
@@ -446,7 +451,7 @@ export default function SiswaPortalPage() {
           </div>
 
           <div className="group flex h-full items-center gap-4 rounded-[18px] border border-border-soft bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
-            <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl bg-green-100 text-2xl text-green-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[5deg]">✅</div>
+            <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl bg-green-100 text-green-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[5deg]"><IconCheckCircle className="h-6 w-6" /></div>
             <div>
               <div className="text-sm font-semibold text-ink-500">SPP Terbayar</div>
               <div className="text-lg font-bold text-green-600">
@@ -457,7 +462,7 @@ export default function SiswaPortalPage() {
           </div>
 
           <div className="group flex h-full items-center gap-4 rounded-[18px] border border-border-soft bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] sm:col-span-2 md:col-span-1">
-            <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-2xl text-indigo-700 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[5deg]">📅</div>
+            <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[5deg]"><IconCalendar className="h-6 w-6" /></div>
             <div>
               <div className="text-sm font-semibold text-ink-500">Status SPP Bulan Ini</div>
               <div className="mt-1 text-sm font-bold">
@@ -480,7 +485,7 @@ export default function SiswaPortalPage() {
             {pengumuman.map(p => (
               <div key={p.id} className="mb-3 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 p-4 shadow-sm2 transition-transform duration-200 hover:-translate-y-0.5">
                 <div className="flex items-start gap-3">
-                  <div className="animate-pulse text-2xl">📢</div>
+                  <div className="animate-pulse"><IconMegaphone className="h-6 w-6" /></div>
                   <div className="flex-grow">
                     <div className="mb-1 font-bold text-accent">{p.judul}</div>
                     <div className="mb-1 whitespace-pre-wrap text-sm text-ink-900">{p.isi}</div>
@@ -497,7 +502,7 @@ export default function SiswaPortalPage() {
         {/* Banner Error Pembayaran */}
         {bayarError && (
           <div className="mb-6 flex items-start gap-2 rounded-2xl border-[1.5px] border-red-200 bg-red-50 px-4 py-3 text-red-800">
-            <span className="text-xl">⚠️</span>
+            <IconWarning className="h-5 w-5" />
             <div className="text-sm">
               <strong>Pembayaran Gagal:</strong> {bayarError}
             </div>
@@ -515,7 +520,7 @@ export default function SiswaPortalPage() {
             }`}
             onClick={() => setActiveTab("tagihan")}
           >
-            💳 Tagihan SPP ({tagihanBelumLunas.length})
+            <span className="inline-flex items-center gap-1.5"><IconCreditCard className="h-4 w-4" /> Tagihan SPP ({tagihanBelumLunas.length})</span>
           </button>
           <button
             className={`flex items-center gap-2 whitespace-nowrap rounded-t-[10px] border-b-[3px] px-5 py-3 text-sm font-semibold transition-all duration-200 ${
@@ -525,7 +530,7 @@ export default function SiswaPortalPage() {
             }`}
             onClick={() => setActiveTab("riwayat")}
           >
-            📑 Riwayat Lunas ({tagihanLunas.length})
+            <span className="inline-flex items-center gap-1.5"><IconFileText className="h-4 w-4" /> Riwayat Lunas ({tagihanLunas.length})</span>
           </button>
           <button
             className={`flex items-center gap-2 whitespace-nowrap rounded-t-[10px] border-b-[3px] px-5 py-3 text-sm font-semibold transition-all duration-200 ${
@@ -535,7 +540,7 @@ export default function SiswaPortalPage() {
             }`}
             onClick={() => setActiveTab("profil")}
           >
-            👤 Data Diri Siswa
+            <span className="inline-flex items-center gap-1.5"><IconUser className="h-4 w-4" /> Data Diri Siswa</span>
           </button>
         </div>
 
@@ -551,7 +556,7 @@ export default function SiswaPortalPage() {
               <div className="rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{pageError}</div>
             ) : tagihanBelumLunas.length === 0 ? (
               <div className="animate-float-bounce rounded-2xl border border-border-soft bg-white p-4 py-10 text-center shadow-sm2">
-                <div className="mb-2 text-[3.5rem]">🎉</div>
+                <IconCheckCircle className="mx-auto mb-2 h-14 w-14 text-status-lunas" />
                 <h4 className="text-lg font-bold text-ink-900">Semua Tagihan SPP Lunas!</h4>
                 <p className="text-sm text-ink-500">Terima kasih, tidak ada tunggakan SPP yang perlu dibayar saat ini.</p>
               </div>
@@ -589,7 +594,7 @@ export default function SiswaPortalPage() {
                           rel="noreferrer"
                           className="flex flex-1 items-center justify-center rounded-full border border-accent px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent-soft sm:flex-none"
                         >
-                          📑 Invoice
+                          <span className="inline-flex items-center gap-1"><IconFileText className="h-3.5 w-3.5" /> Invoice</span>
                         </a>
 
                         <button
@@ -598,7 +603,7 @@ export default function SiswaPortalPage() {
                           disabled={isCekLoading || isBayarLoading}
                           title="Sinkronkan status dengan server Midtrans"
                         >
-                          {isCekLoading ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink-500 border-t-transparent" /> : "🔄 Cek Status"}
+                          {isCekLoading ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink-500 border-t-transparent" /> : <span className="inline-flex items-center gap-1"><IconRefresh className="h-3.5 w-3.5" /> Cek Status</span>}
                         </button>
 
                         <button
@@ -611,7 +616,7 @@ export default function SiswaPortalPage() {
                               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                               Memuat...
                             </>
-                          ) : "Bayar Sekarang ➔"}
+                          ) : "Bayar Sekarang"}
                         </button>
                       </div>
                     </div>
@@ -626,11 +631,12 @@ export default function SiswaPortalPage() {
         {activeTab === "riwayat" && (
           <div className="animate-tab-fade-in">
             {tagihanLunas.length > 0 && (
-              <div className="mb-3">
+              <div className="relative mb-3 max-w-full sm:max-w-xs">
+                <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500/50" />
                 <input
                   type="text"
-                  className={`max-w-full ${inputClass} sm:max-w-xs`}
-                  placeholder="🔍 Cari bulan / tahun riwayat..."
+                  className={`w-full pl-9 ${inputClass}`}
+                  placeholder="Cari bulan / tahun riwayat..."
                   value={searchRiwayat}
                   onChange={(e) => setSearchRiwayat(e.target.value)}
                 />
@@ -644,7 +650,7 @@ export default function SiswaPortalPage() {
               </div>
             ) : tagihanLunas.length === 0 ? (
               <div className="rounded-2xl border border-border-soft bg-white p-4 py-10 text-center shadow-sm2">
-                <div className="mb-2 text-[3rem]">📜</div>
+                <IconFileText className="mx-auto mb-2 h-12 w-12 text-ink-500/50" />
                 <h5 className="font-bold text-ink-900">Belum Ada Riwayat</h5>
                 <p className="text-sm text-ink-500">Belum ada transaksi pembayaran SPP yang berstatus lunas.</p>
               </div>
@@ -661,7 +667,7 @@ export default function SiswaPortalPage() {
                         SPP Bulan {BULAN_LABEL[t.bulan]} {t.tahun}
                       </h4>
                       <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-bold tracking-wide text-green-700">
-                        ✓ LUNAS
+                        <span className="inline-flex items-center gap-1"><IconCheck className="h-3.5 w-3.5" /> LUNAS</span>
                       </span>
                     </div>
                     <div className="text-sm text-ink-500">
@@ -676,7 +682,7 @@ export default function SiswaPortalPage() {
                       rel="noreferrer"
                       className="flex w-full items-center justify-center gap-1 rounded-full border border-accent px-4 py-1.5 text-sm font-semibold text-accent shadow-sm2 transition hover:bg-accent-soft sm:w-auto"
                     >
-                      <span>📄</span> Kwitansi PDF
+                      <IconFileText className="h-4 w-4" /> Kwitansi PDF
                     </a>
                   </div>
                 </div>
@@ -689,7 +695,7 @@ export default function SiswaPortalPage() {
         {activeTab === "profil" && (
           <div className="animate-tab-fade-in rounded-2xl border border-border-soft bg-white p-4 shadow-sm2">
             <h3 className="mb-3 text-sm font-bold uppercase tracking-[1px] text-accent">
-              📋 Identitas Siswa Lengkap
+              <span className="inline-flex items-center gap-1.5"><IconClipboard className="h-4 w-4" /> Identitas Siswa Lengkap</span>
             </h3>
 
             <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
@@ -739,7 +745,7 @@ export default function SiswaPortalPage() {
         className="fixed bottom-6 right-5 z-[990] flex animate-pulse-ring items-center gap-1.5 rounded-full bg-[#25d366] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(37,211,102,0.4)] transition-all duration-200 hover:scale-105 hover:bg-[#20ba5a] md:hidden"
         title="Hubungi Bendahara via WhatsApp"
       >
-        💬 WA Bendahara
+        <span className="inline-flex items-center gap-1"><IconWhatsapp className="h-4 w-4" /> WA Bendahara</span>
       </a>
     </div>
   );

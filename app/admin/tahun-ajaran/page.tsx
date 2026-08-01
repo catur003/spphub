@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import { IconCheck, IconX, IconPlus, IconCalendar, IconSave } from "@/components/admin/icons";
 
 type TahunAjaran = {
   id: string;
@@ -132,7 +133,7 @@ export default function TahunAjaranPage() {
             toast.type === "success" ? "border-status-lunas text-emerald-800" : "border-red-500 text-red-800"
           }`}
         >
-          {toast.type === "success" ? "✓" : "✕"} {toast.msg}
+          {toast.type === "success" ? <IconCheck className="inline h-4 w-4" /> : <IconX className="inline h-4 w-4" />} {toast.msg}
         </div>
       )}
 
@@ -147,7 +148,7 @@ export default function TahunAjaranPage() {
           <div className="col-span-12 lg:col-span-4">
             <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
               <div className="bg-gradient-to-br from-accent to-purple-600 px-4 py-3.5">
-                <h2 className="text-sm font-bold text-white">✚ Tambah Tahun Ajaran</h2>
+                <h2 className="flex items-center gap-1.5 text-sm font-bold text-white"><IconPlus className="h-4 w-4" /> Tambah Tahun Ajaran</h2>
               </div>
               <div className="p-4">
                 {error && !editTahun && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -188,15 +189,15 @@ export default function TahunAjaranPage() {
                       <tr key={t.id} className="border-b border-border-soft transition last:border-0 hover:bg-accent-soft/40">
                         <td className="px-4 py-3 align-middle">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-control bg-gradient-to-br from-accent-soft to-indigo-100 text-base">
-                              📅
+                            <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-control bg-gradient-to-br from-accent-soft to-indigo-100">
+                              <IconCalendar className="h-4 w-4 text-accent-hover" />
                             </div>
                             <span className="text-sm font-semibold text-ink-900">{t.nama}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 align-middle">
                           {t.aktif
-                            ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">✓ Aktif</span>
+                            ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"><IconCheck className="h-3 w-3" /> Aktif</span>
                             : <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">Nonaktif</span>}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right align-middle">
@@ -221,7 +222,7 @@ export default function TahunAjaranPage() {
                     {daftar.length === 0 && (
                       <tr>
                         <td colSpan={3} className="py-12 text-center text-ink-500">
-                          <div className="mb-2 text-3xl">📅</div>
+                          <IconCalendar className="mx-auto mb-2 h-8 w-8 text-ink-500/50" />
                           Belum ada data tahun ajaran.
                         </td>
                       </tr>
@@ -263,7 +264,7 @@ export default function TahunAjaranPage() {
               <div className="flex justify-end gap-2 border-t border-border-soft px-5 py-4">
                 <button type="button" className="rounded-control border border-border-soft px-4 py-2 text-sm font-medium text-ink-700 hover:bg-surface" onClick={tutupEdit}>Batal</button>
                 <button type="submit" className="rounded-control bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60" disabled={loading}>
-                  {loading ? "Menyimpan..." : "💾 Simpan Perubahan"}
+                  {loading ? "Menyimpan..." : <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Perubahan</span>}
                 </button>
               </div>
             </form>

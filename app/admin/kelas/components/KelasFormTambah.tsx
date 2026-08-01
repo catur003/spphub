@@ -1,6 +1,7 @@
 "use client";
 
 import { Kelas } from "../types";
+import { IconWarning, IconPlus } from "@/components/admin/icons";
 
 type Props = {
   kelasBelumSet: Kelas[];
@@ -38,14 +39,16 @@ export default function KelasFormTambah({
       {kelasBelumSet.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-card border border-amber-300 bg-amber-50 px-4 py-3">
           <div>
-            <strong className="text-ink-900">⚠️ Peringatan SPP:</strong>{" "}
+            <strong className="inline-flex items-center gap-1 text-ink-900">
+              <IconWarning className="h-4 w-4" /> Peringatan SPP:
+            </strong>{" "}
             <span className="text-ink-700">
-              Terdapat <strong>{kelasBelumSet.length} kelas</strong> (
+              Terdapat <strong>{kelasBelumSet.length} jurusan</strong> (
               {kelasBelumSet.slice(0, 3).map((k) => k.namaKelas).join(", ")}) yang biaya SPP-nya
               belum diatur (masih Rp 0).
             </span>
             <div className="text-sm text-ink-500">
-              Klik tombol <strong>Edit</strong> di sebelah kanan baris kelas untuk mengatur tarif
+              Klik tombol <strong>Edit</strong> di sebelah kanan baris jurusan untuk mengatur tarif
               SPP agar tagihan massal akurat.
             </div>
           </div>
@@ -54,7 +57,9 @@ export default function KelasFormTambah({
 
       <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
         <div className="rounded-t-card bg-gradient-to-r from-accent to-violet-600 px-4 py-3.5">
-          <h2 className="m-0 text-sm font-bold text-white">✚ Tambah Kelas Baru</h2>
+          <h2 className="m-0 inline-flex items-center gap-1.5 text-sm font-bold text-white">
+            <IconPlus className="h-4 w-4" /> Tambah Jurusan Baru
+          </h2>
         </div>
         <div className="p-4">
           {error && !editKelas && (
@@ -64,18 +69,18 @@ export default function KelasFormTambah({
           )}
           <form onSubmit={onSubmit} className="space-y-3">
             <div>
-              <label className="mb-1 block text-sm font-semibold text-ink-900">Nama Kelas</label>
+              <label className="mb-1 block text-sm font-semibold text-ink-900">Nama Jurusan</label>
               <input
                 className="w-full rounded-control border border-border-soft px-3 py-2 text-sm text-ink-900 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
                 value={namaKelas}
                 onChange={(e) => setNamaKelas(e.target.value)}
                 required
-                placeholder="Contoh: 10 IPA 1, 7A"
+                placeholder="Contoh: RPL 1, TKJ 2, Akuntansi 1"
               />
             </div>
             <div>
               <label className="mb-1 block text-sm font-semibold text-ink-900">
-                Tingkat / Jenjang
+                Kelas / Jenjang
               </label>
               <input
                 type="number"
@@ -128,7 +133,7 @@ export default function KelasFormTambah({
                   Menyimpan...
                 </span>
               ) : (
-                "Tambah Kelas"
+                "Tambah Jurusan"
               )}
             </button>
           </form>

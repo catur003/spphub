@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconCreditCard, IconSchool, IconCheck, IconZap, IconEye, IconSave, IconWhatsapp } from "@/components/admin/icons";
 
 type PaymentSettings = {
   environment: "sandbox" | "production";
@@ -127,7 +128,7 @@ export default function SettingsPage() {
           }`}
           onClick={() => setTab("payment")}
         >
-          💳 Payment Gateway
+          <span className="inline-flex items-center gap-1.5"><IconCreditCard className="h-4 w-4" /> Payment Gateway</span>
         </button>
         <button
           type="button"
@@ -136,7 +137,7 @@ export default function SettingsPage() {
           }`}
           onClick={() => setTab("sekolah")}
         >
-          🏫 Profil Sekolah & WhatsApp
+          <span className="inline-flex items-center gap-1.5"><IconSchool className="h-4 w-4" /> Profil Sekolah &amp; WhatsApp</span>
         </button>
       </div>
 
@@ -146,7 +147,7 @@ export default function SettingsPage() {
           {paymentError && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{paymentError}</div>}
           {paymentMsg && (
             <div className="mb-3 flex items-center gap-2 rounded-control border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
-              ✓ {paymentMsg}
+              <IconCheck className="inline h-4 w-4" /> {paymentMsg}
             </div>
           )}
 
@@ -223,7 +224,7 @@ export default function SettingsPage() {
                 <span className="text-sm font-bold text-ink-900">Konfigurasi Uji Coba</span>
                 {envAktif === "sandbox" && (
                   <span className="ml-auto rounded-full bg-amber-100 px-2.5 py-[3px] text-[0.7rem] text-amber-800">
-                    ⚡ Aktif Digunakan
+                    <span className="inline-flex items-center gap-1"><IconZap className="h-3.5 w-3.5" /> Aktif Digunakan</span>
                   </span>
                 )}
               </div>
@@ -251,7 +252,7 @@ export default function SettingsPage() {
                     className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center border-none bg-none p-0 text-ink-500 transition hover:text-accent"
                     onClick={() => setShowSandboxServer(!showSandboxServer)}
                   >
-                    👁️
+                    <IconEye className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -270,7 +271,7 @@ export default function SettingsPage() {
                 <span className="text-sm font-bold text-ink-900">Konfigurasi Live</span>
                 {envAktif === "production" && (
                   <span className="ml-auto rounded-full bg-green-100 px-2.5 py-[3px] text-[0.7rem] text-green-700">
-                    ⚡ Aktif Digunakan
+                    <span className="inline-flex items-center gap-1"><IconZap className="h-3.5 w-3.5" /> Aktif Digunakan</span>
                   </span>
                 )}
               </div>
@@ -298,7 +299,7 @@ export default function SettingsPage() {
                     className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center border-none bg-none p-0 text-ink-500 transition hover:text-accent"
                     onClick={() => setShowProdServer(!showProdServer)}
                   >
-                    👁️
+                    <IconEye className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -316,7 +317,7 @@ export default function SettingsPage() {
                   Menyimpan...
                 </span>
               ) : (
-                "💾 Simpan Payment Settings"
+                <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Payment Settings</span>
               )}
             </button>
           </div>
@@ -329,7 +330,7 @@ export default function SettingsPage() {
           {sekolahError && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{sekolahError}</div>}
           {sekolahMsg && (
             <div className="mb-3 flex items-center gap-2 rounded-control border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
-              ✓ {sekolahMsg}
+              <IconCheck className="inline h-4 w-4" /> {sekolahMsg}
             </div>
           )}
 
@@ -383,7 +384,7 @@ export default function SettingsPage() {
 
           {/* Section WhatsApp Bendahara & Gateway Fonnte */}
           <div className="mb-4 rounded-2xl border border-border-soft bg-white p-5">
-            <SectionLabel>📲 WhatsApp Bendahara & Fonnte Gateway</SectionLabel>
+            <SectionLabel><span className="inline-flex items-center gap-1.5"><IconWhatsapp className="h-4 w-4" /> WhatsApp Bendahara &amp; Fonnte Gateway</span></SectionLabel>
 
             <div className="mb-3">
               <label className={labelClass}>No. WhatsApp / HP Bendahara Sekolah</label>
@@ -394,7 +395,7 @@ export default function SettingsPage() {
                 placeholder="Contoh: 081234567890"
               />
               <p className="mt-1 text-xs text-ink-500">
-                Nomor ini akan dipakai oleh siswa di portal saat mengeklik tombol <strong className="font-semibold text-ink-700">💬 Hubungi Bendahara</strong>.
+                Nomor ini akan dipakai oleh siswa di portal saat mengeklik tombol <strong className="font-semibold text-ink-700">Hubungi Bendahara</strong>.
               </p>
             </div>
 
@@ -413,7 +414,7 @@ export default function SettingsPage() {
                   className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center border-none bg-none p-0 text-ink-500 transition hover:text-accent"
                   onClick={() => setShowFonnteToken(!showFonnteToken)}
                 >
-                  👁️
+                  <IconEye className="h-4 w-4" />
                 </button>
               </div>
               <p className="mt-1 text-xs text-ink-500">
@@ -434,7 +435,7 @@ export default function SettingsPage() {
                   Menyimpan...
                 </span>
               ) : (
-                "💾 Simpan Profil Sekolah & WhatsApp"
+                <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Profil Sekolah &amp; WhatsApp</span>
               )}
             </button>
           </div>

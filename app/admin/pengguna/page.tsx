@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import { authClient } from "@/lib/auth-client";
+import {
+  IconCheck, IconX, IconPlus, IconCrown,
+  IconUsers, IconSearch, IconEdit, IconKey, IconSave,
+} from "@/components/admin/icons";
 
 type UserAkun = {
   id: string;
@@ -257,7 +261,7 @@ export default function PenggunaPage() {
             toast.type === "success" ? "border-status-lunas text-emerald-800" : "border-status-terlambat text-red-800"
           }`}
         >
-          {toast.type === "success" ? "✓" : "✕"} {toast.msg}
+          {toast.type === "success" ? <IconCheck className="inline h-4 w-4" /> : <IconX className="inline h-4 w-4" />} {toast.msg}
         </div>
       )}
 
@@ -273,7 +277,7 @@ export default function PenggunaPage() {
           {/* Form Tambah User */}
           <div className="lg:col-span-1">
             <div className="rounded-[18px] border border-border-soft bg-white p-6 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
-              <h2 className="mb-3 text-sm font-bold text-ink-900">✚ Tambah Akun Baru</h2>
+              <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-ink-900"><IconPlus className="h-4 w-4" /> Tambah Akun Baru</h2>
               {error && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
               <form onSubmit={handleTambah}>
                 <div className="mb-2">
@@ -316,9 +320,9 @@ export default function PenggunaPage() {
                     value={formTambah.role}
                     onChange={(e) => setFormTambah({ ...formTambah, role: e.target.value as any })}
                   >
-                    <option value="petugas">👤 Petugas (Kelola Tagihan & Siswa)</option>
-                    <option value="owner">👑 Owner (Akses Penuh Pengaturan & User)</option>
-                    <option value="siswa">🎓 Siswa (Akses Portal Siswa)</option>
+                    <option value="petugas">Petugas (Kelola Tagihan &amp; Siswa)</option>
+                    <option value="owner">Owner (Akses Penuh Pengaturan &amp; User)</option>
+                    <option value="siswa">Siswa (Akses Portal Siswa)</option>
                   </select>
                 </div>
                 <button
@@ -331,7 +335,7 @@ export default function PenggunaPage() {
                       Memproses...
                     </span>
                   ) : (
-                    "✚ Tambah Pengguna Baru"
+                    <span className="inline-flex items-center gap-1.5"><IconPlus className="h-4 w-4" /> Tambah Pengguna Baru</span>
                   )}
                 </button>
               </form>
@@ -342,7 +346,7 @@ export default function PenggunaPage() {
           <div className="lg:col-span-2">
             <div className="overflow-hidden rounded-[18px] border border-border-soft bg-white shadow-sm2">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-soft bg-white px-4 py-3">
-                <h5 className="text-sm font-bold text-ink-900">👥 Daftar Pengguna Sistem ({sortedUsers.length})</h5>
+                <h5 className="flex items-center gap-1.5 text-sm font-bold text-ink-900"><IconUsers className="h-4 w-4" /> Daftar Pengguna Sistem ({sortedUsers.length})</h5>
                 <div className="flex gap-2">
                   <select
                     className="w-[130px] rounded-control border border-border-soft px-2 py-1.5 text-sm text-ink-900 outline-none focus:border-accent"
@@ -350,17 +354,20 @@ export default function PenggunaPage() {
                     onChange={(e) => setRoleFilter(e.target.value)}
                   >
                     <option value="">Semua Role</option>
-                    <option value="owner">👑 Owner</option>
-                    <option value="petugas">👤 Petugas</option>
-                    <option value="siswa">🎓 Siswa</option>
+                    <option value="owner">Owner</option>
+                    <option value="petugas">Petugas</option>
+                    <option value="siswa">Siswa</option>
                   </select>
-                  <input
-                    type="text"
-                    className="max-w-[200px] rounded-control border border-border-soft px-2 py-1.5 text-sm text-ink-900 outline-none focus:border-accent"
-                    placeholder="🔍 Cari pengguna..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+                  <div className="relative max-w-[200px]">
+                    <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-500/50" />
+                    <input
+                      type="text"
+                      className="w-full rounded-control border border-border-soft py-1.5 pl-8 pr-2 text-sm text-ink-900 outline-none focus:border-accent"
+                      placeholder="Cari pengguna..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -413,7 +420,7 @@ export default function PenggunaPage() {
                                     {u.name}
                                     {isSelf && (
                                       <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[0.68rem] font-semibold text-indigo-800">
-                                        ★ Akun Anda
+                                        Akun Anda
                                       </span>
                                     )}
                                   </div>
@@ -424,7 +431,7 @@ export default function PenggunaPage() {
                             <td className="px-4 py-3">
                               {isSelf ? (
                                 <span className="rounded-full bg-accent px-3 py-2 text-[0.78rem] font-bold text-white">
-                                  👑 Owner (Akun Anda)
+                                  <span className="inline-flex items-center gap-1"><IconCrown className="h-3.5 w-3.5" /> Owner (Akun Anda)</span>
                                 </span>
                               ) : (
                                 <select
@@ -432,9 +439,9 @@ export default function PenggunaPage() {
                                   value={u.role}
                                   onChange={(e) => handleUbahRole(u, e.target.value as any)}
                                 >
-                                  <option value="owner">👑 Owner (Akses Penuh)</option>
-                                  <option value="petugas">👤 Petugas (Staff Operasional)</option>
-                                  <option value="siswa">🎓 Siswa (Portal Siswa)</option>
+                                  <option value="owner">Owner (Akses Penuh)</option>
+                                  <option value="petugas">Petugas (Staff Operasional)</option>
+                                  <option value="siswa">Siswa (Portal Siswa)</option>
                                 </select>
                               )}
                             </td>
@@ -449,13 +456,13 @@ export default function PenggunaPage() {
                                   className="whitespace-nowrap rounded-full border border-accent px-2 py-1 text-xs font-semibold text-accent transition hover:bg-accent-soft"
                                   onClick={() => bukaEditUser(u)}
                                 >
-                                  ✏️ Edit
+                                  <span className="inline-flex items-center gap-1"><IconEdit className="h-3.5 w-3.5" /> Edit</span>
                                 </button>
                                 <button
                                   className="whitespace-nowrap rounded-full border border-amber-500 px-2 py-1 text-xs font-semibold text-amber-600 transition hover:bg-amber-50"
                                   onClick={() => setResetUser(u)}
                                 >
-                                  🔑 Password
+                                  <span className="inline-flex items-center gap-1"><IconKey className="h-3.5 w-3.5" /> Password</span>
                                 </button>
                                 <button
                                   className="flex h-7 w-7 items-center justify-center rounded-full border border-red-500 p-0 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
@@ -463,7 +470,7 @@ export default function PenggunaPage() {
                                   disabled={isSelf}
                                   onClick={() => handleDelete(u)}
                                 >
-                                  ✕
+                                  <IconX className="h-3.5 w-3.5" />
                                 </button>
                               </div>
                             </td>
@@ -484,7 +491,7 @@ export default function PenggunaPage() {
         <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4" onClick={() => setEditUser(null)}>
           <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between bg-accent px-5 py-4">
-              <h5 className="text-base font-bold text-white">✏️ Edit User: {editUser.name}</h5>
+              <h5 className="flex items-center gap-1.5 text-base font-bold text-white"><IconEdit className="h-4 w-4" /> Edit User: {editUser.name}</h5>
               <button type="button" aria-label="Tutup" className="text-xl leading-none text-white/80 hover:text-white" onClick={() => setEditUser(null)}>×</button>
             </div>
             <form onSubmit={handleSimpanEditUser}>
@@ -514,7 +521,7 @@ export default function PenggunaPage() {
                   Batal
                 </button>
                 <button type="submit" className="rounded-control bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60" disabled={loadingEdit}>
-                  {loadingEdit ? "Memproses..." : "💾 Simpan Perubahan"}
+                  {loadingEdit ? "Memproses..." : <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Perubahan</span>}
                 </button>
               </div>
             </form>
@@ -527,7 +534,7 @@ export default function PenggunaPage() {
         <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4" onClick={() => setResetUser(null)}>
           <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between bg-ink-900 px-5 py-4">
-              <h5 className="text-base font-bold text-white">🔑 Ganti Password: {resetUser.name}</h5>
+              <h5 className="flex items-center gap-1.5 text-base font-bold text-white"><IconKey className="h-4 w-4" /> Ganti Password: {resetUser.name}</h5>
               <button type="button" aria-label="Tutup" className="text-xl leading-none text-white/80 hover:text-white" onClick={() => setResetUser(null)}>×</button>
             </div>
             <form onSubmit={handleResetPassword}>
@@ -553,7 +560,7 @@ export default function PenggunaPage() {
                   Batal
                 </button>
                 <button type="submit" className="rounded-control bg-amber-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-60" disabled={loadingReset}>
-                  {loadingReset ? "Memproses..." : "🔑 Simpan Password Baru"}
+                  {loadingReset ? "Memproses..." : <span className="inline-flex items-center gap-1.5"><IconKey className="h-4 w-4" /> Simpan Password Baru</span>}
                 </button>
               </div>
             </form>

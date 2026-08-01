@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import { IconMoney, IconPlus, IconSave, IconClipboard, IconSearch, IconFileText } from "@/components/admin/icons";
 
 type Pengeluaran = {
   id: string;
@@ -97,7 +98,7 @@ export default function PengeluaranPage() {
         buktiUrl: "",
         keterangan: "",
       });
-      await alertMsg("🎉 Pengeluaran berhasil dicatat ke sistem!");
+      await alertMsg("Pengeluaran berhasil dicatat ke sistem!");
       muatData();
     } catch (err: any) {
       setSubmitting(false);
@@ -113,7 +114,7 @@ export default function PengeluaranPage() {
       <div className="w-full p-4">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl font-bold text-ink-900">💸 Kelola Pengeluaran Kas Sekolah</h1>
+            <h1 className="flex items-center gap-2 text-xl font-bold text-ink-900"><IconMoney className="h-5 w-5" /> Kelola Pengeluaran Kas Sekolah</h1>
             <p className="text-sm text-ink-500">
               Pencatatan Beban Operational, Gaji Guru, Listrik, Pembelian Inventaris & Biaya Kegiatan.
             </p>
@@ -125,7 +126,7 @@ export default function PengeluaranPage() {
           <div className="col-span-12 lg:col-span-4">
             <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm2">
               <div className="bg-red-600 p-3">
-                <h2 className="text-sm font-bold text-white">✚ Catat Pengeluaran Baru</h2>
+                <h2 className="flex items-center gap-1.5 text-sm font-bold text-white"><IconPlus className="h-4 w-4" /> Catat Pengeluaran Baru</h2>
               </div>
               <div className="p-4">
                 {error && <div className="mb-3 rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -210,7 +211,7 @@ export default function PengeluaranPage() {
                     className="w-full rounded-control bg-red-600 py-2.5 text-sm font-bold text-white shadow-sm2 transition hover:bg-red-700 disabled:opacity-60"
                     disabled={submitting}
                   >
-                    {submitting ? "Menyimpan..." : "💾 Simpan Pengeluaran"}
+                    {submitting ? "Menyimpan..." : <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Pengeluaran</span>}
                   </button>
                 </form>
               </div>
@@ -222,18 +223,21 @@ export default function PengeluaranPage() {
             <div className="rounded-2xl border border-border-soft bg-white p-4 shadow-sm2">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h6 className="font-bold text-ink-900">📋 Riwayat Pengeluaran Kas</h6>
+                  <h6 className="flex items-center gap-1.5 font-bold text-ink-900"><IconClipboard className="h-4 w-4" /> Riwayat Pengeluaran Kas</h6>
                   <small className="text-ink-500">
                     Total: <strong>Rp {totalPengeluaran.toLocaleString("id-ID")}</strong> ({daftar.length} transaksi)
                   </small>
                 </div>
                 <div className="flex gap-2">
-                  <input
-                    className="rounded-control border border-border-soft px-3 py-1.5 text-sm outline-none focus:border-red-500"
-                    placeholder="🔍 Cari pengeluaran..."
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                  />
+                  <div className="relative">
+                    <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-500/50" />
+                    <input
+                      className="rounded-control border border-border-soft py-1.5 pl-8 pr-3 text-sm outline-none focus:border-red-500"
+                      placeholder="Cari pengeluaran..."
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                    />
+                  </div>
                   <select
                     className="rounded-control border border-border-soft px-3 py-1.5 text-sm outline-none focus:border-red-500"
                     value={kategoriFilter}
@@ -280,7 +284,7 @@ export default function PengeluaranPage() {
                                 rel="noreferrer"
                                 className="mt-1 inline-block rounded-full border border-border-soft bg-surface px-2 py-0.5 text-xs text-accent no-underline"
                               >
-                                📎 Bukti Nota
+                                <span className="inline-flex items-center gap-1"><IconFileText className="h-3.5 w-3.5" /> Bukti Nota</span>
                               </a>
                             )}
                           </td>

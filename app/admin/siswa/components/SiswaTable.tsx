@@ -1,6 +1,7 @@
 "use client";
 
 import { Siswa, SortField, STATUS_LABEL, STATUS_BADGE, getAvatarColor, getInisial } from "../types";
+import { IconEye } from "@/components/admin/icons";
 
 type Props = {
   paginatedDaftar: Siswa[];
@@ -130,7 +131,9 @@ export default function SiswaTable({
                         className="whitespace-nowrap rounded-full border border-sky-300 px-2 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
                         onClick={() => onDetail(s.id)}
                       >
-                        👁️ Profil
+                        <span className="inline-flex items-center gap-1">
+                          <IconEye className="h-3.5 w-3.5" /> Profil
+                        </span>
                       </button>
                       <button
                         className="whitespace-nowrap rounded-full border border-accent px-2 py-1 text-xs font-semibold text-accent transition hover:bg-accent-soft"

@@ -1,6 +1,7 @@
 "use client";
 
 import { HasilImport } from "../types";
+import { IconDownload, IconUpload, IconCheck } from "@/components/admin/icons";
 
 type Props = {
   fileImport: File | null;
@@ -21,7 +22,7 @@ export default function SiswaImportExport({
 }: Props) {
   return (
     <div className="mb-4 rounded-card border border-border-soft bg-white p-4 shadow-sm2">
-      <h2 className="mb-3 text-base font-bold text-ink-800">📥 Import / Export Excel Siswa</h2>
+      <h2 className="mb-3 flex items-center gap-1.5 text-base font-bold text-ink-800"><IconUpload className="h-4 w-4" /> Import / Export Excel Siswa</h2>
       <div className="mb-3 flex flex-wrap gap-2">
         <a
           className="rounded-full border border-border-soft px-3 py-1.5 text-sm font-semibold text-ink-700 transition hover:bg-surface"
@@ -29,13 +30,13 @@ export default function SiswaImportExport({
           target="_blank"
           download
         >
-          ⬇ Download Template (.xlsx)
+          <span className="inline-flex items-center gap-1"><IconDownload className="h-3.5 w-3.5" /> Download Template (.xlsx)</span>
         </a>
         <a
           className="rounded-full border border-border-soft px-3 py-1.5 text-sm font-semibold text-ink-700 transition hover:bg-surface"
           href="/api/siswa/export"
         >
-          ⬇ Export Data Siswa (.xlsx)
+          <span className="inline-flex items-center gap-1"><IconDownload className="h-3.5 w-3.5" /> Export Data Siswa (.xlsx)</span>
         </a>
       </div>
       <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-2">
@@ -60,7 +61,7 @@ export default function SiswaImportExport({
       {hasilImport && (
         <div className="mt-3">
           <div className="mb-2 rounded-control border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-            ✓ <strong>{hasilImport.berhasil}</strong> dari <strong>{hasilImport.total}</strong> baris berhasil
+            <IconCheck className="mr-1 inline h-3.5 w-3.5" /><strong>{hasilImport.berhasil}</strong> dari <strong>{hasilImport.total}</strong> baris berhasil
             diimport.
           </div>
           {hasilImport.gagal.length > 0 && (

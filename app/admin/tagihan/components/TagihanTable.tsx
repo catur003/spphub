@@ -1,6 +1,6 @@
 "use client";
 
-import { IconWhatsapp, IconFileText, IconCheck, IconRefresh, IconSearch } from "@/components/admin/icons";
+import { IconWhatsapp, IconFileText, IconCheck, IconRefresh, IconSearch, IconWarning } from "@/components/admin/icons";
 import { Tagihan, SortField, BULAN_LABEL, STATUS_INFO, getAvatarColor, getInisial } from "../types";
 
 type Props = {
@@ -99,14 +99,14 @@ export default function TagihanTable({
               <tr>
                 <td colSpan={6} className="border-b border-slate-100 bg-white py-8 text-center">
                   <div className="inline-block rounded-control border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    ⚠️ {fetchError}
+                    <IconWarning className="mr-1 inline h-4 w-4" />{fetchError}
                   </div>
                 </td>
               </tr>
             ) : paginatedDaftar.length === 0 ? (
               <tr>
                 <td colSpan={6} className="border-b border-slate-100 bg-white py-10 text-center text-ink-500">
-                  <div className="mb-2 text-4xl">📄</div>
+                  <IconFileText className="mx-auto mb-2 h-10 w-10 text-ink-500/50" />
                   Belum ada data tagihan untuk filter ini.
                 </td>
               </tr>
@@ -161,7 +161,7 @@ export default function TagihanTable({
                         Rp {t.nominal.toLocaleString("id-ID")}
                         {t.nominal === 0 && (
                           <span className="ml-1 rounded-control bg-red-100 px-2 py-0 text-[0.68rem] text-red-700">
-                            ⚠️ Rp 0
+                            <span className="inline-flex items-center gap-1"><IconWarning className="h-3 w-3" /> Rp 0</span>
                           </span>
                         )}
                       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Kelas } from "../types";
+import { IconRefresh, IconCheckCircle } from "@/components/admin/icons";
 
 type Props = {
   show: boolean;
@@ -34,7 +35,9 @@ export default function NaikKelasModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] px-6 py-4">
-          <h5 className="mb-0 text-base font-bold text-white">🚀 Naik Kelas Massal</h5>
+          <h5 className="mb-0 inline-flex items-center gap-1.5 text-base font-bold text-white">
+            <IconRefresh className="h-4 w-4" /> Naik Kelas Massal
+          </h5>
           <button
             type="button"
             aria-label="Tutup"
@@ -59,7 +62,7 @@ export default function NaikKelasModal({
               <option value="">-- Pilih Kelas Asal --</option>
               {kelasList.map((k) => (
                 <option key={k.id} value={k.id}>
-                  Kelas {k.namaKelas} (Tingkat {k.tingkat})
+                  Jurusan {k.namaKelas} (Kelas {k.tingkat})
                 </option>
               ))}
             </select>
@@ -74,10 +77,10 @@ export default function NaikKelasModal({
               onChange={(e) => setNaikKelasTujuan(e.target.value)}
             >
               <option value="">-- Pilih Kelas Tujuan --</option>
-              <option value="lulus">🎓 Tandai LUNAS / ALUMNI (Kelulusan)</option>
+              <option value="lulus">Tandai LULUS / ALUMNI (Kelulusan)</option>
               {kelasList.map((k) => (
                 <option key={k.id} value={k.id}>
-                  Pindah ke Kelas {k.namaKelas} (Tingkat {k.tingkat})
+                  Pindah ke Jurusan {k.namaKelas} (Kelas {k.tingkat})
                 </option>
               ))}
             </select>
@@ -97,7 +100,13 @@ export default function NaikKelasModal({
             disabled={loadingNaikKelas || !naikKelasAsal || !naikKelasTujuan}
             onClick={onEksekusi}
           >
-            {loadingNaikKelas ? "Memproses..." : "🚀 Eksekusi Pindah Massal"}
+            {loadingNaikKelas ? (
+              "Memproses..."
+            ) : (
+              <span className="inline-flex items-center gap-1.5">
+                <IconCheckCircle className="h-4 w-4" /> Eksekusi Pindah Massal
+              </span>
+            )}
           </button>
         </div>
       </div>

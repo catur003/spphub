@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { IconPrinter, IconChart, IconFileText } from "@/components/admin/icons";
 
 type Kelas = { id: string; namaKelas: string; tingkat?: number };
 type Tagihan = {
@@ -151,10 +152,10 @@ export default function LaporanPage() {
         </div>
         <div className="flex gap-2">
           <button className="rounded-full border border-border-soft px-3 py-1.5 text-sm font-semibold text-ink-700 transition hover:bg-surface" onClick={handlePrint}>
-            🖨️ Cetak PDF
+            <span className="inline-flex items-center gap-1.5"><IconPrinter className="h-4 w-4" /> Cetak PDF</span>
           </button>
           <button className="rounded-full bg-status-lunas px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700" onClick={exportCSV}>
-            📊 Export CSV / Excel
+            <span className="inline-flex items-center gap-1.5"><IconChart className="h-4 w-4" /> Export CSV / Excel</span>
           </button>
         </div>
       </div>
@@ -198,7 +199,7 @@ export default function LaporanPage() {
             />
           </div>
           <div className="col-span-12 sm:col-span-6 md:col-span-2">
-            <label className="mb-1 block text-sm font-semibold text-ink-700">Tingkat</label>
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Kelas</label>
             <select
               className={selectClass}
               value={filterTingkat}
@@ -207,18 +208,18 @@ export default function LaporanPage() {
                 setKelasId("");
               }}
             >
-              <option value="">Semua Tingkat</option>
+              <option value="">Semua Kelas</option>
               {Array.from(new Set(kelasList.map((k) => k.tingkat).filter(Boolean)))
                 .sort((a, b) => Number(a) - Number(b))
                 .map((t) => (
-                  <option key={t} value={t}>Tingkat {t}</option>
+                  <option key={t} value={t}>Kelas {t}</option>
                 ))}
             </select>
           </div>
           <div className="col-span-12 sm:col-span-6 md:col-span-2">
-            <label className="mb-1 block text-sm font-semibold text-ink-700">Kelas</label>
+            <label className="mb-1 block text-sm font-semibold text-ink-700">Jurusan</label>
             <select className={selectClass} value={kelasId} onChange={(e) => setKelasId(e.target.value)}>
-              <option value="">Semua Kelas {filterTingkat ? `(Tingkat ${filterTingkat})` : ""}</option>
+              <option value="">Semua Jurusan {filterTingkat ? `(Kelas ${filterTingkat})` : ""}</option>
               {(filterTingkat ? kelasList.filter((k) => String(k.tingkat) === filterTingkat) : kelasList).map((k) => (
                 <option key={k.id} value={k.id}>{k.namaKelas}</option>
               ))}
@@ -322,7 +323,7 @@ export default function LaporanPage() {
               {daftar.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-ink-500 print:hidden">
-                    <div className="mb-2 text-3xl">📄</div>
+                    <IconFileText className="mx-auto mb-2 h-8 w-8 text-ink-500/50" />
                     Tidak ada data tagihan yang sesuai dengan filter.
                   </td>
                 </tr>

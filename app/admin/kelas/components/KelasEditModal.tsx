@@ -1,6 +1,7 @@
 "use client";
 
 import { Kelas, kelasColor } from "../types";
+import { IconSave } from "@/components/admin/icons";
 
 type Props = {
   editKelas: Kelas | null;
@@ -42,7 +43,7 @@ export default function KelasEditModal({
               {editKelas.namaKelas.slice(0, 2).toUpperCase()}
             </div>
             <h5 className="text-base font-bold text-white">
-              Edit Biaya SPP &amp; Kelas {editKelas.namaKelas}
+              Edit Biaya SPP &amp; Jurusan {editKelas.namaKelas}
             </h5>
           </div>
           <button
@@ -87,7 +88,7 @@ export default function KelasEditModal({
               </div>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold text-ink-900">Nama Kelas</label>
+              <label className="mb-1 block text-sm font-semibold text-ink-900">Nama Jurusan</label>
               <input
                 className="w-full rounded-control border border-border-soft px-3 py-2 text-sm text-ink-900 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
                 value={editKelas.namaKelas}
@@ -97,7 +98,7 @@ export default function KelasEditModal({
             </div>
             <div>
               <label className="mb-1 block text-sm font-semibold text-ink-900">
-                Tingkat / Jenjang
+                Kelas / Jenjang
               </label>
               <input
                 type="number"
@@ -132,7 +133,13 @@ export default function KelasEditModal({
               className="rounded-control bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60"
               disabled={loading}
             >
-              {loading ? "Menyimpan..." : "💾 Simpan Biaya SPP & Kelas"}
+              {loading ? (
+                "Menyimpan..."
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <IconSave className="h-4 w-4" /> Simpan Biaya SPP &amp; Jurusan
+                </span>
+              )}
             </button>
           </div>
         </form>

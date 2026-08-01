@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { IconFileText } from "@/components/admin/icons";
+import { IconFileText, IconMoney, IconChart, IconZap, IconMegaphone, IconClock, IconWarning } from "@/components/admin/icons";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -61,7 +61,7 @@ const CARD_GRADIENTS = {
 function ExecutiveCard({
   href, gradient, icon, value, title, footer,
 }: {
-  href: string; gradient: string; icon: string; value: string; title: string; footer: string;
+  href: string; gradient: string; icon: React.ReactNode; value: string; title: string; footer: React.ReactNode;
 }) {
   return (
     <Link href={href} className="no-underline">
@@ -69,7 +69,7 @@ function ExecutiveCard({
         className="relative overflow-hidden rounded-2xl p-5 text-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
         style={{ background: gradient }}
       >
-        <div className="absolute right-4 top-4 flex h-[42px] w-[42px] items-center justify-center rounded-full bg-white/25 text-xl backdrop-blur">
+        <div className="absolute right-4 top-4 flex h-[42px] w-[42px] items-center justify-center rounded-full bg-white/25 backdrop-blur">
           {icon}
         </div>
         <div className="text-[1.65rem] font-extrabold leading-tight tracking-tight">{value}</div>
@@ -155,15 +155,15 @@ export default function DashboardPage() {
         <div className="flex gap-2">
           <Link
             href="/admin/keuangan/pendapatan"
-            className="rounded-full border border-accent px-3 py-1.5 text-sm font-bold text-accent transition hover:bg-accent-soft"
+            className="inline-flex items-center gap-1.5 rounded-full border border-accent px-3 py-1.5 text-sm font-bold text-accent transition hover:bg-accent-soft"
           >
-            💵 Catat Pendapatan
+            <IconMoney className="h-4 w-4" /> Catat Pendapatan
           </Link>
           <Link
             href="/admin/keuangan/pengeluaran"
-            className="rounded-full border border-red-500 px-3 py-1.5 text-sm font-bold text-red-500 transition hover:bg-red-50"
+            className="inline-flex items-center gap-1.5 rounded-full border border-red-500 px-3 py-1.5 text-sm font-bold text-red-500 transition hover:bg-red-50"
           >
-            💸 Catat Pengeluaran
+            <IconMoney className="h-4 w-4" /> Catat Pengeluaran
           </Link>
         </div>
       </div>
@@ -172,16 +172,16 @@ export default function DashboardPage() {
       {jumlahTagihanBelumDibuat > 0 && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-amber-50 p-4 shadow-sm2">
           <div className="flex items-center gap-2">
-            <span className="text-lg">⚡</span>
+            <IconWarning className="h-5 w-5 text-amber-600" />
             <div className="text-sm text-amber-900">
               <strong>Tagihan Periode Ini:</strong> Ada <strong>{jumlahTagihanBelumDibuat} siswa aktif</strong> yang belum dibuatkan tagihan SPP bulan {BULAN_LABEL[bulan]} {tahun}.
             </div>
           </div>
           <Link
             href="/admin/tagihan"
-            className="rounded-control bg-amber-400 px-3 py-1.5 text-xs font-bold text-amber-950 transition hover:bg-amber-500"
+            className="inline-flex items-center gap-1 rounded-control bg-amber-400 px-3 py-1.5 text-xs font-bold text-amber-950 transition hover:bg-amber-500"
           >
-            👉 Generate Massal
+            <IconZap className="h-3.5 w-3.5" /> Generate Massal
           </Link>
         </div>
       )}
@@ -192,40 +192,40 @@ export default function DashboardPage() {
           <ExecutiveCard
             href="/admin/keuangan/laporan"
             gradient={CARD_GRADIENTS.blue}
-            icon="👛"
+            icon={<IconMoney className="h-5 w-5" />}
             value={saldoKas.toLocaleString("id-ID")}
             title="Saldo Kas Utama"
-            footer={`📅 Per ${todayStr}`}
+            footer={<>Per {todayStr}</>}
           />
         </div>
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <ExecutiveCard
             href="/admin/keuangan/laporan"
             gradient={CARD_GRADIENTS.green}
-            icon="🛍️"
+            icon={<IconChart className="h-5 w-5" />}
             value={labaRugi.toLocaleString("id-ID")}
             title="Laba/Rugi Net"
-            footer={`📅 Per ${todayStr}`}
+            footer={<>Per {todayStr}</>}
           />
         </div>
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <ExecutiveCard
             href="/admin/tagihan?status=belum_bayar"
             gradient={CARD_GRADIENTS.orange}
-            icon="📄"
+            icon={<IconFileText className="h-5 w-5" />}
             value={sppBelumTotal.toLocaleString("id-ID")}
             title="SPP Belum Dibayar"
-            footer={`👤 ${sppBelumCount} siswa belum bayar`}
+            footer={<>{sppBelumCount} siswa belum bayar</>}
           />
         </div>
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <ExecutiveCard
             href="/admin/keuangan/utang-pegawai"
             gradient={CARD_GRADIENTS.red}
-            icon="💵"
+            icon={<IconMoney className="h-5 w-5" />}
             value={utangPegawaiTotal.toLocaleString("id-ID")}
             title="Utang Pegawai (Kasbon)"
-            footer={`👤 ${utangPegawaiCount} pegawai aktif`}
+            footer={<>{utangPegawaiCount} pegawai aktif</>}
           />
         </div>
       </div>
@@ -237,7 +237,7 @@ export default function DashboardPage() {
           <div className="h-full rounded-[18px] bg-white p-4 shadow-sm2">
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <div className="text-base font-bold text-ink-900">📊 Tren Pemasukan SPP (6 Bulan Terakhir)</div>
+                <div className="flex items-center gap-1.5 text-base font-bold text-ink-900"><IconChart className="h-4 w-4" /> Tren Pemasukan SPP (6 Bulan Terakhir)</div>
                 <div className="text-sm text-ink-500">Total penerimaan kas SPP yang terverifikasi</div>
               </div>
             </div>
@@ -267,7 +267,7 @@ export default function DashboardPage() {
         {/* Pie Chart: Distribusi Status Pembayaran */}
         <div className="col-span-12 lg:col-span-4">
           <div className="h-full rounded-[18px] bg-white p-4 shadow-sm2">
-            <div className="text-base font-bold text-ink-900">🍩 Rasio Status SPP</div>
+            <div className="flex items-center gap-1.5 text-base font-bold text-ink-900"><IconChart className="h-4 w-4" /> Rasio Status SPP</div>
             <div className="mb-3 text-sm text-ink-500">Bulan {BULAN_LABEL[bulan]} {tahun}</div>
             <div style={{ width: "100%", height: 220 }}>
               {pieChartData.reduce((sum, d) => sum + (d.value || 0), 0) === 0 ? (
@@ -299,7 +299,7 @@ export default function DashboardPage() {
         <div className="col-span-12 lg:col-span-7">
           <div className="rounded-[18px] bg-white p-4 shadow-sm2">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-base font-bold text-ink-900">⚡ Pembayaran Lunas Terbaru</div>
+              <div className="flex items-center gap-1.5 text-base font-bold text-ink-900"><IconZap className="h-4 w-4" /> Pembayaran Lunas Terbaru</div>
               <Link href="/admin/tagihan?status=lunas" className="text-sm font-bold text-accent no-underline">
                 Lihat Semua →
               </Link>
@@ -343,7 +343,7 @@ export default function DashboardPage() {
         <div className="col-span-12 lg:col-span-5">
           <div className="rounded-[18px] bg-white p-4 shadow-sm2">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-base font-bold text-ink-900">📢 Pengumuman Sekolah</div>
+              <div className="flex items-center gap-1.5 text-base font-bold text-ink-900"><IconMegaphone className="h-4 w-4" /> Pengumuman Sekolah</div>
               <Link href="/admin/pengumuman" className="text-sm font-bold text-accent no-underline">
                 Kelola →
               </Link>
@@ -354,7 +354,7 @@ export default function DashboardPage() {
                   <div className="mb-1 text-sm font-bold text-ink-900">{n.judul}</div>
                   <div className="line-clamp-2 text-sm text-ink-500">{n.isi}</div>
                   <div className="mt-1 text-xs text-ink-500">
-                    🕒 {new Date(n.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                    <IconClock className="mr-1 inline h-3 w-3" />{new Date(n.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                   </div>
                 </div>
               ))}

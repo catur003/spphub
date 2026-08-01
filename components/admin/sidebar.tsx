@@ -109,7 +109,7 @@ export function AdminShell({ role, userName, children }: AdminShellProps) {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="app-shell-bg min-h-screen">
       {/* Topbar khusus mobile */}
       <div className="sticky top-0 z-[1020] flex h-[60px] items-center gap-3 border-b border-border-soft bg-white px-4 min-[992px]:hidden">
         <button

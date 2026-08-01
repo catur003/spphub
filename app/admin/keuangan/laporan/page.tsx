@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconChart, IconClipboard, IconPrinter } from "@/components/admin/icons";
 
 type LaporanKeuangan = {
   totalSppLunas: number;
@@ -47,7 +48,7 @@ export default function LaporanKeuanganPage() {
     <div className="p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-lg font-bold text-ink-900">📊 Laporan Keuangan &amp; Arus Kas Kas Sekolah</h1>
+          <h1 className="flex items-center gap-2 text-lg font-bold text-ink-900"><IconChart className="h-5 w-5" /> Laporan Keuangan &amp; Arus Kas Sekolah</h1>
           <p className="text-[0.85rem] text-ink-500">
             Rekap Pembukuan Realtime Arus Kas, Pendapatan, Operasional &amp; Neraca Saldo Sekolah.
           </p>
@@ -62,7 +63,7 @@ export default function LaporanKeuanganPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="h-full rounded-[18px] border-0 bg-white p-4 shadow-sm2">
-            <h2 className="mb-3 text-base font-bold text-ink-900">📈 Ringkasan Saldo &amp; Laba Rugi</h2>
+            <h2 className="mb-3 flex items-center gap-1.5 text-base font-bold text-ink-900"><IconChart className="h-4 w-4" /> Ringkasan Saldo &amp; Laba Rugi</h2>
             <div className="flex justify-between border-b border-border-soft py-2">
               <span className="text-ink-500">Total Saldo Kas Utama</span>
               <strong className="text-lg text-accent">Rp {data.totalPemasukan.toLocaleString("id-ID")}</strong>
@@ -82,7 +83,7 @@ export default function LaporanKeuanganPage() {
           </div>
 
           <div className="h-full rounded-[18px] border-0 bg-white p-4 shadow-sm2">
-            <h2 className="mb-3 text-base font-bold text-ink-900">📜 Aksi &amp; Pengunduhan Laporan</h2>
+            <h2 className="mb-3 flex items-center gap-1.5 text-base font-bold text-ink-900"><IconClipboard className="h-4 w-4" /> Aksi &amp; Pengunduhan Laporan</h2>
             <p className="text-sm text-ink-500">
               Gunakan fitur ini untuk mencetak atau mengekspor rekap keuangan kas sekolah ke format resmi untuk pengurus yayasan.
             </p>
@@ -91,7 +92,7 @@ export default function LaporanKeuanganPage() {
                 className="flex items-center justify-between rounded-control border border-accent py-2 text-left font-bold text-accent transition hover:bg-accent-soft"
                 onClick={() => window.print()}
               >
-                <span className="px-3">🖨️ Cetak Laporan Keuangan Pembukuan</span>
+                <span className="inline-flex items-center gap-1.5 px-3"><IconPrinter className="h-4 w-4" /> Cetak Laporan Keuangan Pembukuan</span>
                 <span className="px-3">→</span>
               </button>
             </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import { Kelas, DetailKelasResponse } from "./types";
+import { IconCheck, IconX } from "@/components/admin/icons";
 import KelasFormTambah from "./components/KelasFormTambah";
 import KelasTable from "./components/KelasTable";
 import KelasEditModal from "./components/KelasEditModal";
@@ -175,7 +176,7 @@ export default function KelasPage() {
               : "border-l-4 border-status-terlambat text-red-800"
           }`}
         >
-          {toast.type === "success" ? "✓" : "✕"} {toast.msg}
+          {toast.type === "success" ? <IconCheck className="inline h-4 w-4" /> : <IconX className="inline h-4 w-4" />} {toast.msg}
         </div>
       )}
 

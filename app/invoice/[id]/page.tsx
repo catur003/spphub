@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { IconPrinter, IconCheck, IconWarning } from "@/components/admin/icons";
 
 type TagihanInvoice = {
   id: string;
@@ -89,7 +90,7 @@ export default function InvoicePage() {
               className="rounded-full bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-sm2 transition hover:bg-accent-hover"
               onClick={() => window.print()}
             >
-              🖨️ Cetak / Download PDF
+              <span className="inline-flex items-center gap-1.5"><IconPrinter className="h-4 w-4" /> Cetak / Download PDF</span>
             </button>
           </div>
         </div>
@@ -130,7 +131,7 @@ export default function InvoicePage() {
                     tagihan.status === "lunas" ? "bg-status-lunas text-white" : "bg-status-belum text-ink-900"
                   }`}
                 >
-                  {tagihan.status === "lunas" ? "✓ LUNAS" : "BELUM DIBAYAR"}
+                  {tagihan.status === "lunas" ? <span className="inline-flex items-center gap-1"><IconCheck className="h-3.5 w-3.5" /> LUNAS</span> : "BELUM DIBAYAR"}
                 </span>
               </div>
             </div>
@@ -167,7 +168,7 @@ export default function InvoicePage() {
 
           {/* Transfer Instructions Footer */}
           <div className="mb-4 rounded-control border border-border-soft bg-surface p-3">
-            <div className="mb-1 text-[0.85rem] font-bold text-ink-900">ℹ️ PANDUAN PEMBAYARAN:</div>
+            <div className="mb-1 flex items-center gap-1.5 text-[0.85rem] font-bold text-ink-900"><IconWarning className="h-3.5 w-3.5" /> PANDUAN PEMBAYARAN:</div>
             <div className="text-sm text-ink-500">
               1. Pembayaran dapat dilakukan via <strong>Portal Siswa Online (Midtrans)</strong> atau bayar tunai di bendahara sekolah.<br />
               2. Simpan invoice & kwitansi ini sebagai bukti pembayaran sah.

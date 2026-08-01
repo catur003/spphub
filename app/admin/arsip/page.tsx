@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import {
+  IconCheckCircle, IconFolder, IconFileText, IconImage, IconUser, IconCalendar,
+  IconEye, IconTrash, IconUpload, IconSave,
+} from "@/components/admin/icons";
 
 type SiswaOption = { id: string; namaLengkap: string; nis: string };
 
@@ -138,7 +142,7 @@ export default function ArsipDigitalPage() {
       {confirmModal}
       {toast && (
         <div className="fixed bottom-6 right-6 z-[9999] flex animate-fade-in-up items-center gap-2.5 rounded-xl border-l-4 border-status-lunas bg-white px-4 py-3 text-sm font-medium text-emerald-800 shadow-lg">
-          ✅ {toast.msg}
+          <IconCheckCircle className="inline h-4 w-4" /> {toast.msg}
         </div>
       )}
 
@@ -146,7 +150,7 @@ export default function ArsipDigitalPage() {
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-ink-900">🗂️ Arsip Digital Sekolah</h1>
+            <h1 className="flex items-center gap-2 text-xl font-bold text-ink-900"><IconFolder className="h-5 w-5" /> Arsip Digital Sekolah</h1>
             <p className="text-sm text-ink-500">Pusat penyimpanan & pencarian bukti transfer, kuitansi, dan berkas siswa</p>
           </div>
           <button
@@ -164,7 +168,7 @@ export default function ArsipDigitalPage() {
               <input
                 type="text"
                 className={inputClass}
-                placeholder="🔍 Cari nama berkas, catatan, atau siswa..."
+                placeholder="Cari nama berkas, catatan, atau siswa..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -194,7 +198,7 @@ export default function ArsipDigitalPage() {
           </div>
         ) : daftar.length === 0 ? (
           <div className="rounded-2xl border border-border-soft bg-white py-16 text-center">
-            <div className="mb-3 text-4xl">📂</div>
+            <IconFolder className="mx-auto mb-3 h-10 w-10 text-ink-500/50" />
             <h5 className="font-bold text-ink-900">Belum Ada Berkas Arsip</h5>
             <p className="text-sm text-ink-500">Silakan tambah berkas baru untuk mulai mengarsipkan dokumen sekolah.</p>
           </div>
@@ -214,7 +218,7 @@ export default function ArsipDigitalPage() {
                             isPdf ? "bg-red-100 text-red-600" : "bg-indigo-100 text-indigo-700"
                           }`}
                         >
-                          {isPdf ? "📄" : "🖼️"}
+                          {isPdf ? <IconFileText className="h-5 w-5" /> : <IconImage className="h-5 w-5" />}
                         </div>
                         <span className={`rounded-full px-3 py-1 text-xs font-semibold text-white ${kat.badge}`}>{kat.label}</span>
                       </div>
@@ -223,12 +227,12 @@ export default function ArsipDigitalPage() {
 
                       {item.siswa && (
                         <div className="mb-1 text-sm font-semibold text-accent">
-                          👤 {item.siswa.namaLengkap} ({item.siswa.nis})
+                          <IconUser className="mr-1 inline h-3.5 w-3.5" /> {item.siswa.namaLengkap} ({item.siswa.nis})
                         </div>
                       )}
 
                       <div className="mb-2 text-xs text-ink-500">
-                        📅 {new Date(item.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                        <IconCalendar className="mr-1 inline h-3.5 w-3.5" /> {new Date(item.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                       </div>
 
                       {item.keterangan && (
@@ -241,13 +245,13 @@ export default function ArsipDigitalPage() {
                         className="w-full rounded-control border border-accent py-1.5 text-sm font-semibold text-accent transition hover:bg-accent-soft"
                         onClick={() => setPreviewItem(item)}
                       >
-                        👁️ Pratinjau
+                        <span className="inline-flex items-center gap-1"><IconEye className="h-3.5 w-3.5" /> Pratinjau</span>
                       </button>
                       <button
                         className="rounded-control border border-red-500 px-3 py-1.5 text-sm text-red-500 transition hover:bg-red-50"
                         onClick={() => handleHapus(item.id)}
                       >
-                        🗑️
+                        <IconTrash className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -263,7 +267,7 @@ export default function ArsipDigitalPage() {
         <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4" onClick={() => setModalOpen(false)}>
           <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between bg-accent px-5 py-4">
-              <h5 className="text-base font-bold text-white">📤 Tambah Berkas Arsip Digital</h5>
+              <h5 className="flex items-center gap-1.5 text-base font-bold text-white"><IconUpload className="h-4 w-4" /> Tambah Berkas Arsip Digital</h5>
               <button type="button" aria-label="Tutup" className="text-xl leading-none text-white/80 hover:text-white" onClick={() => setModalOpen(false)}>×</button>
             </div>
             <form onSubmit={handleSimpan}>
@@ -321,7 +325,7 @@ export default function ArsipDigitalPage() {
               <div className="flex justify-end gap-2 border-t border-border-soft px-5 py-4">
                 <button type="button" className="rounded-control border border-border-soft px-4 py-2 text-sm font-medium text-ink-700 hover:bg-surface" onClick={() => setModalOpen(false)}>Batal</button>
                 <button type="submit" className="rounded-control bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60" disabled={saving}>
-                  {saving ? "Menyimpan..." : "🚀 Simpan Arsip"}
+                  {saving ? "Menyimpan..." : <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Arsip</span>}
                 </button>
               </div>
             </form>
@@ -334,7 +338,7 @@ export default function ArsipDigitalPage() {
         <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4" onClick={() => setPreviewItem(null)}>
           <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between bg-ink-900 px-5 py-4">
-              <h5 className="text-base font-bold text-white">👁️ Pratinjau: {previewItem.judul}</h5>
+              <h5 className="flex items-center gap-1.5 text-base font-bold text-white"><IconEye className="h-4 w-4" /> Pratinjau: {previewItem.judul}</h5>
               <div className="flex items-center gap-2">
                 <a
                   href={previewItem.fileUrl}

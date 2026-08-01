@@ -1,6 +1,7 @@
 "use client";
 
 import { DetailKelasResponse, formatRupiah } from "../types";
+import { IconSchool, IconUsers, IconChart } from "@/components/admin/icons";
 
 type Props = {
   detailLoading: boolean;
@@ -40,8 +41,8 @@ export default function KelasDetailModal({
             <>
               <div className="flex items-start justify-between gap-3 rounded-t-[20px] bg-ink-900 px-6 py-5 text-white">
                 <div>
-                  <h5 className="mb-1 text-base font-bold text-white">
-                    🏫 Detail Kelas {detailKelasData.namaKelas} (Tingkat {detailKelasData.tingkat})
+                  <h5 className="mb-1 inline-flex items-center gap-1.5 text-base font-bold text-white">
+                    <IconSchool className="h-4 w-4" /> Detail Jurusan {detailKelasData.namaKelas} (Kelas {detailKelasData.tingkat})
                   </h5>
                   <p className="mb-0 text-sm text-white/60">
                     Wali Kelas: <strong>{detailKelasData.waliKelas || "Belum diatur"}</strong> |
@@ -68,7 +69,9 @@ export default function KelasDetailModal({
                     }`}
                     onClick={() => setDetailTab("siswa")}
                   >
-                    👥 Daftar Siswa ({detailKelasData.siswa.length})
+                    <span className="inline-flex items-center gap-1.5">
+                      <IconUsers className="h-4 w-4" /> Daftar Siswa ({detailKelasData.siswa.length})
+                    </span>
                   </button>
                   <button
                     className={`rounded-control px-3 py-2 text-sm font-bold transition ${
@@ -78,7 +81,9 @@ export default function KelasDetailModal({
                     }`}
                     onClick={() => setDetailTab("rekap")}
                   >
-                    📊 Rekap Pembayaran Kelas
+                    <span className="inline-flex items-center gap-1.5">
+                      <IconChart className="h-4 w-4" /> Rekap Pembayaran Jurusan
+                    </span>
                   </button>
                 </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEdit, Kelas, Siswa, STATUS_LABEL } from "../types";
+import { IconEdit, IconX, IconCheck, IconKey, IconPlus, IconSave } from "@/components/admin/icons";
 
 type Props = {
   editSiswa: Siswa | null;
@@ -40,14 +41,14 @@ export default function SiswaEditModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 rounded-t-[20px] bg-ink-900 px-6 py-4">
-          <h5 className="mb-0 text-base font-bold text-white">✏️ Edit Data Siswa: {editSiswa.namaLengkap}</h5>
+          <h5 className="mb-0 flex items-center gap-1.5 text-base font-bold text-white"><IconEdit className="h-4 w-4" /> Edit Data Siswa: {editSiswa.namaLengkap}</h5>
           <button
             type="button"
             aria-label="Tutup"
             className="text-xl leading-none text-white/80 hover:text-white"
             onClick={onClose}
           >
-            ×
+            <IconX className="h-4 w-4" />
           </button>
         </div>
         <form onSubmit={onSubmit}>
@@ -147,7 +148,7 @@ export default function SiswaEditModal({
               {formEdit.fotoUrl && (
                 <div className="mt-2 flex items-center gap-2">
                   <img src={formEdit.fotoUrl} alt="Preview" className="h-11 w-11 rounded-control object-cover" />
-                  <span className="text-sm font-semibold text-green-700">✓ Foto Profile Tersimpan</span>
+                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-700"><IconCheck className="h-3.5 w-3.5" /> Foto Profile Tersimpan</span>
                 </div>
               )}
             </div>
@@ -173,11 +174,11 @@ export default function SiswaEditModal({
 
             {/* Seksi Manajemen Akun Login Siswa */}
             <div className="mb-1 rounded-control border border-border-soft bg-surface p-3">
-              <h6 className="mb-2 text-sm font-bold text-ink-900">🔑 Akun Login Portal Siswa</h6>
+              <h6 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-ink-900"><IconKey className="h-4 w-4" /> Akun Login Portal Siswa</h6>
               {editSiswa.akun ? (
                 <div>
                   <div className="mb-2 flex items-center gap-2 text-sm font-bold text-green-700">
-                    <span>✓ Akun Portal Aktif</span>
+                    <span className="inline-flex items-center gap-1"><IconCheck className="h-3.5 w-3.5" /> Akun Portal Aktif</span>
                     <span className="font-normal text-ink-500">({editSiswa.akun.email})</span>
                   </div>
 
@@ -238,7 +239,7 @@ export default function SiswaEditModal({
                       checked={formEdit.buatAkun}
                       onChange={(e) => setFormEdit((f) => ({ ...f, buatAkun: e.target.checked }))}
                     />
-                    ➕ Buat Akun Portal Siswa Sekarang
+                    <span className="inline-flex items-center gap-1.5"><IconPlus className="h-3.5 w-3.5" /> Buat Akun Portal Siswa Sekarang</span>
                   </label>
                   {formEdit.buatAkun && (
                     <div className="mt-1 grid grid-cols-1 gap-2 md:grid-cols-2">
@@ -285,7 +286,7 @@ export default function SiswaEditModal({
               className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-white shadow-sm2 transition hover:bg-accent-hover disabled:opacity-60"
               disabled={loadingEdit || uploadingFoto}
             >
-              {loadingEdit ? "Memproses..." : "💾 Simpan Perubahan"}
+              {loadingEdit ? "Memproses..." : <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Perubahan</span>}
             </button>
           </div>
         </form>

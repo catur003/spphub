@@ -27,3 +27,20 @@ html, body {
    sini). Animasi fade-in-up-nya pakai class `animate-fade-in-up` dari
    tailwind.config.ts (keyframe `fadeInUp` yang sama). */
 
+/* Gradient mesh background buat shell admin — beberapa radial-gradient
+   besar & lembut di titik berbeda (bukan pattern yang keulang kayak
+   polkadot/grid), warnanya diambil dari palette yang udah ada di
+   tailwind.config.ts (accent indigo, status hijau/amber) dengan opacity
+   sangat rendah biar tabel & teks tetap gampang dibaca. Sengaja TANPA
+   `background-attachment: fixed` — itu dikenal bikin rendering nge-jank
+   pas scroll di Safari iOS, dan app ini dioptimasi buat dipakai di HP. */
+.app-shell-bg {
+  background-color: var(--surface);
+  background-image:
+    radial-gradient(ellipse 900px 600px at 8% -10%, rgba(79, 70, 229, 0.08), transparent 60%),
+    radial-gradient(ellipse 700px 700px at 100% 0%, rgba(16, 185, 129, 0.06), transparent 55%),
+    radial-gradient(ellipse 800px 500px at 90% 100%, rgba(245, 158, 11, 0.05), transparent 55%),
+    radial-gradient(ellipse 600px 600px at 0% 100%, rgba(79, 70, 229, 0.05), transparent 55%);
+  background-repeat: no-repeat;
+}
+

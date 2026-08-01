@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import { IconCheckCircle, IconWarning, IconMegaphone, IconZap, IconInbox, IconEdit, IconSave, IconX } from "@/components/admin/icons";
 
 type Pengumuman = {
   id: string;
@@ -108,7 +109,7 @@ export default function PengumumanPage() {
             toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
           }`}
         >
-          {toast.type === "success" ? "✅" : "⚠️"} {toast.msg}
+          {toast.type === "success" ? <IconCheckCircle className="inline h-4 w-4" /> : <IconWarning className="inline h-4 w-4" />} {toast.msg}
         </div>
       )}
 
@@ -123,7 +124,7 @@ export default function PengumumanPage() {
           <div className="col-span-12 lg:col-span-4">
             <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
               <div className="bg-accent px-4 py-3">
-                <h2 className="text-sm font-bold text-white">📢 Tulis Pengumuman Baru</h2>
+                <h2 className="flex items-center gap-1.5 text-sm font-bold text-white"><IconMegaphone className="h-4 w-4" /> Tulis Pengumuman Baru</h2>
               </div>
               <div className="p-4">
                 {error && !editItem && (
@@ -155,7 +156,7 @@ export default function PengumumanPage() {
                     className="w-full rounded-control bg-accent py-2.5 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60"
                     disabled={loading}
                   >
-                    {loading ? "Menerbitkan..." : "🚀 Broadcast Sekarang"}
+                    {loading ? "Menerbitkan..." : <span className="inline-flex items-center gap-1.5"><IconZap className="h-4 w-4" /> Broadcast Sekarang</span>}
                   </button>
                 </form>
               </div>
@@ -211,7 +212,7 @@ export default function PengumumanPage() {
                     {daftar.length === 0 && (
                       <tr>
                         <td colSpan={3} className="py-12 text-center text-ink-500">
-                          <div className="mb-3 text-4xl">📭</div>
+                          <IconInbox className="mx-auto mb-3 h-10 w-10 text-ink-500/50" />
                           Belum ada pengumuman yang diterbitkan.
                         </td>
                       </tr>
@@ -235,14 +236,14 @@ export default function PengumumanPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between bg-accent px-5 py-4">
-              <h5 className="text-base font-bold text-white">📝 Edit Pengumuman</h5>
+              <h5 className="flex items-center gap-1.5 text-base font-bold text-white"><IconEdit className="h-4 w-4" /> Edit Pengumuman</h5>
               <button
                 type="button"
                 aria-label="Tutup"
                 className="text-xl leading-none text-white/80 hover:text-white"
                 onClick={tutupEdit}
               >
-                ×
+                <IconX className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleSimpanEdit}>
@@ -275,7 +276,7 @@ export default function PengumumanPage() {
                   Batal
                 </button>
                 <button type="submit" className="rounded-control bg-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60" disabled={loading}>
-                  {loading ? "Menyimpan..." : "💾 Simpan Perubahan"}
+                  {loading ? "Menyimpan..." : <span className="inline-flex items-center gap-1.5"><IconSave className="h-4 w-4" /> Simpan Perubahan</span>}
                 </button>
               </div>
             </form>

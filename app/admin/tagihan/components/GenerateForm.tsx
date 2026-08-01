@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconSync } from "@/components/admin/icons";
+import { IconSync, IconZap, IconWarning, IconCheckCircle } from "@/components/admin/icons";
 import { TahunAjaran, KelasOption, BULAN_LABEL, TAHUN_OPTIONS } from "../types";
 
 type GenState = {
@@ -45,7 +45,7 @@ export default function GenerateForm({
     <div className="mb-4 rounded-card border border-border-soft bg-white p-5 shadow-sm2">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="m-0 flex items-center gap-2 text-base font-bold text-ink-900">
-          <span>⚡</span> Generate Tagihan Massal Otomatis
+          <IconZap className="h-4 w-4" /> Generate Tagihan Massal Otomatis
         </h2>
         <div className="flex items-center gap-2">
           <button
@@ -63,7 +63,7 @@ export default function GenerateForm({
             Sync Nominal SPP
           </button>
           <span className="rounded-full bg-accent-soft px-3 py-1 text-xs text-accent-hover">
-            💡 Sync otomatis nominal per kelas
+            <span className="inline-flex items-center gap-1"><IconSync className="h-3.5 w-3.5" /> Sync otomatis nominal per jurusan</span>
           </span>
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function GenerateForm({
       {kelasBelumSet.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-control border border-amber-300 bg-amber-50 px-3 py-2 text-sm">
           <div>
-            <strong>⚠️ Peringatan:</strong> Ada <strong>{kelasBelumSet.length} kelas</strong> (
+            <span className="inline-flex items-center gap-1"><IconWarning className="h-3.5 w-3.5" /> <strong>Peringatan:</strong></span> Ada <strong>{kelasBelumSet.length} jurusan</strong> (
             {kelasBelumSet.slice(0, 3).map((k) => k.namaKelas).join(", ")}) yang biaya SPP-nya
             belum diatur (masih Rp 0).
           </div>
@@ -84,7 +84,7 @@ export default function GenerateForm({
             href="/admin/kelas"
             className="whitespace-nowrap rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-ink-900 hover:bg-amber-500"
           >
-            👉 Atur Biaya SPP per Kelas
+            Atur Biaya SPP per Jurusan
           </Link>
         </div>
       )}
@@ -96,7 +96,7 @@ export default function GenerateForm({
       )}
       {genResult && (
         <div className="mb-3 rounded-control border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-          🎉 Berhasil membuat <strong>{genResult.dibuat}</strong> tagihan baru ({genResult.dilewati}{" "}
+          <IconCheckCircle className="mr-1 inline h-4 w-4" />Berhasil membuat <strong>{genResult.dibuat}</strong> tagihan baru ({genResult.dilewati}{" "}
           siswa dilewati / sudah mempunyai tagihan).
         </div>
       )}
@@ -168,7 +168,7 @@ export default function GenerateForm({
                 Memproses...
               </span>
             ) : (
-              "⚡ Generate Massal"
+              <span className="inline-flex items-center gap-1.5"><IconZap className="h-4 w-4" /> Generate Massal</span>
             )}
           </button>
         </div>

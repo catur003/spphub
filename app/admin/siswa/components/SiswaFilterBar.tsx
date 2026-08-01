@@ -35,7 +35,7 @@ export default function SiswaFilterBar({
         <div className="md:col-span-5">
           <input
             className={inputClass}
-            placeholder="🔍 Cari nama siswa / NIS / NISN..."
+            placeholder="Cari nama siswa / NIS / NISN..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -49,17 +49,17 @@ export default function SiswaFilterBar({
               setFilterKelasId("");
             }}
           >
-            <option value="">Semua Tingkat</option>
+            <option value="">Semua Kelas</option>
             {tingkatOptions.map((t) => (
               <option key={t} value={t}>
-                Tingkat {t}
+                Kelas {t}
               </option>
             ))}
           </select>
         </div>
         <div className="md:col-span-4">
           <select className={inputClass} value={filterKelasId} onChange={(e) => setFilterKelasId(e.target.value)}>
-            <option value="">Semua Kelas {filterTingkat ? `(Tingkat ${filterTingkat})` : ""}</option>
+            <option value="">Semua Jurusan {filterTingkat ? `(Kelas ${filterTingkat})` : ""}</option>
             {kelasOptions.map((k) => (
               <option key={k.id} value={k.id}>
                 {k.namaKelas}

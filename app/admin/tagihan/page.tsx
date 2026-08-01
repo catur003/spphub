@@ -60,7 +60,7 @@ export default function TagihanPage() {
       const data = await res.json();
       setSyncingNominal(false);
       if (res.ok) {
-        await alertMsg(`✅ ${data.message}`);
+        await alertMsg(`${data.message}`);
         muatTagihan();
       } else {
         await alertMsg(data.error || "Gagal menyinkronkan nominal");
@@ -83,7 +83,7 @@ export default function TagihanPage() {
       if (data.method === "wa_link" && data.waUrl) {
         window.open(data.waUrl, "_blank");
       } else {
-        await alertMsg(`✅ ${data.message || "Pesan WA berhasil dikirim via Fonnte!"}`);
+        await alertMsg(`${data.message || "Pesan WA berhasil dikirim via Fonnte!"}`);
       }
     } catch (err: any) {
       await alertMsg("Gagal mengirim WA: " + err.message);

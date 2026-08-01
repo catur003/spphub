@@ -20,6 +20,7 @@ import SiswaTable from "./components/SiswaTable";
 import SiswaDetailModal from "./components/SiswaDetailModal";
 import SiswaEditModal from "./components/SiswaEditModal";
 import NaikKelasModal from "./components/NaikKelasModal";
+import { IconCheck, IconX, IconRefresh } from "@/components/admin/icons";
 
 export default function SiswaPage() {
   const [daftar, setDaftar] = useState<Siswa[]>([]);
@@ -87,7 +88,7 @@ export default function SiswaPage() {
       const data = await res.json();
       setLoadingNaikKelas(false);
       if (res.ok) {
-        await alertMsg(`🎉 ${data.message}`);
+        await alertMsg(`${data.message}`);
         setShowNaikKelasModal(false);
         setNaikKelasAsal("");
         setNaikKelasTujuan("");
@@ -345,7 +346,7 @@ export default function SiswaPage() {
               : "border-l-4 border-status-terlambat text-red-800"
           }`}
         >
-          {toast.type === "success" ? "✓" : "✕"} {toast.msg}
+          {toast.type === "success" ? <IconCheck className="inline h-4 w-4" /> : <IconX className="inline h-4 w-4" />} {toast.msg}
         </div>
       )}
 
@@ -361,7 +362,7 @@ export default function SiswaPage() {
             className="rounded-full bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] px-4 py-2 text-sm font-bold text-white shadow-sm2"
             onClick={() => setShowNaikKelasModal(true)}
           >
-            🚀 Naik Kelas Massal
+            <span className="inline-flex items-center gap-1.5"><IconRefresh className="h-3.5 w-3.5" /> Naik Kelas Massal</span>
           </button>
         </div>
 

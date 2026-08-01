@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import Link from "next/link";
+import { IconPrinter, IconDownload, IconSchool } from "@/components/admin/icons";
 
 const BULAN_LABEL = [
   "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -60,14 +61,14 @@ export default function KwitansiClient({ tagihan, profil }: { tagihan: any, prof
               className="rounded-control bg-slate-600 px-4 py-2 font-semibold text-white transition hover:bg-slate-700"
               onClick={() => window.print()}
             >
-              🖨️ Cetak Printer
+              <span className="inline-flex items-center gap-1.5"><IconPrinter className="h-4 w-4" /> Cetak Printer</span>
             </button>
             <button
               className="rounded-control bg-accent px-4 py-2 font-bold text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
               onClick={handleDownloadPDF}
               disabled={downloading}
             >
-              {downloading ? "Memproses PDF..." : "⬇️ Download PDF"}
+              {downloading ? "Memproses PDF..." : <span className="inline-flex items-center gap-1.5"><IconDownload className="h-4 w-4" /> Download PDF</span>}
             </button>
           </div>
         </div>
@@ -90,7 +91,7 @@ export default function KwitansiClient({ tagihan, profil }: { tagihan: any, prof
               {profil?.logoUrl ? (
                 <img src={profil.logoUrl} alt="Logo" className="h-20 w-20 object-contain" crossOrigin="anonymous" />
               ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-[10px] bg-border-soft text-2xl">🏫</div>
+                <div className="flex h-20 w-20 items-center justify-center rounded-[10px] bg-border-soft"><IconSchool className="h-8 w-8 text-ink-500" /></div>
               )}
               <div>
                 <h1 className="text-[28px] font-extrabold uppercase tracking-[1px] text-ink-900">

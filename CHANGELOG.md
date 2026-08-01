@@ -5,6 +5,112 @@ yang paling baru.
 
 ---
 
+## [Tahap 3] Gradient background bermotif non-repeating
+
+`app/globals.css` — nambah class `.app-shell-bg`: 4 radial-gradient besar
+(indigo, hijau, amber — warna diambil dari palette yang udah ada di
+`tailwind.config.ts`, bukan warna baru) diposisikan di titik berbeda-beda
+dengan opacity sangat rendah (0.05–0.08). Ini gradient MESH, bukan
+pattern yang keulang kayak polkadot/grid — tiap "blob"-nya cuma muncul
+sekali di posisi tetap.
+
+Dipasang di `components/admin/sidebar.tsx` (`AdminShell`), ganti
+`bg-surface` polos yang lama — otomatis kepakai di SEMUA halaman admin
+karena ini di level shell, bukan per-halaman. Kartu/tabel yang emang
+solid putih tetep solid putih; gradient cuma kelihatan di ruang
+kosong/margin antar-elemen.
+
+**Keputusan yang saya ambil sendiri** (belum sempat ditanyain ke Zen,
+proceed pakai default paling aman): scope-nya SEMUA halaman admin, bukan
+cuma sidebar/topbar/kartu login — dan halaman login (`/login`) BELUM
+disentuh sama sekali, masih background polos lama. Kalau mau login page
+juga dikasih gradient yang sama, tinggal bilang.
+
+**Catatan teknis**: sengaja TIDAK pakai `background-attachment: fixed` —
+itu properti yang biasa dipasang biar gradient "diem di tempat" pas
+halaman di-scroll, tapi dikenal luas bikin rendering nge-jank/patah-patah
+pas discroll di Safari iOS. Karena app ini abis dioptimasi buat dipakai
+di HP (tabel responsive dll), saya prioritasin smooth-scroll di HP
+ketimbang efek visual itu.
+
+---
+
+## [Emoji → Ikon SVG] Tahap 2 selesai — seluruh codebase bersih dari emoji
+
+Lanjutan dari 11 file yang udah kelar sesi lalu. Sekarang SEMUA file
+sisanya udah diberesin: `admin/siswa/page.tsx` + 5 komponennya
+(`SiswaEditModal`, `SiswaFormTambah`, `SiswaDetailModal`,
+`SiswaImportExport`, `SiswaTable`), `admin/tagihan/page.tsx` + 3
+komponennya (`GenerateForm`, `StatCards`, `TagihanTable`), sisa
+`admin/laporan/page.tsx`, `admin/kelas/page.tsx`, `invoice/[id]/page.tsx`,
+`kwitansi/[id]/KwitansiClient.tsx`.
+
+**Verifikasi otomatis dijalanin di akhir** (scan regex ke semua file
+`.tsx`/`.ts`, kecuali `prisma/seed.ts` yang emoji-nya cuma buat log
+terminal pas seeding, gak kelihatan user):
+- ✅ 0 emoji tersisa di seluruh codebase
+- ✅ 0 import dari `icons.tsx` yang gak kepakai (dicek tiap file: import
+  vs pemakaian JSX)
+- ✅ 0 pemakaian `<IconXxx>` yang lupa diimport
+
+`components/admin/icons.tsx` sekarang punya ~25 ikon SVG (nambah dari 16
+di awal sesi): `IconWarning`, `IconEdit`, `IconEye`, `IconTrash`,
+`IconPlus`, `IconSave`, `IconMoney`, `IconSchool`, `IconCheckCircle`,
+`IconClipboard`, `IconZap`, `IconKey`, `IconPrinter`, `IconCreditCard`,
+`IconCrown`, `IconGraduationCap`, `IconUser`, `IconClock`, `IconFolder`,
+`IconImage`, `IconUpload`, `IconInbox`, `IconDownload`.
+
+### Bonus temuan pas nyapu emoji
+- **Typo "Kas Kas"** di `app/admin/keuangan/laporan/page.tsx` — judul
+  halaman kebaca "Laporan Keuangan & Arus Kas **Kas** Sekolah" (kata
+  "Kas" ke-duplikat). Dibetulin jadi "Arus Kas Sekolah".
+- Konsistensi kecil di `GenerateForm.tsx` (tagihan): teks yang masih
+  nyebut "kelas" buat jumlah jurusan yang belum diatur SPP-nya
+  disamain jadi "jurusan", ngikutin rename Tahap 1.
+
+### Catatan teknis: kenapa dua tombol close pakai IconX bukan ikon lain
+Tombol "×" polos di beberapa modal (`SiswaEditModal`, `SiswaDetailModal`,
+`pengumuman`) diseragamin pakai `IconX` yang sama kayak tombol close di
+tempat lain — bukan simbol × mentahan lagi, biar konsisten satu bahasa
+visual di semua modal.
+
+---
+
+## [Rename Terminologi] "Tingkat" → "Kelas", "Nama Kelas" → "Nama Jurusan" (selesai semua file)
+
+Lanjutan dari yang udah dimulai di `KelasTable.tsx` sesi lalu. Sekarang
+label UI di SEMUA file yang kemarin masih nyebut istilah lama udah
+diganti: `KelasFormTambah`, `KelasEditModal`, `KelasDetailModal`,
+`SiswaFilterBar`, `NaikKelasModal`, `FilterToolbar` (tagihan), dan
+`app/admin/laporan/page.tsx`.
+
+**Tetap konsisten dengan prinsip dari sesi sebelumnya**: cuma teks yang
+tampil ke user yang diganti. Field database (`namaKelas`, `tingkat`),
+nama variabel/prop (`filterTingkat`, `setTingkat`, dst) SENGAJA gak
+disentuh — biar gak perlu migration Prisma dan gak nyentuh logic
+API/query yang udah stabil.
+
+### Bonus temuan: typo "LUNAS" harusnya "LULUS"
+Pas beresin `NaikKelasModal.tsx`, ketemu opsi dropdown nulis
+**"🎓 Tandai LUNAS / ALUMNI (Kelulusan)"** — "LUNAS" itu istilah status
+PEMBAYARAN (SPP sudah dibayar), bukan istilah kelulusan. Ini typo/salah
+ketik yang berpotensi bikin admin salah paham (kirain nandain status
+bayar, padahal itu buat nandain siswa lulus/alumni). Dibetulin jadi
+"Tandai LULUS / ALUMNI (Kelulusan)".
+
+### Emoji juga dibersihin sekalian di file-file yang disentuh
+Karena lagi buka file yang sama, sekalian emoji-nya diganti ikon SVG
+(pola yang sama kayak `KelasTable.tsx` sesi lalu): `KelasFormTambah`
+(⚠️→IconWarning, ✚→IconPlus), `KelasEditModal` (💾→IconSave),
+`KelasDetailModal` (🏫👥📊→IconSchool/IconUsers/IconChart),
+`NaikKelasModal` (🚀🎓→IconRefresh/IconCheckCircle), `FilterToolbar` &
+`SiswaFilterBar` (🔍✕ di placeholder/tombol dihapus/diganti ikon).
+
+Sisa file yang masih pakai emoji ada di `RENCANA-LANJUTAN.md` Tahap 2
+(belum semua, masih banyak — keuangan, siswa/page.tsx, settings, dll).
+
+---
+
 ## [Bugfix + Reorder] Sidebar Pengeluaran hilang, localStorage cache dashboard, reorder menu
 
 ### Bug — Menu "Kelola Pengeluaran" gak ada di sidebar

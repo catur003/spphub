@@ -1,6 +1,6 @@
 "use client";
 
-import { IconSearch } from "@/components/admin/icons";
+import { IconSearch, IconX } from "@/components/admin/icons";
 import { KelasOption, BULAN_LABEL, STATUS_INFO } from "../types";
 
 type Props = {
@@ -58,7 +58,7 @@ export default function FilterToolbar({
         <div className="col-span-2 md:col-span-3">
           <input
             className={selectClass}
-            placeholder="🔍 Cari nama siswa / NIS..."
+            placeholder="Cari nama siswa / NIS..."
             value={filterQ}
             onChange={(e) => setFilterQ(e.target.value)}
           />
@@ -73,10 +73,10 @@ export default function FilterToolbar({
               setFilterKelasId("");
             }}
           >
-            <option value="">Semua Tingkat</option>
+            <option value="">Semua Kelas</option>
             {tingkatOptions.map((t) => (
               <option key={t} value={t}>
-                Tingkat {t}
+                Kelas {t}
               </option>
             ))}
           </select>
@@ -88,10 +88,10 @@ export default function FilterToolbar({
             value={filterKelasId}
             onChange={(e) => setFilterKelasId(e.target.value)}
           >
-            <option value="">Semua Kelas {filterTingkat ? `(Tingkat ${filterTingkat})` : ""}</option>
+            <option value="">Semua Jurusan {filterTingkat ? `(Kelas ${filterTingkat})` : ""}</option>
             {filteredKelasList.map((k) => (
               <option key={k.id} value={k.id}>
-                Kelas {k.namaKelas} {k.nominalSpp ? `(Rp ${(k.nominalSpp / 1000).toFixed(0)}k)` : "(⚠️ Rp 0)"}
+                {k.namaKelas} {k.nominalSpp ? `(Rp ${(k.nominalSpp / 1000).toFixed(0)}k)` : "(Rp 0 - belum diatur)"}
               </option>
             ))}
           </select>
@@ -126,12 +126,12 @@ export default function FilterToolbar({
             <span className="mr-1 font-semibold text-ink-500">Filter Aktif:</span>
             {filterTingkat && (
               <span className="rounded-full bg-accent-soft px-2 py-1 text-accent-hover">
-                Tingkat {filterTingkat}
+                Kelas {filterTingkat}
               </span>
             )}
             {filterKelasId && (
               <span className="rounded-full bg-accent px-2 py-1 text-white">
-                Kelas {kelasList.find((k) => k.id === filterKelasId)?.namaKelas}
+                Jurusan {kelasList.find((k) => k.id === filterKelasId)?.namaKelas}
               </span>
             )}
             {filterBulan && (
@@ -149,10 +149,10 @@ export default function FilterToolbar({
             )}
           </div>
           <button
-            className="ml-auto whitespace-nowrap rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+            className="ml-auto inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
             onClick={onReset}
           >
-            ✕ Reset Filter
+            <IconX className="h-3 w-3" /> Reset Filter
           </button>
         </div>
       )}

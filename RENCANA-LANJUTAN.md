@@ -10,8 +10,8 @@ Status per poin bug awal:
 |---|---|---|
 | 1 | Tabel gak responsive di HP | ✅ Selesai (14 tabel) |
 | 2 | Harus refresh manual setelah set SPP | ✅ Selesai (akar masalah: Cache-Control) |
-| 3 | Tingkat → Kelas, Nama Kelas → Nama Jurusan | 🔶 Baru modul Kelas (`KelasTable`) |
-| 4 | Emoji → ikon profesional + gradient bermotif | 🔶 Baru `KelasTable` + 9 ikon baru disiapin |
+| 3 | Tingkat → Kelas, Nama Kelas → Nama Jurusan | ✅ Selesai (semua file) |
+| 4 | Emoji → ikon profesional + gradient bermotif | ✅ Selesai (emoji 100%, gradient dipasang di shell admin) |
 | 5 | Tab menu lemot | ✅ Selesai (akar masalah: session gak di-cache) |
 | 6 | Laporan SPP kelihatan gak update | ✅ Selesai (filter bulan/tahun tersembunyi) |
 | 7 | Rasio Status SPP blank tanpa keterangan | ✅ Selesai (empty state ditambahin) |

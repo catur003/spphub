@@ -1,6 +1,7 @@
 "use client";
 
 import { Siswa, BULAN_LABEL, STATUS_BADGE, getAvatarColor, getInisial } from "../types";
+import { IconX, IconClipboard, IconUser, IconFileText } from "@/components/admin/icons";
 
 type Props = {
   detailSiswa: Siswa | null;
@@ -50,13 +51,13 @@ export default function SiswaDetailModal({ detailSiswa, loadingDetail, onClose }
                 className="text-xl leading-none text-white/80 hover:text-white"
                 onClick={onClose}
               >
-                ×
+                <IconX className="h-4 w-4" />
               </button>
             </div>
             <div className="p-5">
               <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="rounded-card bg-surface p-3">
-                  <h6 className="mb-2 text-sm font-bold text-ink-900">📋 Data Identitas</h6>
+                  <h6 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-ink-900"><IconClipboard className="h-4 w-4" /> Data Identitas</h6>
                   <div className="mb-1 text-sm">
                     <strong>NIS:</strong> <span className="font-mono">{detailSiswa.nis}</span>
                   </div>
@@ -78,7 +79,7 @@ export default function SiswaDetailModal({ detailSiswa, loadingDetail, onClose }
                   </div>
                 </div>
                 <div className="rounded-card bg-surface p-3">
-                  <h6 className="mb-2 text-sm font-bold text-ink-900">👨‍👩‍👧 Data Orang Tua / Wali</h6>
+                  <h6 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-ink-900"><IconUser className="h-4 w-4" /> Data Orang Tua / Wali</h6>
                   <div className="mb-1 text-sm">
                     <strong>Nama Wali:</strong> {detailSiswa.namaWali || "-"}
                   </div>
@@ -91,7 +92,7 @@ export default function SiswaDetailModal({ detailSiswa, loadingDetail, onClose }
                 </div>
               </div>
 
-              <h6 className="mb-2 text-sm font-bold text-ink-900">📜 Riwayat Tagihan SPP Siswa</h6>
+              <h6 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-ink-900"><IconFileText className="h-4 w-4" /> Riwayat Tagihan SPP Siswa</h6>
               <div className="max-h-[220px] overflow-auto rounded-card border border-border-soft">
                 <table className="w-full min-w-[560px] text-sm">
                   <thead className="sticky top-0 bg-surface">
