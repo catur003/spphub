@@ -35,17 +35,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Signature tidak valid" }, { status: 403 });
   }
 
-  const pembayaran = await prisma.pembayaran.findUnique({ where: { orderId } });
-  if (!pembayaran) {
-    // Order ID nggak dikenal — tetap balas 200 biar Midtrans nggak retry terus,
-    // tapi jangan diproses.
-    return NextResponse.json({ received: true, note: "order_id tidak dikenal" });
-  }
-
-  // Idempoten: kalau udah diproses jadi success/failed sebelumnya, jangan diulang
-  if (pembayaran.status === "success" || pembayaran.status === "failed") {
-    return NextResponse.json({ received: true });
-  }
+  // orderId dikasih prefix beda pas dibuat ("SPP-..." vs "LAIN-...") supaya
+  // webhook tau harus update tabel Pembayaran (SPP) atau PembayaranLain
+  // (Tagihan Lainnya — seragam, daftar ulang, dll) tanpa nyentuh kode SPP
+  // yang udah stabil.
+  const isTagihanLain = orderId.startsWith("LAIN-");
 
   let statusBaru: "pending" | "success" | "failed" | "expired" = "pending";
 
@@ -62,6 +56,49 @@ export async function POST(req: NextRequest) {
     statusBaru = "expired";
   } else if (transactionStatus === "pending") {
     statusBaru = "pending";
+  }
+
+  if (isTagihanLain) {
+    const pembayaranLain = await prisma.pembayaranLain.findUnique({ where: { orderId } });
+    if (!pembayaranLain) {
+      return NextResponse.json({ received: true, note: "order_id tidak dikenal" });
+    }
+    if (pembayaranLain.status === "success" || pembayaranLain.status === "failed") {
+      return NextResponse.json({ received: true });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.pembayaranLain.update({
+        where: { orderId },
+        data: {
+          status: statusBaru,
+          midtransTransactionId: midtransTransactionId || null,
+          rawResponse: body,
+          paidAt: statusBaru === "success" ? new Date() : null,
+        },
+      });
+
+      if (statusBaru === "success") {
+        await tx.tagihanLain.update({
+          where: { id: pembayaranLain.tagihanLainId },
+          data: { status: "lunas" },
+        });
+      }
+    });
+
+    return NextResponse.json({ received: true });
+  }
+
+  const pembayaran = await prisma.pembayaran.findUnique({ where: { orderId } });
+  if (!pembayaran) {
+    // Order ID nggak dikenal — tetap balas 200 biar Midtrans nggak retry terus,
+    // tapi jangan diproses.
+    return NextResponse.json({ received: true, note: "order_id tidak dikenal" });
+  }
+
+  // Idempoten: kalau udah diproses jadi success/failed sebelumnya, jangan diulang
+  if (pembayaran.status === "success" || pembayaran.status === "failed") {
+    return NextResponse.json({ received: true });
   }
 
   await prisma.$transaction(async (tx) => {

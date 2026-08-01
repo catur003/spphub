@@ -7,7 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import {
   IconDashboard, IconUsers, IconLayers, IconCalendar, IconReceipt,
   IconChart, IconSettings, IconLogout, IconMenu, IconX, IconChevronLeft, IconMegaphone,
-  IconMoney,
+  IconMoney, IconClipboard,
 } from "./icons";
 
 type NavItem = {
@@ -41,14 +41,13 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/laporan", label: "Laporan SPP", icon: IconChart, isSubItem: true },
     ],
   },
-  // NOTE: grup "Tagihan Lainnya" (seragam, pendaftaran/daftar ulang, dll)
-  // BELUM dipasang di sini sengaja — halamannya belum dibikin (lihat
-  // RENCANA-LANJUTAN.md Fase 3). Nge-link ke halaman yang belum ada bakal
-  // jadi menu mati/404. Tambahin grup ini pas fiturnya udah jadi:
-  // { header: "TAGIHAN LAINNYA", items: [
-  //   { href: "/admin/tagihan-lainnya", label: "Tagihan Lainnya", icon: ... },
-  //   { href: "/admin/tagihan-lainnya/laporan", label: "Laporan", icon: ..., isSubItem: true },
-  // ]},
+  {
+    header: "TAGIHAN LAINNYA",
+    items: [
+      { href: "/admin/tagihan-lainnya", label: "Tagihan Lainnya", icon: IconClipboard },
+      { href: "/admin/tagihan-lainnya/laporan", label: "Laporan", icon: IconChart, isSubItem: true },
+    ],
+  },
   {
     header: "KEUANGAN",
     items: [

@@ -129,6 +129,9 @@ model Siswa {
   tagihan    TagihanSpp[]
   pembayaran Pembayaran[]
 
+  tagihanLain    TagihanLain[]
+  pembayaranLain PembayaranLain[]
+
   @@index([namaLengkap])
   @@index([kelasId])
   @@index([status])
@@ -152,7 +155,8 @@ model TahunAjaran {
   nama  String
   aktif Boolean @default(false)
 
-  tagihan TagihanSpp[]
+  tagihan     TagihanSpp[]
+  tagihanLain TagihanLain[]
 
   @@map("tahun_ajaran")
 }
@@ -231,6 +235,72 @@ model PengaturanPembayaran {
   updatedAt           DateTime    @updatedAt
 
   @@map("pengaturan_pembayaran")
+}
+
+// ============================================================
+// TAGIHAN LAINNYA (seragam, daftar ulang, dll — di luar SPP bulanan)
+// Tabel terpisah dari TagihanSpp/Pembayaran secara sengaja (Tahap 6):
+// supaya kode SPP yang udah stabil (bayar, verifikasi, webhook Midtrans)
+// gak ikut kesentuh/keresiko. Reuse enum StatusTagihan & StatusPembayaran
+// yang sama biar konsisten sama modul SPP.
+// ============================================================
+
+model JenisTagihanLain {
+  id             String   @id @default(cuid())
+  nama           String // "Seragam", "Daftar Ulang", dll — bebas ditambah admin
+  nominalDefault Int      @default(0)
+  aktif          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tagihan TagihanLain[]
+
+  @@map("jenis_tagihan_lain")
+}
+
+model TagihanLain {
+  id                 String        @id @default(cuid())
+  siswaId            String
+  siswa              Siswa         @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  jenisTagihanLainId String
+  jenisTagihanLain   JenisTagihanLain @relation(fields: [jenisTagihanLainId], references: [id], onDelete: Restrict)
+  tahunAjaranId      String?
+  tahunAjaran        TahunAjaran?  @relation(fields: [tahunAjaranId], references: [id], onDelete: SetNull)
+  nominal            Int
+  jatuhTempo         DateTime
+  status             StatusTagihan @default(belum_bayar)
+  keterangan         String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  pembayaran PembayaranLain[]
+
+  @@index([status])
+  @@index([siswaId])
+  @@index([jenisTagihanLainId])
+  @@map("tagihan_lain")
+}
+
+model PembayaranLain {
+  id                    String           @id @default(cuid())
+  tagihanLainId         String
+  tagihan               TagihanLain      @relation(fields: [tagihanLainId], references: [id], onDelete: Cascade)
+  siswaId               String
+  siswa                 Siswa            @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  orderId               String           @unique
+  jumlah                Int
+  metode                String
+  midtransTransactionId String?
+  status                StatusPembayaran @default(pending)
+  rawResponse           Json?
+  paidAt                DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([status])
+  @@index([siswaId])
+  @@index([tagihanLainId])
+  @@map("pembayaran_lain")
 }
 
 // ============================================================

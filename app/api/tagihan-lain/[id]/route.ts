@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireApiRole } from "@/lib/api-auth";
+
+const STATUS_VALID = ["belum_bayar", "menunggu_verifikasi", "lunas", "terlambat"];
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
+
+    const { id } = await params;
+    const body = await req.json().catch(() => ({}));
+
+    if (!body.status) {
+      return NextResponse.json({ error: "status wajib diisi" }, { status: 400 });
+    }
+
+    if (!STATUS_VALID.includes(body.status)) {
+      return NextResponse.json(
+        { error: `status tidak valid. Pilihan: ${STATUS_VALID.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    const tagihan = await prisma.tagihanLain.update({
+      where: { id },
+      data: { status: body.status },
+    });
+
+    return NextResponse.json(tagihan);
+  } catch (error: any) {
+    console.error("[PATCH /api/tagihan-lain/[id]] Error:", error);
+    return NextResponse.json(
+      { error: "Gagal memperbarui status tagihan: " + (error.message || "Unknown error") },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { error: errAkses } = await requireApiRole(["owner", "petugas"]);
+    if (errAkses) return errAkses;
+
+    const { id } = await params;
+
+    const punyaPembayaranSukses = await prisma.pembayaranLain.findFirst({
+      where: { tagihanLainId: id, status: "success" },
+      select: { id: true },
+    });
+
+    if (punyaPembayaranSukses) {
+      return NextResponse.json(
+        {
+          error:
+            "Tagihan ini sudah punya pembayaran sukses. Menghapusnya akan menghapus permanen riwayat pembayaran itu juga. Kalau memang salah input, ubah statusnya saja, jangan dihapus.",
+        },
+        { status: 409 }
+      );
+    }
+
+    await prisma.tagihanLain.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("[DELETE /api/tagihan-lain/[id]] Error:", error);
+    return NextResponse.json(
+      { error: "Gagal menghapus tagihan: " + (error.message || "Unknown error") },
+      { status: 500 }
+    );
+  }
+}

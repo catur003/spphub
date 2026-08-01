@@ -19,7 +19,7 @@ Status per poin bug awal:
 | 9 | Menu "Kelola Pengeluaran" gak ada di sidebar | ✅ Selesai |
 | 10 | Reorder menu sidebar (SPP / Tagihan Lainnya / Keuangan) | 🔶 Sebagian — grup SPP & Keuangan udah, "Tagihan Lainnya" nunggu Tahap 6 |
 | 11 | Kartu saldo kas dikasih warna biar jelas | ✅ Selesai (dinamis ngikutin nilai + StatCards tagihan) |
-| 12 | Fitur Tagihan Lainnya (seragam, daftar ulang, dll) | ⬜ Belum — lihat Tahap 6 |
+| 12 | Fitur Tagihan Lainnya (seragam, daftar ulang, dll) | 🔶 Milestone 1&2 (skema+API+halaman admin) selesai — lihat detail di HANDOFF-BUGFIX-OPTIMISASI.md #1a. Sisa: Milestone 3 (laporan + halaman siswa) |
 | 13 | Info saldo kas lebih informatif | ⬜ Belum — lihat Tahap 7 |
 | 14 | Custom print laporan (bukan screenshot halaman) | ⬜ Belum — lihat Tahap 8 |
 
