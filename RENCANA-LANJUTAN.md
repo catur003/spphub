@@ -18,7 +18,7 @@ Status per poin bug awal:
 | 8 | Pengingat "tagihan belum dibuat" gak ilang | 🔶 2 kontributor udah di-fix (timezone + localStorage cache), lihat catatan di bawah |
 | 9 | Menu "Kelola Pengeluaran" gak ada di sidebar | ✅ Selesai |
 | 10 | Reorder menu sidebar (SPP / Tagihan Lainnya / Keuangan) | 🔶 Sebagian — grup SPP & Keuangan udah, "Tagihan Lainnya" nunggu Tahap 6 |
-| 11 | Kartu saldo kas dikasih warna biar jelas | ⬜ Belum — lihat Tahap 5 |
+| 11 | Kartu saldo kas dikasih warna biar jelas | ✅ Selesai (dinamis ngikutin nilai + StatCards tagihan) |
 | 12 | Fitur Tagihan Lainnya (seragam, daftar ulang, dll) | ⬜ Belum — lihat Tahap 6 |
 | 13 | Info saldo kas lebih informatif | ⬜ Belum — lihat Tahap 7 |
 | 14 | Custom print laporan (bukan screenshot halaman) | ⬜ Belum — lihat Tahap 8 |
@@ -138,23 +138,14 @@ disiapin di `sidebar.tsx` (persis di bawah grup "SPP") dan isi href-nya.
 
 ---
 
-## Tahap 5 — Kartu Saldo Kas jadi card berwarna
+## Tahap 5 — ✅ SELESAI — Kartu Saldo Kas jadi card berwarna
 
-Sekarang saldo kas/laba-rugi di dashboard masih dalam bentuk angka polos
-di `ExecutiveCard`. Rencana: tetep pakai komponen `ExecutiveCard` yang
-udah ada (udah support prop `gradient`), tapi perjelas maknanya per warna:
-- **Hijau** — saldo/laba positif
-- **Merah** — saldo/laba negatif (rugi atau kas minus)
-- **Kuning/amber** — tunggakan & utang pegawai (butuh perhatian)
-- **Biru** — angka netral (total siswa, jumlah transaksi)
-
-Perlu keputusan kecil dari Zen: kalau saldo kas negatif, mau kartunya
-otomatis ganti gradient jadi merah (dinamis ngikutin nilai), atau warna
-tiap kartu tetap fix per kategori? Ini nentuin apa perlu logic tambahan
-di `ExecutiveCard` (terima prop `variant` yang mapping ke warna) atau
-cukup pilih gradient yang lebih jelas kontrasnya doang.
-
-Estimasi: setengah sesi kerja.
+Diimplementasikan pakai opsi "dinamis ngikutin nilai" (bukan warna fix
+per kategori): Saldo Kas & Laba/Rugi ganti hijau/merah ngikutin tanda
+positif/negatif; SPP Belum Dibayar & Utang Pegawai ganti amber-merah/
+hijau ngikutin ada-tidaknya jumlah. Detail di CHANGELOG.md bagian
+"[Tahap 5]". StatCards di halaman Tagihan (Total Tagihan, Sudah Lunas,
+Belum/Terlambat, Total Nominal) ikut dikasih warna penuh per kartu.
 
 ---
 

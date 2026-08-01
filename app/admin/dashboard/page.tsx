@@ -186,12 +186,14 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 4 Executive Stat Cards */}
+      {/* 4 Executive Stat Cards — warna dinamis ngikutin nilai, biar sekali lihat
+          langsung kebaca mana yang butuh perhatian (lihat Tahap 5 di
+          RENCANA-LANJUTAN.md untuk alasan pemilihan warna). */}
       <div className="mb-6 grid grid-cols-12 gap-3">
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <ExecutiveCard
             href="/admin/keuangan/laporan"
-            gradient={CARD_GRADIENTS.blue}
+            gradient={saldoKas >= 0 ? CARD_GRADIENTS.green : CARD_GRADIENTS.red}
             icon={<IconMoney className="h-5 w-5" />}
             value={saldoKas.toLocaleString("id-ID")}
             title="Saldo Kas Utama"
@@ -201,7 +203,7 @@ export default function DashboardPage() {
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <ExecutiveCard
             href="/admin/keuangan/laporan"
-            gradient={CARD_GRADIENTS.green}
+            gradient={labaRugi >= 0 ? CARD_GRADIENTS.green : CARD_GRADIENTS.red}
             icon={<IconChart className="h-5 w-5" />}
             value={labaRugi.toLocaleString("id-ID")}
             title="Laba/Rugi Net"
@@ -211,7 +213,7 @@ export default function DashboardPage() {
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <ExecutiveCard
             href="/admin/tagihan?status=belum_bayar"
-            gradient={CARD_GRADIENTS.orange}
+            gradient={sppBelumTotal > 0 ? CARD_GRADIENTS.orange : CARD_GRADIENTS.green}
             icon={<IconFileText className="h-5 w-5" />}
             value={sppBelumTotal.toLocaleString("id-ID")}
             title="SPP Belum Dibayar"
@@ -221,7 +223,7 @@ export default function DashboardPage() {
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <ExecutiveCard
             href="/admin/keuangan/utang-pegawai"
-            gradient={CARD_GRADIENTS.red}
+            gradient={utangPegawaiTotal > 0 ? CARD_GRADIENTS.red : CARD_GRADIENTS.green}
             icon={<IconMoney className="h-5 w-5" />}
             value={utangPegawaiTotal.toLocaleString("id-ID")}
             title="Utang Pegawai (Kasbon)"

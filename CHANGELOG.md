@@ -5,6 +5,37 @@ yang paling baru.
 
 ---
 
+## [Tahap 5] Kartu saldo & statistik jadi berwarna dinamis
+
+### Dashboard — 4 Executive Card
+Sebelumnya warnanya FIX per kartu (Saldo Kas selalu biru, Laba/Rugi
+selalu hijau, dst) — gak nyambung sama kondisi aslinya. Sekarang warnanya
+**ngikutin nilai**:
+- **Saldo Kas Utama** — hijau kalau ≥ 0, merah kalau minus
+- **Laba/Rugi Net** — hijau kalau untung, merah kalau rugi
+- **SPP Belum Dibayar** — amber kalau masih ada tunggakan, hijau kalau 0
+- **Utang Pegawai** — merah kalau masih ada kasbon jalan, hijau kalau 0
+
+Ini keputusan yang saya ambil sendiri (opsi "dinamis ngikutin nilai" dari
+2 opsi yang saya ajuin di `RENCANA-LANJUTAN.md` Tahap 5) karena paling
+langsung ngasih tau kondisi kas tanpa perlu mikir — sekali lihat warna
+udah ketauan mana yang butuh perhatian.
+
+### Halaman Tagihan — 4 Stat Card (Total Tagihan, Sudah Lunas, Belum/
+Terlambat, Total Nominal)
+Sebelumnya cuma badge ikon kecil yang berwarna, badan kartunya putih
+polos semua — jadi keempat kartu itu keliatan sama aja sekilas. Sekarang
+tiap kartu punya border kiri tebal + tint background + warna teks angka
+sendiri-sendiri: biru (Total Tagihan, netral/informasi), hijau (Sudah
+Lunas), merah (Belum/Terlambat), indigo (Total Nominal, ngikutin warna
+aksen app). `app/admin/tagihan/components/StatCards.tsx`.
+
+Halaman Laporan SPP (`app/admin/laporan/page.tsx`) dicek juga — kartu di
+situ (`SummaryCard`) ternyata udah punya accent bar & warna teks dari
+awal, jadi gak perlu diubah.
+
+---
+
 ## [Tahap 3] Gradient background bermotif non-repeating
 
 `app/globals.css` — nambah class `.app-shell-bg`: 4 radial-gradient besar
