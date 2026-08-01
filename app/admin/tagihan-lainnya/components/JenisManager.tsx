@@ -143,28 +143,35 @@ export default function JenisManager({ daftarJenis, onCreate, onUpdate, confirm 
           Belum ada jenis tagihan. Tambah dulu sebelum bisa generate tagihan massal.
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {daftarJenis.map((j) => (
             <div
               key={j.id}
-              className={`flex items-center gap-2 rounded-control border px-3 py-2 text-sm ${
-                j.aktif ? "border-border-soft bg-surface" : "border-border-soft bg-slate-50 opacity-60"
+              className={`flex flex-col gap-2 rounded-card border p-4 shadow-sm2 transition ${
+                j.aktif ? "border-border-soft bg-white" : "border-border-soft bg-slate-50 opacity-70"
               }`}
             >
-              <span className="font-semibold text-ink-900">{j.nama}</span>
-              <span className="text-xs text-ink-500">{formatRupiah(j.nominalDefault)}</span>
-              <button onClick={() => openEdit(j)} className="text-ink-500 hover:text-accent" title="Edit">
-                <IconEdit width={13} height={13} />
-              </button>
-              <button
-                onClick={() => toggleAktif(j)}
-                className={`rounded-full px-2 py-0.5 text-[0.68rem] font-semibold ${
-                  j.aktif ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
-                }`}
-                title={j.aktif ? "Klik untuk nonaktifkan" : "Klik untuk aktifkan"}
-              >
-                {j.aktif ? "Aktif" : "Nonaktif"}
-              </button>
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-bold text-ink-900">{j.nama}</span>
+                <button
+                  onClick={() => toggleAktif(j)}
+                  className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[0.68rem] font-semibold ${
+                    j.aktif ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
+                  }`}
+                  title={j.aktif ? "Klik untuk nonaktifkan" : "Klik untuk aktifkan"}
+                >
+                  {j.aktif ? "Aktif" : "Nonaktif"}
+                </button>
+              </div>
+              <div className="text-lg font-bold text-accent-hover">{formatRupiah(j.nominalDefault)}</div>
+              <div className="mt-1 flex justify-end border-t border-border-soft pt-2">
+                <button
+                  onClick={() => openEdit(j)}
+                  className="inline-flex items-center gap-1 rounded-control px-2 py-1 text-xs font-semibold text-ink-500 hover:bg-surface hover:text-accent"
+                >
+                  <IconEdit width={13} height={13} /> Edit
+                </button>
+              </div>
             </div>
           ))}
         </div>

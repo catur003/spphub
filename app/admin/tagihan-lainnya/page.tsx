@@ -25,6 +25,8 @@ export default function TagihanLainnyaPage() {
   const [filterJenisId, setFilterJenisId] = useState("");
   const [filterKelasId, setFilterKelasId] = useState("");
   const [filterQ, setFilterQ] = useState("");
+  const [filterPresetId, setFilterPresetId] = useState("");
+  const [filterPresetList, setFilterPresetList] = useState<JatuhTempoPreset[]>([]);
   const [includeNonAktif, setIncludeNonAktif] = useState(false);
   const [sortField, setSortField] = useState<SortField>("tempo");
   const [sortAsc, setSortAsc] = useState(false);
@@ -86,6 +88,11 @@ export default function TagihanLainnyaPage() {
     if (res.ok) setPresetList(await res.json());
   }, []);
 
+  const muatFilterPresetList = useCallback(async () => {
+    const res = await fetch(`/api/jatuh-tempo?jenis=lainnya`);
+    if (res.ok) setFilterPresetList(await res.json());
+  }, []);
+
   const muatTagihan = useCallback(
     async (signal?: AbortSignal) => {
       setLoadingData(true);
@@ -96,6 +103,11 @@ export default function TagihanLainnyaPage() {
       if (filterKelasId) params.set("kelasId", filterKelasId);
       if (filterQ) params.set("q", filterQ);
       if (includeNonAktif) params.set("includeNonAktif", "1");
+      const presetTerpilih = filterPresetList.find((p) => p.id === filterPresetId);
+      if (presetTerpilih) {
+        params.set("jatuhTempoStart", presetTerpilih.tanggalAwal.split("T")[0]);
+        params.set("jatuhTempoEnd", presetTerpilih.tanggalAkhir.split("T")[0]);
+      }
 
       try {
         const res = await fetch(`/api/tagihan-lain?${params.toString()}`, { signal });
@@ -115,13 +127,14 @@ export default function TagihanLainnyaPage() {
         setLoadingData(false);
       }
     },
-    [filterStatus, filterJenisId, filterKelasId, filterQ, includeNonAktif]
+    [filterStatus, filterJenisId, filterKelasId, filterQ, filterPresetId, filterPresetList, includeNonAktif]
   );
 
   useEffect(() => {
     muatJenis();
     muatKelas();
     muatTahunAjaran();
+    muatFilterPresetList();
   }, []);
 
   useEffect(() => {
@@ -139,7 +152,7 @@ export default function TagihanLainnyaPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, filterJenisId, filterKelasId, filterQ, includeNonAktif, sortField, sortAsc]);
+  }, [filterStatus, filterJenisId, filterKelasId, filterQ, filterPresetId, includeNonAktif, sortField, sortAsc]);
 
   async function handleCreateJenis(nama: string, nominalDefault: number): Promise<string | null> {
     const res = await fetch("/api/tagihan-lain/jenis", {
@@ -408,13 +421,14 @@ export default function TagihanLainnyaPage() {
   );
   const totalNominal = useMemo(() => safeDaftar.reduce((acc, t) => acc + (t.nominal || 0), 0), [safeDaftar]);
 
-  const isFilterActive = !!(filterStatus || filterJenisId || filterKelasId || filterQ);
+  const isFilterActive = !!(filterStatus || filterJenisId || filterKelasId || filterQ || filterPresetId);
 
   function resetFilter() {
     setFilterStatus("");
     setFilterJenisId("");
     setFilterKelasId("");
     setFilterQ("");
+    setFilterPresetId("");
     setIncludeNonAktif(false);
   }
 
@@ -462,6 +476,9 @@ export default function TagihanLainnyaPage() {
           setFilterKelasId={setFilterKelasId}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
+          filterPresetId={filterPresetId}
+          setFilterPresetId={setFilterPresetId}
+          filterPresetList={filterPresetList}
           daftarJenis={daftarJenis}
           kelasList={kelasList}
           totalCount={sortedDaftar.length}

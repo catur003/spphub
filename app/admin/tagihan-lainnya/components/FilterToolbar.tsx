@@ -3,6 +3,8 @@
 import { IconSearch, IconX } from "@/components/admin/icons";
 import { JenisTagihanLain, KelasOption, STATUS_INFO } from "../types";
 
+type PresetOption = { id: string; nama: string };
+
 type Props = {
   filterQ: string;
   setFilterQ: (v: string) => void;
@@ -12,6 +14,9 @@ type Props = {
   setFilterKelasId: (v: string) => void;
   filterStatus: string;
   setFilterStatus: (v: string) => void;
+  filterPresetId: string;
+  setFilterPresetId: (v: string) => void;
+  filterPresetList: PresetOption[];
   daftarJenis: JenisTagihanLain[];
   kelasList: KelasOption[];
   totalCount: number;
@@ -33,6 +38,9 @@ export default function FilterToolbar({
   setFilterKelasId,
   filterStatus,
   setFilterStatus,
+  filterPresetId,
+  setFilterPresetId,
+  filterPresetList,
   daftarJenis,
   kelasList,
   totalCount,
@@ -94,6 +102,17 @@ export default function FilterToolbar({
             ))}
           </select>
         </div>
+
+        <div className="col-span-2 md:col-span-3">
+          <select className={selectClass} value={filterPresetId} onChange={(e) => setFilterPresetId(e.target.value)}>
+            <option value="">Semua Jatuh Tempo</option>
+            {filterPresetList.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nama}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <label className="mt-2 flex w-fit items-center gap-1.5 text-xs text-ink-500">
@@ -127,6 +146,11 @@ export default function FilterToolbar({
             )}
             {filterQ && (
               <span className="rounded-full bg-ink-900 px-2 py-1 text-white">Cari: "{filterQ}"</span>
+            )}
+            {(filterPresetId && filterPresetList.find((p) => p.id === filterPresetId)) && (
+              <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">
+                Jatuh Tempo: {filterPresetList.find((p) => p.id === filterPresetId)?.nama}
+              </span>
             )}
           </div>
           <button

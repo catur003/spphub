@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import ConfirmHapusLunasModal from "@/components/admin/ConfirmHapusLunasModal";
 import { IconSync } from "@/components/admin/icons";
-import { TahunAjaran, KelasOption, SiswaDetail, Tagihan, SortField, STATUS_SISWA_NONAKTIF } from "./types";
+import { TahunAjaran, KelasOption, SiswaDetail, Tagihan, SortField, STATUS_SISWA_NONAKTIF, BULAN_LABEL } from "./types";
 import StatCards from "./components/StatCards";
 import GenerateForm, { JatuhTempoPreset } from "./components/GenerateForm";
 import FilterToolbar from "./components/FilterToolbar";
@@ -225,6 +225,16 @@ export default function TagihanPage() {
     e.preventDefault();
     setGenError("");
     setGenResult(null);
+
+    const tahunAjaranTerpilih = tahunAjaranList.find((t) => t.id === gen.tahunAjaranId);
+    const ok = await confirm(
+      `Generate tagihan SPP untuk ${BULAN_LABEL[Number(gen.bulan)]} ${gen.tahun} (${
+        tahunAjaranTerpilih?.nama || "-"
+      })? Tagihan baru akan langsung dibuat untuk semua siswa aktif yang belum punya tagihan bulan ini.`,
+      { title: "Generate Tagihan SPP Massal", confirmLabel: "Ya, Generate" }
+    );
+    if (!ok) return;
+
     setGenLoading(true);
     try {
       const res = await fetch("/api/tagihan/generate", {
