@@ -12,6 +12,8 @@ export async function GET(req: NextRequest) {
   const kelasId = searchParams.get("kelasId") || undefined;
   const tahunAjaranId = searchParams.get("tahunAjaranId") || undefined;
   const q = searchParams.get("q") || undefined;
+  // Default: siswa nonaktif/lulus/pindah gak muncul di daftar Tagihan Lainnya.
+  const includeNonAktif = searchParams.get("includeNonAktif") === "1";
 
   const siswaFilter = kelasId ? { kelasId } : undefined;
 
@@ -25,8 +27,12 @@ export async function GET(req: NextRequest) {
       }
     : undefined;
 
+  const statusFilter = includeNonAktif ? undefined : { status: "aktif" as const };
+
   const siswaWhere =
-    siswaFilter || qFilter ? { ...(siswaFilter || {}), ...(qFilter || {}) } : undefined;
+    siswaFilter || qFilter || statusFilter
+      ? { ...(siswaFilter || {}), ...(qFilter || {}), ...(statusFilter || {}) }
+      : undefined;
 
   try {
     const tagihan = await prisma.tagihanLain.findMany({
@@ -54,6 +60,7 @@ export async function GET(req: NextRequest) {
             namaWali: true,
             kontakWali: true,
             fotoUrl: true,
+            status: true,
             kelas: { select: { id: true, namaKelas: true, tingkat: true, waliKelas: true } },
           },
         },

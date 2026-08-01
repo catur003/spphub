@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import ConfirmHapusLunasModal from "@/components/admin/ConfirmHapusLunasModal";
 import { IconSync } from "@/components/admin/icons";
-import { TahunAjaran, KelasOption, SiswaDetail, Tagihan, SortField } from "./types";
+import { TahunAjaran, KelasOption, SiswaDetail, Tagihan, SortField, STATUS_SISWA_NONAKTIF } from "./types";
 import StatCards from "./components/StatCards";
 import GenerateForm, { JatuhTempoPreset } from "./components/GenerateForm";
 import FilterToolbar from "./components/FilterToolbar";
@@ -26,6 +27,7 @@ export default function TagihanPage() {
   const [filterQ, setFilterQ] = useState("");
   const [filterPresetId, setFilterPresetId] = useState("");
   const [filterPresetList, setFilterPresetList] = useState<JatuhTempoPreset[]>([]);
+  const [includeNonAktif, setIncludeNonAktif] = useState(false);
   const [sortField, setSortField] = useState<SortField>("periode");
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -42,6 +44,12 @@ export default function TagihanPage() {
   // Hapus massal
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [hapusLunasModal, setHapusLunasModal] = useState<{
+    ids: string[];
+    jumlahLunas: number;
+    totalNominal: number;
+    jumlahLain: number;
+  } | null>(null);
 
   // Form generate massal
   const todayStr = new Date().toISOString().split("T")[0];
@@ -141,6 +149,7 @@ export default function TagihanPage() {
       if (filterTingkat) params.set("tingkat", filterTingkat);
       if (filterKelasId) params.set("kelasId", filterKelasId);
       if (filterQ) params.set("q", filterQ);
+      if (includeNonAktif) params.set("includeNonAktif", "1");
       const presetTerpilih = filterPresetList.find((p) => p.id === filterPresetId);
       if (presetTerpilih) {
         params.set("jatuhTempoStart", presetTerpilih.tanggalAwal.split("T")[0]);
@@ -165,7 +174,17 @@ export default function TagihanPage() {
         setLoadingData(false);
       }
     },
-    [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ, filterPresetId, filterPresetList]
+    [
+      filterStatus,
+      filterBulan,
+      filterTahun,
+      filterTingkat,
+      filterKelasId,
+      filterQ,
+      filterPresetId,
+      filterPresetList,
+      includeNonAktif,
+    ]
   );
 
   useEffect(() => {
@@ -197,6 +216,7 @@ export default function TagihanPage() {
     filterKelasId,
     filterQ,
     filterPresetId,
+    includeNonAktif,
     sortField,
     sortAsc,
   ]);
@@ -285,6 +305,22 @@ export default function TagihanPage() {
   async function handleHapusMassal() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
+
+    const dipilih = safeDaftar.filter((t) => selectedIds.has(t.id));
+    const lunasNonAktif = dipilih.filter(
+      (t) => t.status === "lunas" && t.siswa?.status && STATUS_SISWA_NONAKTIF.includes(t.siswa.status)
+    );
+
+    if (lunasNonAktif.length > 0) {
+      setHapusLunasModal({
+        ids,
+        jumlahLunas: lunasNonAktif.length,
+        totalNominal: lunasNonAktif.reduce((acc, t) => acc + (t.nominal || 0), 0),
+        jumlahLain: ids.length - lunasNonAktif.length,
+      });
+      return;
+    }
+
     if (
       !(await confirm(
         `Hapus ${ids.length} tagihan SPP terpilih? Aksi ini gak bisa dibatalin. Tagihan yang udah punya pembayaran sukses otomatis gak akan dihapus (dilindungi sistem).`,
@@ -293,11 +329,19 @@ export default function TagihanPage() {
     )
       return;
 
+    await eksekusiHapusMassal(ids);
+  }
+
+  async function eksekusiHapusMassal(ids: string[]) {
     setBulkDeleting(true);
     let berhasil = 0;
     let gagal = 0;
     for (const id of ids) {
-      const res = await fetch(`/api/tagihan/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/tagihan/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmHapusLunas: true }),
+      });
       if (res.ok) berhasil++;
       else gagal++;
     }
@@ -389,6 +433,7 @@ export default function TagihanPage() {
     setFilterTingkat("");
     setFilterQ("");
     setFilterPresetId("");
+    setIncludeNonAktif(false);
   }
 
   return (
@@ -460,6 +505,8 @@ export default function TagihanPage() {
           totalCount={sortedDaftar.length}
           isFilterActive={isFilterActive}
           onReset={resetFilter}
+          includeNonAktif={includeNonAktif}
+          setIncludeNonAktif={setIncludeNonAktif}
         />
 
         <TagihanTable
@@ -490,6 +537,20 @@ export default function TagihanPage() {
       </div>
 
       <SiswaDetailModal detailSiswa={detailSiswa} onClose={() => setDetailSiswa(null)} />
+
+      <ConfirmHapusLunasModal
+        show={!!hapusLunasModal}
+        jumlahTagihan={hapusLunasModal?.jumlahLunas || 0}
+        totalNominal={hapusLunasModal?.totalNominal || 0}
+        jumlahTagihanLain={hapusLunasModal?.jumlahLain || 0}
+        loading={bulkDeleting}
+        onClose={() => setHapusLunasModal(null)}
+        onConfirm={async () => {
+          const ids = hapusLunasModal?.ids || [];
+          setHapusLunasModal(null);
+          await eksekusiHapusMassal(ids);
+        }}
+      />
     </>
   );
 }

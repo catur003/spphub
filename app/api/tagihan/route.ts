@@ -15,6 +15,10 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get("q") || undefined;
   const jatuhTempoStart = searchParams.get("jatuhTempoStart") || undefined;
   const jatuhTempoEnd = searchParams.get("jatuhTempoEnd") || undefined;
+  // Default: siswa nonaktif/lulus/pindah gak muncul di daftar Tagihan SPP.
+  // Toggle "Tampilkan siswa nonaktif/lulus/pindah" di FilterToolbar kirim
+  // includeNonAktif=1 supaya tagihan lunas mereka bisa dicari & dihapus.
+  const includeNonAktif = searchParams.get("includeNonAktif") === "1";
 
   const siswaFilter =
     kelasId
@@ -33,9 +37,11 @@ export async function GET(req: NextRequest) {
       }
     : undefined;
 
+  const statusFilter = includeNonAktif ? undefined : { status: "aktif" as const };
+
   const siswaWhere =
-    siswaFilter || qFilter
-      ? { ...(siswaFilter || {}), ...(qFilter || {}) }
+    siswaFilter || qFilter || statusFilter
+      ? { ...(siswaFilter || {}), ...(qFilter || {}), ...(statusFilter || {}) }
       : undefined;
 
   try {
@@ -71,6 +77,7 @@ export async function GET(req: NextRequest) {
             namaWali: true,
             kontakWali: true,
             fotoUrl: true,
+            status: true,
             kelas: { select: { id: true, namaKelas: true, tingkat: true, waliKelas: true } },
           },
         },

@@ -1,7 +1,8 @@
 "use client";
 
 import { IconWhatsapp, IconFileText, IconCheck, IconRefresh, IconSearch, IconWarning, IconTrash } from "@/components/admin/icons";
-import { Tagihan, SortField, BULAN_LABEL, STATUS_INFO, getAvatarColor, getInisial, formatTanggalPanjang } from "../types";
+import { Tagihan, SortField, BULAN_LABEL, STATUS_INFO, getAvatarColor, getInisial, formatTanggalPanjang, STATUS_SISWA_NONAKTIF } from "../types";
+import { STATUS_LABEL as SISWA_STATUS_LABEL, STATUS_BADGE as SISWA_STATUS_BADGE } from "@/app/admin/siswa/types";
 
 type Props = {
   loadingData: boolean;
@@ -191,6 +192,13 @@ export default function TagihanTable({
                           <div className="inline-flex items-center gap-1 font-bold text-accent-hover">
                             {namaSiswa}
                             <IconSearch width={13} height={13} className="ml-1 text-ink-500" />
+                            {t.siswa?.status && STATUS_SISWA_NONAKTIF.includes(t.siswa.status) && (
+                              <span
+                                className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${SISWA_STATUS_BADGE[t.siswa.status] || "bg-slate-100 text-slate-700"}`}
+                              >
+                                {SISWA_STATUS_LABEL[t.siswa.status] || t.siswa.status}
+                              </span>
+                            )}
                           </div>
                           <div className="font-mono text-xs text-ink-500">NIS: {nisSiswa}</div>
                         </div>

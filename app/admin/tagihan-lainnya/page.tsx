@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import ConfirmHapusLunasModal from "@/components/admin/ConfirmHapusLunasModal";
 import StatCards from "@/app/admin/tagihan/components/StatCards";
 import SiswaDetailModal from "@/app/admin/tagihan/components/SiswaDetailModal";
 import { JenisTagihanLain, KelasOption, TahunAjaran, TagihanLain, SortField } from "./types";
+import { STATUS_SISWA_NONAKTIF } from "@/app/admin/tagihan/types";
 import JenisManager from "./components/JenisManager";
 import GenerateForm, { JatuhTempoPreset } from "./components/GenerateForm";
 import FilterToolbar from "./components/FilterToolbar";
@@ -23,6 +25,7 @@ export default function TagihanLainnyaPage() {
   const [filterJenisId, setFilterJenisId] = useState("");
   const [filterKelasId, setFilterKelasId] = useState("");
   const [filterQ, setFilterQ] = useState("");
+  const [includeNonAktif, setIncludeNonAktif] = useState(false);
   const [sortField, setSortField] = useState<SortField>("tempo");
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -49,6 +52,14 @@ export default function TagihanLainnyaPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [hapusLunasModal, setHapusLunasModal] = useState<{
+    ids: string[];
+    single?: boolean;
+    label?: string;
+    jumlahLunas: number;
+    totalNominal: number;
+    jumlahLain: number;
+  } | null>(null);
   const [presetList, setPresetList] = useState<JatuhTempoPreset[]>([]);
 
   const { confirm, alertMsg, modal } = useConfirmModal();
@@ -84,6 +95,7 @@ export default function TagihanLainnyaPage() {
       if (filterJenisId) params.set("jenisTagihanLainId", filterJenisId);
       if (filterKelasId) params.set("kelasId", filterKelasId);
       if (filterQ) params.set("q", filterQ);
+      if (includeNonAktif) params.set("includeNonAktif", "1");
 
       try {
         const res = await fetch(`/api/tagihan-lain?${params.toString()}`, { signal });
@@ -103,7 +115,7 @@ export default function TagihanLainnyaPage() {
         setLoadingData(false);
       }
     },
-    [filterStatus, filterJenisId, filterKelasId, filterQ]
+    [filterStatus, filterJenisId, filterKelasId, filterQ, includeNonAktif]
   );
 
   useEffect(() => {
@@ -127,7 +139,7 @@ export default function TagihanLainnyaPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, filterJenisId, filterKelasId, filterQ, sortField, sortAsc]);
+  }, [filterStatus, filterJenisId, filterKelasId, filterQ, includeNonAktif, sortField, sortAsc]);
 
   async function handleCreateJenis(nama: string, nominalDefault: number): Promise<string | null> {
     const res = await fetch("/api/tagihan-lain/jenis", {
@@ -229,6 +241,22 @@ export default function TagihanLainnyaPage() {
   }
 
   async function handleHapus(id: string, label: string) {
+    const t = safeDaftar.find((x) => x.id === id);
+    const butuhKonfirmasiHapusLunas =
+      t?.status === "lunas" && t.siswa?.status && STATUS_SISWA_NONAKTIF.includes(t.siswa.status);
+
+    if (butuhKonfirmasiHapusLunas) {
+      setHapusLunasModal({
+        ids: [id],
+        single: true,
+        label,
+        jumlahLunas: 1,
+        totalNominal: t?.nominal || 0,
+        jumlahLain: 0,
+      });
+      return;
+    }
+
     if (
       !(await confirm(`Hapus tagihan "${label}" ini? Aksi ini gak bisa dibatalin.`, {
         title: "Hapus Tagihan",
@@ -236,8 +264,16 @@ export default function TagihanLainnyaPage() {
       }))
     )
       return;
+    await eksekusiHapusSatuan(id);
+  }
+
+  async function eksekusiHapusSatuan(id: string) {
     setDeletingId(id);
-    const res = await fetch(`/api/tagihan-lain/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/tagihan-lain/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmHapusLunas: true }),
+    });
     setDeletingId(null);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -278,6 +314,22 @@ export default function TagihanLainnyaPage() {
   async function handleHapusMassal() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
+
+    const dipilih = safeDaftar.filter((t) => selectedIds.has(t.id));
+    const lunasNonAktif = dipilih.filter(
+      (t) => t.status === "lunas" && t.siswa?.status && STATUS_SISWA_NONAKTIF.includes(t.siswa.status)
+    );
+
+    if (lunasNonAktif.length > 0) {
+      setHapusLunasModal({
+        ids,
+        jumlahLunas: lunasNonAktif.length,
+        totalNominal: lunasNonAktif.reduce((acc, t) => acc + (t.nominal || 0), 0),
+        jumlahLain: ids.length - lunasNonAktif.length,
+      });
+      return;
+    }
+
     if (
       !(await confirm(
         `Hapus ${ids.length} tagihan terpilih? Aksi ini gak bisa dibatalin. Tagihan yang udah punya pembayaran sukses otomatis gak akan dihapus (dilindungi sistem).`,
@@ -286,11 +338,19 @@ export default function TagihanLainnyaPage() {
     )
       return;
 
+    await eksekusiHapusMassal(ids);
+  }
+
+  async function eksekusiHapusMassal(ids: string[]) {
     setBulkDeleting(true);
     let berhasil = 0;
     let gagal = 0;
     for (const id of ids) {
-      const res = await fetch(`/api/tagihan-lain/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/tagihan-lain/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmHapusLunas: true }),
+      });
       if (res.ok) berhasil++;
       else gagal++;
     }
@@ -355,6 +415,7 @@ export default function TagihanLainnyaPage() {
     setFilterJenisId("");
     setFilterKelasId("");
     setFilterQ("");
+    setIncludeNonAktif(false);
   }
 
   return (
@@ -406,6 +467,8 @@ export default function TagihanLainnyaPage() {
           totalCount={sortedDaftar.length}
           isFilterActive={isFilterActive}
           onReset={resetFilter}
+          includeNonAktif={includeNonAktif}
+          setIncludeNonAktif={setIncludeNonAktif}
         />
 
         <TagihanTable
@@ -436,6 +499,25 @@ export default function TagihanLainnyaPage() {
       </div>
 
       <SiswaDetailModal detailSiswa={detailSiswa || null} onClose={() => setDetailSiswa(null)} />
+
+      <ConfirmHapusLunasModal
+        show={!!hapusLunasModal}
+        jumlahTagihan={hapusLunasModal?.jumlahLunas || 0}
+        totalNominal={hapusLunasModal?.totalNominal || 0}
+        jumlahTagihanLain={hapusLunasModal?.jumlahLain || 0}
+        loading={bulkDeleting || !!deletingId}
+        onClose={() => setHapusLunasModal(null)}
+        onConfirm={async () => {
+          const m = hapusLunasModal;
+          setHapusLunasModal(null);
+          if (!m) return;
+          if (m.single) {
+            await eksekusiHapusSatuan(m.ids[0]);
+          } else {
+            await eksekusiHapusMassal(m.ids);
+          }
+        }}
+      />
     </>
   );
 }

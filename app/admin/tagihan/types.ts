@@ -10,8 +10,14 @@ export type SiswaDetail = {
   namaWali?: string | null;
   kontakWali?: string | null;
   fotoUrl?: string | null;
+  status?: string;
   kelas?: { id?: string; namaKelas?: string; tingkat?: number; waliKelas?: string | null } | null;
 };
+
+// Status siswa yang dianggap "non-aktif" untuk kebutuhan tagihan:
+// disembunyikan dari daftar Tagihan SPP secara default, dan tagihan lunas
+// mereka boleh dihapus (lihat app/api/tagihan/[id]/route.ts).
+export const STATUS_SISWA_NONAKTIF = ["nonaktif", "lulus", "pindah"];
 
 export type Tagihan = {
   id: string;

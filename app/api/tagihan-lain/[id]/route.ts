@@ -41,8 +41,10 @@ export async function PATCH(
   }
 }
 
+const STATUS_SISWA_NONAKTIF = ["nonaktif", "lulus", "pindah"];
+
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -50,6 +52,8 @@ export async function DELETE(
     if (errAkses) return errAkses;
 
     const { id } = await params;
+    const body = await req.json().catch(() => ({}));
+    const confirmHapusLunas = body?.confirmHapusLunas === true;
 
     const punyaPembayaranSukses = await prisma.pembayaranLain.findFirst({
       where: { tagihanLainId: id, status: "success" },
@@ -57,13 +61,23 @@ export async function DELETE(
     });
 
     if (punyaPembayaranSukses) {
-      return NextResponse.json(
-        {
-          error:
-            "Tagihan ini sudah punya pembayaran sukses. Menghapusnya akan menghapus permanen riwayat pembayaran itu juga. Kalau memang salah input, ubah statusnya saja, jangan dihapus.",
-        },
-        { status: 409 }
-      );
+      const tagihan = await prisma.tagihanLain.findUnique({
+        where: { id },
+        select: { siswa: { select: { status: true } } },
+      });
+      const siswaNonAktif = tagihan?.siswa?.status
+        ? STATUS_SISWA_NONAKTIF.includes(tagihan.siswa.status)
+        : false;
+
+      if (!siswaNonAktif || !confirmHapusLunas) {
+        return NextResponse.json(
+          {
+            error:
+              "Tagihan ini sudah punya pembayaran sukses. Menghapusnya akan menghapus permanen riwayat pembayaran itu juga. Kalau memang salah input, ubah statusnya saja, jangan dihapus.",
+          },
+          { status: 409 }
+        );
+      }
     }
 
     await prisma.tagihanLain.delete({ where: { id } });

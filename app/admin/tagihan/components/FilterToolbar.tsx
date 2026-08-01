@@ -25,6 +25,8 @@ type Props = {
   totalCount: number;
   isFilterActive: boolean;
   onReset: () => void;
+  includeNonAktif: boolean;
+  setIncludeNonAktif: (v: boolean) => void;
 };
 
 const selectClass =
@@ -50,6 +52,8 @@ export default function FilterToolbar({
   totalCount,
   isFilterActive,
   onReset,
+  includeNonAktif,
+  setIncludeNonAktif,
 }: Props) {
   return (
     <div className="mb-4 rounded-card border border-border-soft bg-white p-4 shadow-sm2">
@@ -138,6 +142,16 @@ export default function FilterToolbar({
           </select>
         </div>
       </div>
+
+      <label className="mt-2 flex w-fit items-center gap-1.5 text-xs text-ink-500">
+        <input
+          type="checkbox"
+          className="h-3.5 w-3.5 rounded border-border-soft text-accent focus:ring-accent"
+          checked={includeNonAktif}
+          onChange={(e) => setIncludeNonAktif(e.target.checked)}
+        />
+        Tampilkan siswa Nonaktif/Lulus/Pindah (untuk cari &amp; hapus tagihan lunas mereka)
+      </label>
 
       {isFilterActive && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border-soft pt-2">

@@ -41,8 +41,10 @@ export async function PATCH(
   }
 }
 
+const STATUS_SISWA_NONAKTIF = ["nonaktif", "lulus", "pindah"];
+
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -50,6 +52,8 @@ export async function DELETE(
     if (errAkses) return errAkses;
 
     const { id } = await params;
+    const body = await req.json().catch(() => ({}));
+    const confirmHapusLunas = body?.confirmHapusLunas === true;
 
     // Sama seperti hapus siswa: Pembayaran ikut ke-cascade-delete kalau
     // tagihan ini dihapus. Tolak kalau sudah ada pembayaran yang sukses.
@@ -59,13 +63,30 @@ export async function DELETE(
     });
 
     if (punyaPembayaranSukses) {
-      return NextResponse.json(
-        {
-          error:
-            "Tagihan ini sudah punya pembayaran sukses. Menghapusnya akan menghapus permanen riwayat pembayaran itu juga. Kalau memang salah input, ubah statusnya saja, jangan dihapus.",
-        },
-        { status: 409 }
-      );
+      // Pengecualian: siswa nonaktif/lulus/pindah dengan tagihan lunas boleh
+      // dihapus, TAPI hanya kalau frontend sudah eksplisit konfirmasi (user
+      // ngetik "HAPUS" di modal). Tanpa flag ini, perilaku sama persis
+      // seperti sebelumnya (ditolak) - siswa aktif tetap selalu ditolak.
+      const tagihan = await prisma.tagihanSpp.findUnique({
+        where: { id },
+        select: { siswa: { select: { status: true } } },
+      });
+      const siswaNonAktif = tagihan?.siswa?.status
+        ? STATUS_SISWA_NONAKTIF.includes(tagihan.siswa.status)
+        : false;
+
+      if (!siswaNonAktif || !confirmHapusLunas) {
+        return NextResponse.json(
+          {
+            error:
+              "Tagihan ini sudah punya pembayaran sukses. Menghapusnya akan menghapus permanen riwayat pembayaran itu juga. Kalau memang salah input, ubah statusnya saja, jangan dihapus.",
+          },
+          { status: 409 }
+        );
+      }
+      // Catatan: nominal pembayaran ini akan hilang dari Laporan Keuangan
+      // bulan terkait karena dihitung langsung dari tabel Pembayaran.
+      // Peringatan ini sudah ditampilkan ke user di modal konfirmasi FE.
     }
 
     await prisma.tagihanSpp.delete({ where: { id } });
