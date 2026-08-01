@@ -5,6 +5,45 @@ yang paling baru.
 
 ---
 
+## [Fitur Baru] Kelola Jatuh Tempo (preset) + Hapus Massal SPP + Filter Jatuh Tempo
+
+⚠️ Belum di-`prisma db push`, belum pernah dicompile (sandbox gak ada
+network & `node_modules`). Detail status lengkap ada di bagian 0 `HANDOFF-BUGFIX-OPTIMISASI.md`.
+
+### Schema
+- Model baru `JatuhTempoPreset` (`nama`, `tanggal`, `jenis` [enum
+  `JenisPreset`: `spp`/`lainnya`], `tahunAjaranId` wajib) — preset dipisah
+  per jenis sesuai keputusan Zen, satu preset selalu terikat satu tahun
+  ajaran biar bisa kefilter otomatis ikut tahun ajaran aktif.
+
+### Halaman & API baru
+- `/admin/jatuh-tempo` — CRUD preset, 2 tab (SPP / Lainnya). Ditambahin ke
+  sidebar grup MASTER.
+- `app/api/jatuh-tempo/route.ts` (GET+POST) & `[id]/route.ts` (PATCH+DELETE).
+
+### Generate Tagihan (SPP & Lainnya)
+- Dropdown "Pilih Preset" ditambahin di atas input tanggal manual di
+  `GenerateForm` SPP & Lainnya — pilih preset auto-isi tanggal, input
+  manual tetap ada sebagai fallback/override. Preset yang muncul difilter
+  ikut `tahunAjaranId` yang lagi dipilih di form generate.
+
+### Hapus Tagihan Massal SPP
+- `TagihanTable` SPP (`app/admin/tagihan/components/TagihanTable.tsx`)
+  ditambahin kolom checkbox + bar "Hapus N Terpilih", identik pola yang
+  udah ada di tagihan-lainnya (loop `DELETE /api/tagihan/[id]`, tagihan
+  yang punya pembayaran sukses otomatis gagal dihapus / dilindungi
+  sistem — dicek di API `[id]/route.ts` yang emang udah ada dari
+  sebelumnya, gak diubah).
+
+### Filter Jatuh Tempo (SPP)
+- `FilterToolbar` SPP ditambahin 2 input rentang tanggal (dari — sampai)
+  buat filter jatuh tempo, dikirim ke `GET /api/tagihan` sebagai
+  `jatuhTempoStart`/`jatuhTempoEnd`. Berguna buat filter dulu sebelum
+  centang massal + hapus. (Cuma di sisi SPP, gak diminta buat
+  tagihan-lainnya.)
+
+---
+
 ## [Tahap 5] Kartu saldo & statistik jadi berwarna dinamis
 
 ### Dashboard — 4 Executive Card

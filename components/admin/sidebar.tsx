@@ -7,7 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import {
   IconDashboard, IconUsers, IconLayers, IconCalendar, IconReceipt,
   IconChart, IconSettings, IconLogout, IconMenu, IconX, IconChevronLeft, IconMegaphone,
-  IconMoney, IconClipboard,
+  IconMoney, IconClipboard, IconClock,
 } from "./icons";
 
 type NavItem = {
@@ -32,6 +32,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/siswa", label: "Siswa", icon: IconUsers },
       { href: "/admin/kelas", label: "Kelas", icon: IconLayers },
       { href: "/admin/tahun-ajaran", label: "Tahun Ajaran", icon: IconCalendar },
+      { href: "/admin/jatuh-tempo", label: "Kelola Jatuh Tempo", icon: IconClock },
     ],
   },
   {

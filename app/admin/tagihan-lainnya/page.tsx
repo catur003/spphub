@@ -6,7 +6,7 @@ import StatCards from "@/app/admin/tagihan/components/StatCards";
 import SiswaDetailModal from "@/app/admin/tagihan/components/SiswaDetailModal";
 import { JenisTagihanLain, KelasOption, TahunAjaran, TagihanLain, SortField } from "./types";
 import JenisManager from "./components/JenisManager";
-import GenerateForm from "./components/GenerateForm";
+import GenerateForm, { JatuhTempoPreset } from "./components/GenerateForm";
 import FilterToolbar from "./components/FilterToolbar";
 import TagihanTable from "./components/TagihanTable";
 
@@ -49,6 +49,7 @@ export default function TagihanLainnyaPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [presetList, setPresetList] = useState<JatuhTempoPreset[]>([]);
 
   const { confirm, alertMsg, modal } = useConfirmModal();
 
@@ -66,6 +67,13 @@ export default function TagihanLainnyaPage() {
     const res = await fetch("/api/tahun-ajaran");
     if (res.ok) setTahunAjaranList(await res.json());
   }
+
+  const muatPreset = useCallback(async (tahunAjaranId: string) => {
+    const params = new URLSearchParams({ jenis: "lainnya" });
+    if (tahunAjaranId) params.set("tahunAjaranId", tahunAjaranId);
+    const res = await fetch(`/api/jatuh-tempo?${params.toString()}`);
+    if (res.ok) setPresetList(await res.json());
+  }, []);
 
   const muatTagihan = useCallback(
     async (signal?: AbortSignal) => {
@@ -103,6 +111,10 @@ export default function TagihanLainnyaPage() {
     muatKelas();
     muatTahunAjaran();
   }, []);
+
+  useEffect(() => {
+    muatPreset(gen.tahunAjaranId);
+  }, [gen.tahunAjaranId, muatPreset]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -373,6 +385,7 @@ export default function TagihanLainnyaPage() {
           daftarJenis={daftarJenis}
           kelasList={kelasList}
           tahunAjaranList={tahunAjaranList}
+          presetList={presetList}
           genError={genError}
           genResult={genResult}
           genLoading={genLoading}

@@ -13,6 +13,8 @@ export async function GET(req: NextRequest) {
   const kelasId = searchParams.get("kelasId") || undefined;
   const tingkat = searchParams.get("tingkat") || undefined;
   const q = searchParams.get("q") || undefined;
+  const jatuhTempoStart = searchParams.get("jatuhTempoStart") || undefined;
+  const jatuhTempoEnd = searchParams.get("jatuhTempoEnd") || undefined;
 
   const siswaFilter =
     kelasId
@@ -43,6 +45,14 @@ export async function GET(req: NextRequest) {
         ...(bulan ? { bulan: Number(bulan) } : {}),
         ...(tahun ? { tahun: Number(tahun) } : {}),
         ...(siswaWhere ? { siswa: siswaWhere } : {}),
+        ...(jatuhTempoStart || jatuhTempoEnd
+          ? {
+              jatuhTempo: {
+                ...(jatuhTempoStart ? { gte: new Date(jatuhTempoStart) } : {}),
+                ...(jatuhTempoEnd ? { lte: new Date(`${jatuhTempoEnd}T23:59:59.999`) } : {}),
+              },
+            }
+          : {}),
       },
       select: {
         id: true,

@@ -155,10 +155,29 @@ model TahunAjaran {
   nama  String
   aktif Boolean @default(false)
 
-  tagihan     TagihanSpp[]
-  tagihanLain TagihanLain[]
+  tagihan          TagihanSpp[]
+  tagihanLain      TagihanLain[]
+  jatuhTempoPreset JatuhTempoPreset[]
 
   @@map("tahun_ajaran")
+}
+
+enum JenisPreset {
+  spp
+  lainnya
+}
+
+model JatuhTempoPreset {
+  id            String      @id @default(cuid())
+  nama          String // Label bebas, misal "Seragam Gel.1 - 30 Agt"
+  tanggal       DateTime
+  jenis         JenisPreset // "spp" atau "lainnya" — dipisah biar gak campur di dropdown Generate
+  tahunAjaranId String
+  tahunAjaran   TahunAjaran @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("jatuh_tempo_preset")
 }
 
 enum StatusTagihan {

@@ -5,7 +5,7 @@ import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import { IconSync } from "@/components/admin/icons";
 import { TahunAjaran, KelasOption, SiswaDetail, Tagihan, SortField } from "./types";
 import StatCards from "./components/StatCards";
-import GenerateForm from "./components/GenerateForm";
+import GenerateForm, { JatuhTempoPreset } from "./components/GenerateForm";
 import FilterToolbar from "./components/FilterToolbar";
 import TagihanTable from "./components/TagihanTable";
 import SiswaDetailModal from "./components/SiswaDetailModal";
@@ -24,6 +24,8 @@ export default function TagihanPage() {
   const [filterTingkat, setFilterTingkat] = useState("");
   const [filterKelasId, setFilterKelasId] = useState("");
   const [filterQ, setFilterQ] = useState("");
+  const [filterJatuhTempoStart, setFilterJatuhTempoStart] = useState("");
+  const [filterJatuhTempoEnd, setFilterJatuhTempoEnd] = useState("");
   const [sortField, setSortField] = useState<SortField>("periode");
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -33,6 +35,13 @@ export default function TagihanPage() {
 
   // Detail Modal Siswa
   const [detailSiswa, setDetailSiswa] = useState<SiswaDetail | null>(null);
+
+  // Preset jatuh tempo (dikelola di /admin/jatuh-tempo)
+  const [presetList, setPresetList] = useState<JatuhTempoPreset[]>([]);
+
+  // Hapus massal
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Form generate massal
   const todayStr = new Date().toISOString().split("T")[0];
@@ -107,6 +116,15 @@ export default function TagihanPage() {
     if (res.ok) setKelasList(await res.json());
   }
 
+  const muatPreset = useCallback(async (tahunAjaranId: string) => {
+    if (!tahunAjaranId) {
+      setPresetList([]);
+      return;
+    }
+    const res = await fetch(`/api/jatuh-tempo?jenis=spp&tahunAjaranId=${tahunAjaranId}`);
+    if (res.ok) setPresetList(await res.json());
+  }, []);
+
   const muatTagihan = useCallback(
     async (signal?: AbortSignal) => {
       setLoadingData(true);
@@ -118,6 +136,8 @@ export default function TagihanPage() {
       if (filterTingkat) params.set("tingkat", filterTingkat);
       if (filterKelasId) params.set("kelasId", filterKelasId);
       if (filterQ) params.set("q", filterQ);
+      if (filterJatuhTempoStart) params.set("jatuhTempoStart", filterJatuhTempoStart);
+      if (filterJatuhTempoEnd) params.set("jatuhTempoEnd", filterJatuhTempoEnd);
 
       try {
         const res = await fetch(`/api/tagihan?${params.toString()}`, { signal });
@@ -137,13 +157,17 @@ export default function TagihanPage() {
         setLoadingData(false);
       }
     },
-    [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ]
+    [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ, filterJatuhTempoStart, filterJatuhTempoEnd]
   );
 
   useEffect(() => {
     muatTahunAjaran();
     muatKelas();
   }, []);
+
+  useEffect(() => {
+    muatPreset(gen.tahunAjaranId);
+  }, [gen.tahunAjaranId, muatPreset]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -156,7 +180,18 @@ export default function TagihanPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, filterBulan, filterTahun, filterTingkat, filterKelasId, filterQ, sortField, sortAsc]);
+  }, [
+    filterStatus,
+    filterBulan,
+    filterTahun,
+    filterTingkat,
+    filterKelasId,
+    filterQ,
+    filterJatuhTempoStart,
+    filterJatuhTempoEnd,
+    sortField,
+    sortAsc,
+  ]);
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
@@ -214,6 +249,58 @@ export default function TagihanPage() {
     } else {
       await alertMsg(`Status Midtrans: ${data.status || "Belum ada transaksi"}`);
     }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(ids: string[]) {
+    setSelectedIds((prev) => {
+      const allSelected = ids.length > 0 && ids.every((id) => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  async function handleHapusMassal() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (
+      !(await confirm(
+        `Hapus ${ids.length} tagihan SPP terpilih? Aksi ini gak bisa dibatalin. Tagihan yang udah punya pembayaran sukses otomatis gak akan dihapus (dilindungi sistem).`,
+        { title: "Hapus Tagihan Massal", confirmLabel: `Ya, Hapus ${ids.length} Tagihan` }
+      ))
+    )
+      return;
+
+    setBulkDeleting(true);
+    let berhasil = 0;
+    let gagal = 0;
+    for (const id of ids) {
+      const res = await fetch(`/api/tagihan/${id}`, { method: "DELETE" });
+      if (res.ok) berhasil++;
+      else gagal++;
+    }
+    setBulkDeleting(false);
+    setSelectedIds(new Set());
+    await alertMsg(
+      gagal > 0
+        ? `${berhasil} tagihan berhasil dihapus, ${gagal} gagal (kemungkinan sudah punya pembayaran sukses / dilindungi sistem).`
+        : `${berhasil} tagihan berhasil dihapus.`
+    );
+    muatTagihan();
   }
 
   const tingkatOptions = Array.from(new Set(kelasList.map((k) => k.tingkat).filter(Boolean))).sort(
@@ -276,7 +363,16 @@ export default function TagihanPage() {
     () => safeDaftar.filter((t) => t.nominal === 0 && t.status !== "lunas").length,
     [safeDaftar]
   );
-  const isFilterActive = !!(filterBulan || filterTahun || filterStatus || filterKelasId || filterTingkat || filterQ);
+  const isFilterActive = !!(
+    filterBulan ||
+    filterTahun ||
+    filterStatus ||
+    filterKelasId ||
+    filterTingkat ||
+    filterQ ||
+    filterJatuhTempoStart ||
+    filterJatuhTempoEnd
+  );
 
   function resetFilter() {
     setFilterBulan("");
@@ -285,6 +381,8 @@ export default function TagihanPage() {
     setFilterKelasId("");
     setFilterTingkat("");
     setFilterQ("");
+    setFilterJatuhTempoStart("");
+    setFilterJatuhTempoEnd("");
   }
 
   return (
@@ -327,6 +425,7 @@ export default function TagihanPage() {
           setGen={setGen}
           tahunAjaranList={tahunAjaranList}
           kelasBelumSet={kelasBelumSet}
+          presetList={presetList}
           genError={genError}
           genResult={genResult}
           genLoading={genLoading}
@@ -346,6 +445,10 @@ export default function TagihanPage() {
           setFilterBulan={setFilterBulan}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
+          filterJatuhTempoStart={filterJatuhTempoStart}
+          setFilterJatuhTempoStart={setFilterJatuhTempoStart}
+          filterJatuhTempoEnd={filterJatuhTempoEnd}
+          setFilterJatuhTempoEnd={setFilterJatuhTempoEnd}
           tingkatOptions={tingkatOptions}
           filteredKelasList={filteredKelasList}
           kelasList={kelasList}
@@ -367,6 +470,11 @@ export default function TagihanPage() {
           onKirimWa={handleKirimWa}
           onVerifikasi={handleVerifikasi}
           onCekStatus={handleCekStatus}
+          selectedIds={selectedIds}
+          toggleSelect={toggleSelect}
+          toggleSelectAll={toggleSelectAll}
+          onHapusMassal={handleHapusMassal}
+          bulkDeleting={bulkDeleting}
           sortedCount={sortedDaftar.length}
           currentPage={currentPage}
           totalPages={totalPages}

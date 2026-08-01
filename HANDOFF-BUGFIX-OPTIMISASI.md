@@ -8,7 +8,41 @@ dikerjakan berikutnya.
 
 ---
 
-## 1. Status Tahap (lihat RENCANA-LANJUTAN.md untuk detail tiap tahap)
+## 0. Sesi terbaru — Fitur Kelola Jatuh Tempo + Hapus Massal SPP (⬜ BELUM di-push/compile)
+
+Fitur baru diminta Zen (bukan bagian dari Tahap 1-8 di atas):
+
+1. **Kelola Jatuh Tempo** (`/admin/jatuh-tempo`) — halaman baru buat kelola
+   preset tanggal jatuh tempo bernama (misal "Seragam Gel.1 - 30 Agt"),
+   dipisah per jenis (SPP vs Lainnya, sesuai keputusan Zen), tiap preset
+   wajib punya `tahunAjaranId` (biar kefilter otomatis by tahun ajaran
+   aktif). Model baru `JatuhTempoPreset` di schema (enum `JenisPreset`).
+   API: `app/api/jatuh-tempo/route.ts` (GET+POST) & `[id]/route.ts`
+   (PATCH+DELETE). Sidebar: masuk grup MASTER.
+2. Dropdown preset ditambahin di `GenerateForm` SPP (`app/admin/tagihan/`)
+   & Tagihan Lainnya (`app/admin/tagihan-lainnya/`) — pilih preset auto-isi
+   input tanggal manual (manual override tetap bisa). Preset SPP difilter
+   ikut `gen.tahunAjaranId`; preset Lainnya juga ikut `gen.tahunAjaranId`
+   kalau diisi (field ini opsional di form Lainnya).
+3. **Hapus tagihan massal SPP** — checkbox per baris + bar hapus massal di
+   `TagihanTable` SPP, sama persis pola yang sudah ada di tagihan-lainnya
+   (loop `DELETE /api/tagihan/[id]` per id terpilih, tagihan yang punya
+   pembayaran sukses otomatis gagal/dilindungi).
+4. **Filter jatuh tempo (rentang tanggal)** ditambahin di `FilterToolbar`
+   SPP + `GET /api/tagihan` (`jatuhTempoStart`/`jatuhTempoEnd`) — biar bisa
+   filter dulu baru centang massal & hapus. (Belum ditambahin ke
+   tagihan-lainnya, gak diminta Zen buat sisi itu.)
+
+⚠️ **WAJIB `npx prisma db push`** (atau generate migration) buat tabel
+baru `jatuh_tempo_preset` sebelum test. **Belum pernah dicompile** — sandbox
+sesi ini juga gak ada akses network & `node_modules` belum ke-install.
+Semua perubahan cuma diverifikasi manual (baca kode + cek kurung
+kurawal/parentheses balance). Kalau environment berikutnya punya akses
+network, jalanin `npm install` lalu `npm run build` duluan.
+
+---
+
+
 
 | Tahap | Isi | Status |
 |---|---|---|

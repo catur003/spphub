@@ -14,6 +14,10 @@ type Props = {
   setFilterBulan: (v: string) => void;
   filterStatus: string;
   setFilterStatus: (v: string) => void;
+  filterJatuhTempoStart: string;
+  setFilterJatuhTempoStart: (v: string) => void;
+  filterJatuhTempoEnd: string;
+  setFilterJatuhTempoEnd: (v: string) => void;
   tingkatOptions: (number | undefined)[];
   filteredKelasList: KelasOption[];
   kelasList: KelasOption[];
@@ -36,6 +40,10 @@ export default function FilterToolbar({
   setFilterBulan,
   filterStatus,
   setFilterStatus,
+  filterJatuhTempoStart,
+  setFilterJatuhTempoStart,
+  filterJatuhTempoEnd,
+  setFilterJatuhTempoEnd,
   tingkatOptions,
   filteredKelasList,
   kelasList,
@@ -118,6 +126,24 @@ export default function FilterToolbar({
             ))}
           </select>
         </div>
+
+        <div className="col-span-2 flex items-center gap-1 md:col-span-3">
+          <input
+            type="date"
+            className={selectClass}
+            title="Jatuh Tempo Dari"
+            value={filterJatuhTempoStart}
+            onChange={(e) => setFilterJatuhTempoStart(e.target.value)}
+          />
+          <span className="text-xs text-ink-500">s/d</span>
+          <input
+            type="date"
+            className={selectClass}
+            title="Jatuh Tempo Sampai"
+            value={filterJatuhTempoEnd}
+            onChange={(e) => setFilterJatuhTempoEnd(e.target.value)}
+          />
+        </div>
       </div>
 
       {isFilterActive && (
@@ -146,6 +172,11 @@ export default function FilterToolbar({
             )}
             {filterQ && (
               <span className="rounded-full bg-ink-900 px-2 py-1 text-white">Cari: "{filterQ}"</span>
+            )}
+            {(filterJatuhTempoStart || filterJatuhTempoEnd) && (
+              <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">
+                Jatuh Tempo: {filterJatuhTempoStart || "…"} s/d {filterJatuhTempoEnd || "…"}
+              </span>
             )}
           </div>
           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { IconZap, IconCheckCircle } from "@/components/admin/icons";
+import { IconZap, IconCheckCircle, IconClock } from "@/components/admin/icons";
 import { JenisTagihanLain, KelasOption, TahunAjaran } from "../types";
 
 type GenState = {
@@ -12,12 +12,15 @@ type GenState = {
   keterangan: string;
 };
 
+export type JatuhTempoPreset = { id: string; nama: string; tanggal: string };
+
 type Props = {
   gen: GenState;
   setGen: (updater: (g: GenState) => GenState) => void;
   daftarJenis: JenisTagihanLain[];
   kelasList: KelasOption[];
   tahunAjaranList: TahunAjaran[];
+  presetList: JatuhTempoPreset[];
   genError: string;
   genResult: { dibuat: number; dilewati: number } | null;
   genLoading: boolean;
@@ -34,6 +37,7 @@ export default function GenerateForm({
   daftarJenis,
   kelasList,
   tahunAjaranList,
+  presetList,
   genError,
   genResult,
   genLoading,
@@ -103,7 +107,26 @@ export default function GenerateForm({
             />
           </div>
           <div className="md:col-span-2">
-            <label className={labelClass}>Jatuh Tempo</label>
+            <label className={labelClass}>
+              <span className="inline-flex items-center gap-1"><IconClock width={12} height={12} /> Jatuh Tempo</span>
+            </label>
+            {presetList.length > 0 && (
+              <select
+                className={`${selectClass} mb-1`}
+                value=""
+                onChange={(e) => {
+                  const p = presetList.find((x) => x.id === e.target.value);
+                  if (p) setGen((g) => ({ ...g, jatuhTempo: p.tanggal.split("T")[0] }));
+                }}
+              >
+                <option value="">-- Pilih Preset --</option>
+                {presetList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nama} ({new Date(p.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short" })})
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               type="date"
               className={selectClass}
