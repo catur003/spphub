@@ -143,19 +143,6 @@ export default function GenerateForm({
               ))}
             </select>
           </div>
-          <div className="md:col-span-1">
-            <button
-              type="submit"
-              className="w-full rounded-control bg-accent px-3 py-2 text-sm font-bold text-white shadow-sm2 transition hover:bg-accent-hover disabled:opacity-60"
-              disabled={genLoading}
-            >
-              {genLoading ? (
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              ) : (
-                <IconZap className="h-4 w-4" />
-              )}
-            </button>
-          </div>
           <div className="md:col-span-12">
             <label className={labelClass}>Keterangan (Opsional)</label>
             <input
@@ -164,6 +151,24 @@ export default function GenerateForm({
               value={gen.keterangan}
               onChange={(e) => setGen((g) => ({ ...g, keterangan: e.target.value }))}
             />
+          </div>
+          <div className="md:col-span-12">
+            <button
+              type="submit"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-accent px-4 py-2.5 text-sm font-bold text-white shadow-sm2 transition hover:bg-accent-hover disabled:opacity-60 sm:w-auto"
+              disabled={genLoading}
+            >
+              {genLoading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <IconZap className="h-4 w-4" /> Generate Tagihan Massal
+                </>
+              )}
+            </button>
           </div>
         </form>
       )}
