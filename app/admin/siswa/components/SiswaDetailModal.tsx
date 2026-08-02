@@ -1,6 +1,6 @@
 "use client";
 
-import { Siswa, BULAN_LABEL, STATUS_BADGE, getAvatarColor, getInisial } from "../types";
+import { Siswa, BULAN_LABEL, STATUS_BADGE, getAvatarColor, getInisial, tingkatKeRomawi } from "../types";
 import { IconX, IconClipboard, IconUser, IconFileText } from "@/components/admin/icons";
 
 type Props = {
@@ -41,8 +41,13 @@ export default function SiswaDetailModal({ detailSiswa, loadingDetail, onClose }
                 <div>
                   <h5 className="mb-0 text-base font-bold text-white">{detailSiswa.namaLengkap}</h5>
                   <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-accent">
-                    {detailSiswa.kelas?.namaKelas ? `Kelas ${detailSiswa.kelas.namaKelas}` : "Belum Ada Kelas"}
+                    {detailSiswa.kelas ? `Kelas ${tingkatKeRomawi(detailSiswa.kelas.tingkat)}` : "Belum Ada Kelas"}
                   </span>
+                  {detailSiswa.kelas?.namaKelas && (
+                    <span className="ml-1 rounded-full bg-white/80 px-2.5 py-0.5 text-xs font-semibold text-accent-hover">
+                      Jurusan {detailSiswa.kelas.namaKelas}
+                    </span>
+                  )}
                 </div>
               </div>
               <button
@@ -63,6 +68,12 @@ export default function SiswaDetailModal({ detailSiswa, loadingDetail, onClose }
                   </div>
                   <div className="mb-1 text-sm">
                     <strong>NISN:</strong> <span className="font-mono">{detailSiswa.nisn || "-"}</span>
+                  </div>
+                  <div className="mb-1 text-sm">
+                    <strong>Kelas:</strong> {detailSiswa.kelas ? tingkatKeRomawi(detailSiswa.kelas.tingkat) : "-"}
+                  </div>
+                  <div className="mb-1 text-sm">
+                    <strong>Jurusan:</strong> {detailSiswa.kelas?.namaKelas || "-"}
                   </div>
                   <div className="mb-1 text-sm">
                     <strong>Jenis Kelamin:</strong> {detailSiswa.jenisKelamin === "L" ? "Laki-laki" : "Perempuan"}

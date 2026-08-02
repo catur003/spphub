@@ -1,6 +1,6 @@
 "use client";
 
-import { Siswa, SortField, STATUS_LABEL, STATUS_BADGE, getAvatarColor, getInisial } from "../types";
+import { Siswa, SortField, STATUS_LABEL, STATUS_BADGE, getAvatarColor, getInisial, tingkatKeRomawi } from "../types";
 import { IconEye } from "@/components/admin/icons";
 
 type Props = {
@@ -68,7 +68,7 @@ export default function SiswaTable({
             <tr>
               <SortHeader label="Identitas Siswa" field="nama" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <SortHeader label="NIS" field="nis" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
-              <SortHeader label="Kelas" field="kelas" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
+              <SortHeader label="Kelas / Jurusan" field="kelas" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <SortHeader label="Status" field="status" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <th className="whitespace-nowrap border-b-2 border-border-soft bg-surface px-3.5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-500">
                 Aksi
@@ -113,7 +113,14 @@ export default function SiswaTable({
                     <span className="font-mono text-[0.83rem]">{s.nis}</span>
                   </td>
                   <td className="border-b border-slate-100 bg-white px-3.5 py-3 align-middle text-sm">
-                    {s.kelas?.namaKelas || <span className="text-ink-500">—</span>}
+                    {s.kelas ? (
+                      <>
+                        <span className="font-semibold text-ink-900">{tingkatKeRomawi(s.kelas.tingkat)}</span>
+                        <span className="ml-1 text-ink-500">— {s.kelas.namaKelas}</span>
+                      </>
+                    ) : (
+                      <span className="text-ink-500">—</span>
+                    )}
                   </td>
                   <td className="border-b border-slate-100 bg-white px-3.5 py-3 align-middle text-sm">
                     <span

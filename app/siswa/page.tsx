@@ -21,7 +21,7 @@ type SiswaProfile = {
   kontakWali: string | null;
   fotoUrl: string | null;
   status: string;
-  kelas: { namaKelas: string } | null;
+  kelas: { namaKelas: string; tingkat?: number } | null;
   akun: { email: string; name: string } | null;
 };
 
@@ -47,6 +47,14 @@ const BULAN_LABEL = [
   "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
+
+// Catatan: field "Kelas" di database (namaKelas) sebenarnya JURUSAN.
+// Yang seharusnya disebut "Kelas" adalah tingkat (10/11/12 -> X/XI/XII).
+function tingkatKeRomawi(tingkat?: number | null): string {
+  if (!tingkat) return "-";
+  const map: Record<number, string> = { 10: "X", 11: "XI", 12: "XII" };
+  return map[tingkat] || String(tingkat);
+}
 
 // Catatan: "menunggu_verifikasi" & "terlambat" sengaja gak dikasih animasi pulse —
 // di versi Bootstrap lama, class pulse-info/pulse-danger yang dipakai gak pernah
@@ -714,6 +722,10 @@ export default function SiswaPortalPage() {
               </div>
               <div className="rounded-2xl border border-border-soft bg-surface p-4 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
                 <div className="mb-1 text-[0.72rem] font-bold uppercase tracking-wider text-ink-500">Kelas</div>
+                <div className="text-[0.95rem] font-bold text-ink-900">{siswa?.kelas ? tingkatKeRomawi(siswa.kelas.tingkat) : "-"}</div>
+              </div>
+              <div className="rounded-2xl border border-border-soft bg-surface p-4 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
+                <div className="mb-1 text-[0.72rem] font-bold uppercase tracking-wider text-ink-500">Jurusan</div>
                 <div className="text-[0.95rem] font-bold text-ink-900">{siswa?.kelas?.namaKelas || "-"}</div>
               </div>
               <div className="rounded-2xl border border-border-soft bg-surface p-4 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)]">

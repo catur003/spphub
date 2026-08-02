@@ -32,6 +32,17 @@ export const STATUS_BADGE: Record<string, string> = {
   nonaktif: "bg-gray-100 text-gray-500",
 };
 
+// Catatan penamaan: field "Kelas" di database (namaKelas, mis. "RPL 1")
+// sebenarnya adalah JURUSAN. Yang seharusnya disebut "Kelas" (tingkat,
+// X/XI/XII) adalah field `tingkat` (Int 10/11/12). Helper ini dipakai di
+// tampilan supaya labelnya benar: Kelas = tingkatKeRomawi(tingkat),
+// Jurusan = namaKelas.
+export function tingkatKeRomawi(tingkat?: number | null): string {
+  if (!tingkat) return "-";
+  const map: Record<number, string> = { 10: "X", 11: "XI", 12: "XII" };
+  return map[tingkat] || String(tingkat);
+}
+
 export const BULAN_LABEL = [
   "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",

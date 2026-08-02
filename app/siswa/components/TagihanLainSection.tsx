@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { IconClipboard, IconWarning, IconRefresh } from "@/components/admin/icons";
+import { IconClipboard, IconWarning, IconRefresh, IconFileText } from "@/components/admin/icons";
 import { formatTanggalPanjang } from "@/app/admin/tagihan/types";
 
 type TagihanLain = {
@@ -197,42 +197,65 @@ export default function TagihanLainSection({ midtransReady, onToast }: Props) {
       )}
 
       {belumLunas.length > 0 && (
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mb-4">
           {belumLunas.map((t) => {
             const info = STATUS_INFO[t.status] || { label: t.status, className: "bg-gray-100 text-gray-800" };
             const isBayarLoading = bayarLoading === t.id;
             const isCekLoading = cekStatusLoading === t.id;
             return (
-              <div key={t.id} className="rounded-[18px] border border-border-soft bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(15,23,42,0.07)]">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <div className="font-bold text-ink-900">{t.jenisTagihanLain?.nama || "Tagihan"}</div>
-                    {t.keterangan && <p className="mt-0.5 text-sm text-ink-500">{t.keterangan}</p>}
-                    <p className="mt-1 text-xs text-ink-500">
-                      Jatuh tempo: <strong>{formatTanggalPanjang(t.jatuhTempo)}</strong>
-                    </p>
+              <div
+                key={t.id}
+                className="mb-4 flex flex-col items-start justify-between gap-4 rounded-[18px] border border-border-soft bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_10px_28px_rgba(15,23,42,0.07)] sm:flex-row sm:items-center"
+              >
+                <div>
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <h4 className="text-sm font-bold text-ink-900">{t.jenisTagihanLain?.nama || "Tagihan"}</h4>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide ${info.className}`}>
+                      {info.label}
+                    </span>
                   </div>
-                  <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${info.className}`}>{info.label}</span>
+                  {t.keterangan && <p className="mb-0.5 text-sm text-ink-500">{t.keterangan}</p>}
+                  <div className="text-sm text-ink-500">
+                    Jatuh tempo: <strong>{formatTanggalPanjang(t.jatuhTempo)}</strong>
+                  </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <span className="text-lg font-extrabold text-ink-900">{rupiah(t.nominal)}</span>
+
+                <div className="flex w-full flex-col items-stretch gap-3 border-t border-dashed border-border-soft pt-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:border-t-0 sm:pt-0">
+                  <div className="text-lg font-bold text-ink-900">{rupiah(t.nominal)}</div>
+
                   <div className="flex gap-2">
+                    <a
+                      href={`/invoice-lain/${t.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-1 items-center justify-center rounded-full border border-accent px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent-soft sm:flex-none"
+                    >
+                      <span className="inline-flex items-center gap-1"><IconFileText className="h-3.5 w-3.5" /> Invoice</span>
+                    </a>
+
                     {t.status === "menunggu_verifikasi" && (
                       <button
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border-soft px-3 py-1.5 text-sm font-semibold text-ink-700 transition hover:bg-surface disabled:opacity-60"
+                        className="flex flex-1 items-center justify-center rounded-full border border-border-soft px-3 py-1.5 text-xs font-semibold text-ink-700 transition hover:bg-surface disabled:opacity-60 sm:flex-none"
                         onClick={() => handleCekStatus(t.id)}
                         disabled={isCekLoading || isBayarLoading}
+                        title="Sinkronkan status dengan server Midtrans"
                       >
-                        <IconRefresh className={`h-4 w-4 ${isCekLoading ? "animate-spin" : ""}`} /> Cek Status
+                        {isCekLoading ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink-500 border-t-transparent" /> : <span className="inline-flex items-center gap-1"><IconRefresh className="h-3.5 w-3.5" /> Cek Status</span>}
                       </button>
                     )}
+
                     {(t.status === "belum_bayar" || t.status === "terlambat") && (
                       <button
-                        className="rounded-full bg-accent px-4 py-1.5 text-sm font-bold text-white transition hover:bg-accent-hover disabled:opacity-60"
+                        className="flex flex-1 items-center justify-center gap-1 rounded-full bg-gradient-to-br from-[#4338ca] to-[#4f46e5] px-4 py-1.5 text-xs font-bold text-white shadow-sm2 transition-all duration-200 hover:scale-[1.04] hover:from-[#3730a3] hover:to-[#4338ca] hover:shadow-[0_6px_18px_rgba(67,56,202,0.35)] active:scale-[0.96] disabled:opacity-60 disabled:hover:scale-100 sm:flex-none"
                         onClick={() => handleBayar(t.id)}
                         disabled={isBayarLoading || isCekLoading || !midtransReady}
                       >
-                        {isBayarLoading ? "Memproses..." : "Bayar Sekarang"}
+                        {isBayarLoading ? (
+                          <>
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            Memuat...
+                          </>
+                        ) : "Bayar Sekarang"}
                       </button>
                     )}
                   </div>
@@ -246,22 +269,36 @@ export default function TagihanLainSection({ midtransReady, onToast }: Props) {
       {lunas.length > 0 && (
         <div>
           <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-500">Riwayat Lunas</h4>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {lunas.map((t) => (
-              <div key={t.id} className="flex items-center justify-between gap-2 rounded-[18px] border border-border-soft bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.03)]">
-                <div>
-                  <div className="font-semibold text-ink-900">{t.jenisTagihanLain?.nama || "Tagihan"}</div>
-                  <p className="text-xs text-ink-500">
-                    {t.pembayaran?.[0]?.paidAt ? `Dibayar: ${formatTanggalPanjang(t.pembayaran[0].paidAt)}` : ""}
-                  </p>
+          {lunas.map((t) => (
+            <div
+              key={t.id}
+              className="mb-4 flex flex-col items-start justify-between gap-4 rounded-[18px] border border-border-soft bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_10px_28px_rgba(15,23,42,0.07)] sm:flex-row sm:items-center"
+            >
+              <div>
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <h4 className="text-sm font-bold text-ink-900">{t.jenisTagihanLain?.nama || "Tagihan"}</h4>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-bold tracking-wide text-green-700">
+                    <span className="inline-flex items-center gap-1">✓ LUNAS</span>
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-ink-900">{rupiah(t.nominal)}</span>
-                  <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">Lunas</span>
+                <div className="text-sm text-ink-500">
+                  Nominal: <strong>{rupiah(t.nominal)}</strong>
+                  {t.pembayaran?.[0]?.paidAt ? ` — Dibayar: ${formatTanggalPanjang(t.pembayaran[0].paidAt)}` : ""}
                 </div>
               </div>
-            ))}
-          </div>
+
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <a
+                  href={`/invoice-lain/${t.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-full items-center justify-center gap-1 rounded-full border border-accent px-4 py-1.5 text-sm font-semibold text-accent shadow-sm2 transition hover:bg-accent-soft sm:w-auto"
+                >
+                  <IconFileText className="h-4 w-4" /> Invoice
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -4,6 +4,63 @@ import { requireApiRole } from "@/lib/api-auth";
 
 const STATUS_VALID = ["belum_bayar", "menunggu_verifikasi", "lunas", "terlambat"];
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { auth } = await import("@/lib/auth");
+    const { headers } = await import("next/headers");
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const tagihan = await prisma.tagihanLain.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        nominal: true,
+        status: true,
+        jatuhTempo: true,
+        keterangan: true,
+        createdAt: true,
+        jenisTagihanLain: { select: { nama: true } },
+        siswa: {
+          select: {
+            akunId: true,
+            namaLengkap: true,
+            nis: true,
+            nisn: true,
+            namaWali: true,
+            kontakWali: true,
+            kelas: { select: { namaKelas: true, waliKelas: true } },
+          },
+        },
+      },
+    });
+
+    if (!tagihan) {
+      return NextResponse.json({ error: "Tagihan tidak ditemukan" }, { status: 404 });
+    }
+
+    const isAdmin = session.user.role === "owner" || session.user.role === "petugas";
+    const isOwner = tagihan.siswa?.akunId === session.user.id;
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json({ error: "Akses ditolak" }, { status: 403 });
+    }
+
+    return NextResponse.json(tagihan);
+  } catch (error: any) {
+    console.error("[GET /api/tagihan-lain/[id]] Error:", error);
+    return NextResponse.json(
+      { error: "Gagal memuat tagihan: " + (error.message || "Unknown error") },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
