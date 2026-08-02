@@ -49,11 +49,11 @@ const BULAN_LABEL = [
 ];
 
 // Catatan: field "Kelas" di database (namaKelas) sebenarnya JURUSAN.
-// Yang seharusnya disebut "Kelas" adalah tingkat (10/11/12 -> X/XI/XII).
-function tingkatKeRomawi(tingkat?: number | null): string {
-  if (!tingkat) return "-";
-  const map: Record<number, string> = { 10: "X", 11: "XI", 12: "XII" };
-  return map[tingkat] || String(tingkat);
+// tingkat ditampilkan apa adanya (angka), sama seperti konvensi di
+// halaman Kelas admin — bukan diubah ke romawi (tingkat bisa selain 10-12
+// tergantung jenjang sekolah).
+function formatTingkat(tingkat?: number | null): string {
+  return tingkat ? String(tingkat) : "-";
 }
 
 // Catatan: "menunggu_verifikasi" & "terlambat" sengaja gak dikasih animasi pulse —
@@ -722,7 +722,7 @@ export default function SiswaPortalPage() {
               </div>
               <div className="rounded-2xl border border-border-soft bg-surface p-4 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
                 <div className="mb-1 text-[0.72rem] font-bold uppercase tracking-wider text-ink-500">Kelas</div>
-                <div className="text-[0.95rem] font-bold text-ink-900">{siswa?.kelas ? tingkatKeRomawi(siswa.kelas.tingkat) : "-"}</div>
+                <div className="text-[0.95rem] font-bold text-ink-900">{siswa?.kelas ? formatTingkat(siswa.kelas.tingkat) : "-"}</div>
               </div>
               <div className="rounded-2xl border border-border-soft bg-surface p-4 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
                 <div className="mb-1 text-[0.72rem] font-bold uppercase tracking-wider text-ink-500">Jurusan</div>

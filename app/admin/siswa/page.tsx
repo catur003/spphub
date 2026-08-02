@@ -17,7 +17,7 @@ import SiswaImportExport from "./components/SiswaImportExport";
 import SiswaFormTambah from "./components/SiswaFormTambah";
 import SiswaFilterBar from "./components/SiswaFilterBar";
 import SiswaTable from "./components/SiswaTable";
-import SiswaDetailModal from "./components/SiswaDetailModal";
+import SiswaDetailModal from "@/components/admin/SiswaDetailModal";
 import SiswaEditModal from "./components/SiswaEditModal";
 import NaikKelasModal from "./components/NaikKelasModal";
 import { IconCheck, IconX, IconRefresh } from "@/components/admin/icons";
@@ -41,8 +41,7 @@ export default function SiswaPage() {
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [errorEdit, setErrorEdit] = useState("");
 
-  const [detailSiswa, setDetailSiswa] = useState<Siswa | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailSiswaId, setDetailSiswaId] = useState<string | null>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -243,19 +242,8 @@ export default function SiswaPage() {
   }
 
   // ——— Modal Detail Siswa ———
-  async function bukaDetailSiswa(id: string) {
-    setLoadingDetail(true);
-    setDetailSiswa(null);
-    try {
-      const res = await fetch(`/api/siswa/${id}`);
-      if (res.ok) {
-        setDetailSiswa(await res.json());
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingDetail(false);
-    }
+  function bukaDetailSiswa(id: string) {
+    setDetailSiswaId(id);
   }
 
   // ——— Hapus ———
@@ -420,7 +408,7 @@ export default function SiswaPage() {
         </div>
       </div>
 
-      <SiswaDetailModal detailSiswa={detailSiswa} loadingDetail={loadingDetail} onClose={() => setDetailSiswa(null)} />
+      <SiswaDetailModal siswaId={detailSiswaId} onClose={() => setDetailSiswaId(null)} />
 
       <SiswaEditModal
         editSiswa={editSiswa}

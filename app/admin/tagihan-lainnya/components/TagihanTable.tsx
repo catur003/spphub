@@ -3,7 +3,7 @@
 import { IconRefresh, IconSearch, IconWarning, IconCheck, IconFileText, IconTrash } from "@/components/admin/icons";
 import { TagihanLain, SortField, STATUS_INFO, getAvatarColor, getInisial, formatTanggalPanjang } from "../types";
 import { STATUS_SISWA_NONAKTIF } from "@/app/admin/tagihan/types";
-import { STATUS_LABEL as SISWA_STATUS_LABEL, STATUS_BADGE as SISWA_STATUS_BADGE } from "@/app/admin/siswa/types";
+import { STATUS_LABEL as SISWA_STATUS_LABEL, STATUS_BADGE as SISWA_STATUS_BADGE, formatTingkat } from "@/app/admin/siswa/types";
 
 type Props = {
   loadingData: boolean;
@@ -121,7 +121,7 @@ export default function TagihanTable({
                 />
               </th>
               <SortHeader label="Identitas Siswa" field="siswa" width="24%" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
-              <SortHeader label="Kelas" field="kelas" width="12%" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
+              <SortHeader label="Kelas / Jurusan" field="kelas" width="12%" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <SortHeader label="Jenis Tagihan" field="jenis" width="15%" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <SortHeader label="Jatuh Tempo" field="tempo" width="12%" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <SortHeader label="Nominal" field="nominal" width="13%" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
@@ -205,7 +205,7 @@ export default function TagihanTable({
                     </td>
                     <td className="border-b border-slate-100 bg-white px-5 py-4 align-middle text-sm">
                       <span className="rounded-control border border-border-soft bg-surface px-2 py-1 text-ink-900">
-                        {namaKelas}
+                        {t.siswa?.kelas ? `${formatTingkat(t.siswa.kelas.tingkat)} — ${namaKelas}` : "-"}
                       </span>
                     </td>
                     <td className="border-b border-slate-100 bg-white px-5 py-4 align-middle text-sm">

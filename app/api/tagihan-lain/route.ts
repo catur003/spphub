@@ -14,8 +14,9 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get("q") || undefined;
   const jatuhTempoStart = searchParams.get("jatuhTempoStart") || undefined;
   const jatuhTempoEnd = searchParams.get("jatuhTempoEnd") || undefined;
+  const siswaId = searchParams.get("siswaId") || undefined;
   // Default: siswa nonaktif/lulus/pindah gak muncul di daftar Tagihan Lainnya.
-  const includeNonAktif = searchParams.get("includeNonAktif") === "1";
+  const includeNonAktif = searchParams.get("includeNonAktif") === "1" || !!siswaId;
 
   const siswaFilter = kelasId ? { kelasId } : undefined;
 
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
         ...(status ? { status: status as never } : {}),
         ...(jenisTagihanLainId ? { jenisTagihanLainId } : {}),
         ...(tahunAjaranId ? { tahunAjaranId } : {}),
+        ...(siswaId ? { siswaId } : {}),
         ...(siswaWhere ? { siswa: siswaWhere } : {}),
         ...(jatuhTempoStart || jatuhTempoEnd
           ? {
@@ -76,7 +78,7 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: [{ createdAt: "desc" }],
-      take: q ? 50 : 300,
+      take: siswaId ? 500 : q ? 50 : 300,
     });
 
     const res = NextResponse.json(tagihan);

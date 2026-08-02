@@ -1,6 +1,6 @@
 "use client";
 
-import { Siswa, SortField, STATUS_LABEL, STATUS_BADGE, getAvatarColor, getInisial, tingkatKeRomawi } from "../types";
+import { Siswa, SortField, STATUS_LABEL, STATUS_BADGE, getAvatarColor, getInisial, formatTingkat } from "../types";
 import { IconEye } from "@/components/admin/icons";
 
 type Props = {
@@ -115,7 +115,7 @@ export default function SiswaTable({
                   <td className="border-b border-slate-100 bg-white px-3.5 py-3 align-middle text-sm">
                     {s.kelas ? (
                       <>
-                        <span className="font-semibold text-ink-900">{tingkatKeRomawi(s.kelas.tingkat)}</span>
+                        <span className="font-semibold text-ink-900">{formatTingkat(s.kelas.tingkat)}</span>
                         <span className="ml-1 text-ink-500">— {s.kelas.namaKelas}</span>
                       </>
                     ) : (

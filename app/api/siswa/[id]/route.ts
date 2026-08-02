@@ -19,7 +19,12 @@ export async function GET(
         akun: { select: { email: true } },
         tagihan: {
           orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
-          take: 12,
+          take: 3,
+        },
+        tagihanLain: {
+          orderBy: { jatuhTempo: "desc" },
+          take: 3,
+          include: { jenisTagihanLain: { select: { nama: true } } },
         },
       },
     });

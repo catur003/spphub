@@ -14,6 +14,14 @@ export type Siswa = {
   kelas: Kelas | null;
   akun: { email: string } | null;
   tagihan?: { id: string; bulan: number; tahun: number; nominal: number; status: string; updatedAt: string }[];
+  tagihanLain?: {
+    id: string;
+    nominal: number;
+    status: string;
+    jatuhTempo: string;
+    updatedAt: string;
+    jenisTagihanLain?: { nama: string } | null;
+  }[];
 };
 
 export type SortField = "nama" | "nis" | "kelas" | "status";
@@ -33,14 +41,13 @@ export const STATUS_BADGE: Record<string, string> = {
 };
 
 // Catatan penamaan: field "Kelas" di database (namaKelas, mis. "RPL 1")
-// sebenarnya adalah JURUSAN. Yang seharusnya disebut "Kelas" (tingkat,
-// X/XI/XII) adalah field `tingkat` (Int 10/11/12). Helper ini dipakai di
-// tampilan supaya labelnya benar: Kelas = tingkatKeRomawi(tingkat),
-// Jurusan = namaKelas.
-export function tingkatKeRomawi(tingkat?: number | null): string {
-  if (!tingkat) return "-";
-  const map: Record<number, string> = { 10: "X", 11: "XI", 12: "XII" };
-  return map[tingkat] || String(tingkat);
+// sebenarnya adalah JURUSAN. Yang seharusnya disebut "Kelas" adalah field
+// `tingkat` (angka bebas — sekolah SMA umumnya 10/11/12, tapi SMP/SD bisa
+// beda, lihat halaman Kelas). Ditampilkan apa adanya, sama kayak konvensi
+// yang sudah dipakai di KelasTable.tsx ("Kelas {tingkat}") — bukan diubah
+// ke romawi supaya gak salah untuk tingkat non-SMA.
+export function formatTingkat(tingkat?: number | null): string {
+  return tingkat ? String(tingkat) : "-";
 }
 
 export const BULAN_LABEL = [

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import ConfirmHapusLunasModal from "@/components/admin/ConfirmHapusLunasModal";
 import StatCards from "@/app/admin/tagihan/components/StatCards";
-import SiswaDetailModal from "@/app/admin/tagihan/components/SiswaDetailModal";
+import SiswaDetailModal from "@/components/admin/SiswaDetailModal";
 import { JenisTagihanLain, KelasOption, TahunAjaran, TagihanLain, SortField } from "./types";
 import { STATUS_SISWA_NONAKTIF } from "@/app/admin/tagihan/types";
 import JenisManager from "./components/JenisManager";
@@ -35,7 +35,7 @@ export default function TagihanLainnyaPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  const [detailSiswa, setDetailSiswa] = useState<TagihanLain["siswa"] | null>(null);
+  const [detailSiswaId, setDetailSiswaId] = useState<string | null>(null);
 
   const todayStr = new Date().toISOString().split("T")[0];
   const [gen, setGen] = useState({
@@ -495,7 +495,7 @@ export default function TagihanLainnyaPage() {
           sortField={sortField}
           sortAsc={sortAsc}
           toggleSort={toggleSort}
-          onSiswaClick={setDetailSiswa}
+          onSiswaClick={(s) => setDetailSiswaId(s?.id || null)}
           verifyingId={verifyingId}
           onVerifikasi={handleVerifikasi}
           onCekStatus={handleCekStatus}
@@ -515,7 +515,7 @@ export default function TagihanLainnyaPage() {
         />
       </div>
 
-      <SiswaDetailModal detailSiswa={detailSiswa || null} onClose={() => setDetailSiswa(null)} />
+      <SiswaDetailModal siswaId={detailSiswaId} onClose={() => setDetailSiswaId(null)} />
 
       <ConfirmHapusLunasModal
         show={!!hapusLunasModal}

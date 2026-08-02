@@ -4,12 +4,12 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import ConfirmHapusLunasModal from "@/components/admin/ConfirmHapusLunasModal";
 import { IconSync } from "@/components/admin/icons";
-import { TahunAjaran, KelasOption, SiswaDetail, Tagihan, SortField, STATUS_SISWA_NONAKTIF, BULAN_LABEL } from "./types";
+import { TahunAjaran, KelasOption, Tagihan, SortField, STATUS_SISWA_NONAKTIF, BULAN_LABEL } from "./types";
 import StatCards from "./components/StatCards";
 import GenerateForm, { JatuhTempoPreset } from "./components/GenerateForm";
 import FilterToolbar from "./components/FilterToolbar";
 import TagihanTable from "./components/TagihanTable";
-import SiswaDetailModal from "./components/SiswaDetailModal";
+import SiswaDetailModal from "@/components/admin/SiswaDetailModal";
 
 export default function TagihanPage() {
   const [tahunAjaranList, setTahunAjaranList] = useState<TahunAjaran[]>([]);
@@ -36,7 +36,7 @@ export default function TagihanPage() {
   const [pageSize, setPageSize] = useState(15);
 
   // Detail Modal Siswa
-  const [detailSiswa, setDetailSiswa] = useState<SiswaDetail | null>(null);
+  const [detailSiswaId, setDetailSiswaId] = useState<string | null>(null);
 
   // Preset jatuh tempo (dikelola di /admin/jatuh-tempo)
   const [presetList, setPresetList] = useState<JatuhTempoPreset[]>([]);
@@ -526,7 +526,7 @@ export default function TagihanPage() {
           sortField={sortField}
           sortAsc={sortAsc}
           toggleSort={toggleSort}
-          onSiswaClick={setDetailSiswa}
+          onSiswaClick={(s) => setDetailSiswaId(s?.id || null)}
           sendingWaId={sendingWaId}
           verifyingId={verifyingId}
           onKirimWa={handleKirimWa}
@@ -546,7 +546,7 @@ export default function TagihanPage() {
         />
       </div>
 
-      <SiswaDetailModal detailSiswa={detailSiswa} onClose={() => setDetailSiswa(null)} />
+      <SiswaDetailModal siswaId={detailSiswaId} onClose={() => setDetailSiswaId(null)} />
 
       <ConfirmHapusLunasModal
         show={!!hapusLunasModal}
