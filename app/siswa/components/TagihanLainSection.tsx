@@ -47,6 +47,7 @@ export default function TagihanLainSection({ midtransReady, onToast }: Props) {
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
   const [bayarLoading, setBayarLoading] = useState<string | null>(null);
+  const [sesiTerbuka, setSesiTerbuka] = useState<Set<string>>(new Set());
   const [cekStatusLoading, setCekStatusLoading] = useState<string | null>(null);
   const [bayarError, setBayarError] = useState<string | null>(null);
 
@@ -99,12 +100,16 @@ export default function TagihanLainSection({ midtransReady, onToast }: Props) {
     }
   }
 
-  async function handleBayar(id: string) {
+  async function handleBayar(id: string, paksaBaru = false) {
     setBayarLoading(id);
     setBayarError(null);
 
     try {
-      const res = await fetch(`/api/tagihan-lain/${id}/bayar`, { method: "POST" });
+      const res = await fetch(`/api/tagihan-lain/${id}/bayar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paksaBaru }),
+      });
       const data = await res.json();
 
       if (!res.ok) {
@@ -118,6 +123,8 @@ export default function TagihanLainSection({ midtransReady, onToast }: Props) {
         setBayarLoading(null);
         return;
       }
+
+      setSesiTerbuka((prev) => new Set(prev).add(id));
 
       try {
         await waitForSnap();
@@ -259,6 +266,16 @@ export default function TagihanLainSection({ midtransReady, onToast }: Props) {
                       </button>
                     )}
                   </div>
+
+                  {sesiTerbuka.has(t.id) && (
+                    <button
+                      className="text-right text-[0.7rem] font-medium text-ink-500 underline decoration-dotted hover:text-accent disabled:opacity-60"
+                      onClick={() => handleBayar(t.id, true)}
+                      disabled={isBayarLoading || isCekLoading}
+                    >
+                      Mau ganti metode pembayaran? Buat sesi baru
+                    </button>
+                  )}
                 </div>
               </div>
             );

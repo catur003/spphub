@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getSnapClient } from "@/lib/midtrans";
+import { getSnapClient, SESI_BAYAR_EXPIRY_JAM, batalkanTransaksiMidtrans } from "@/lib/midtrans";
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -14,6 +14,8 @@ export async function POST(
   }
 
   const { id } = await params;
+  const body = await req.json().catch(() => ({}));
+  const paksaBaru = body?.paksaBaru === true;
 
   const tagihan = await prisma.tagihanSpp.findUnique({
     where: { id },
@@ -33,6 +35,25 @@ export async function POST(
     return NextResponse.json({ error: "Tagihan ini tidak bisa dibayar (sudah lunas / proses)" }, { status: 400 });
   }
 
+  // Kalau ada sesi bayar (token) yang masih hidup dan siswa gak minta baru,
+  // reuse token itu daripada bikin transaksi baru ke Midtrans tiap klik.
+  // Ini yang benerin bug "spam Bayar Sekarang generate timeout baru terus".
+  const pendingTerakhir = await prisma.pembayaran.findFirst({
+    where: { tagihanSppId: tagihan.id, status: "pending" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const expiryMs = SESI_BAYAR_EXPIRY_JAM * 60 * 60 * 1000;
+  const masihValid =
+    pendingTerakhir &&
+    Date.now() - new Date(pendingTerakhir.createdAt).getTime() < expiryMs &&
+    (pendingTerakhir.rawResponse as any)?.token;
+
+  if (masihValid && !paksaBaru) {
+    const cached = pendingTerakhir!.rawResponse as any;
+    return NextResponse.json({ token: cached.token, clientKey: cached.clientKey, isProd: cached.isProd, reused: true });
+  }
+
   let snap, clientKey, isProd;
   try {
     ({ snap, clientKey, isProduction: isProd } = await getSnapClient());
@@ -40,9 +61,15 @@ export async function POST(
     return NextResponse.json({ error: err.message || "Sistem pembayaran belum dikonfigurasi admin" }, { status: 500 });
   }
 
-  // Siswa suka klik "Bayar Sekarang" berkali-kali (popup ke-close, koneksi
-  // lambat, dll). Daripada numpuk banyak row pending yatim, tandai dulu
-  // pending lama punya tagihan ini sebagai "expired" sebelum bikin yang baru.
+  // Kalau user eksplisit minta transaksi baru (ganti metode bayar), cancel
+  // dulu transaksi pending lama ke Midtrans sebelum bikin yang baru.
+  if (paksaBaru && pendingTerakhir) {
+    await batalkanTransaksiMidtrans(pendingTerakhir.orderId);
+  }
+
+  // Tandai semua pending lama punya tagihan ini sebagai "expired" sebelum
+  // bikin yang baru — siswa suka klik berkali-kali, daripada numpuk row
+  // pending yatim.
   await prisma.pembayaran.updateMany({
     where: { tagihanSppId: tagihan.id, status: "pending" },
     data: { status: "expired" },
@@ -50,18 +77,6 @@ export async function POST(
 
   // Buat Order ID unik (TagihanID + Timestamp)
   const orderId = `SPP-${tagihan.id}-${Date.now()}`;
-
-  // Simpan record pembayaran pending ke DB
-  await prisma.pembayaran.create({
-    data: {
-      tagihanSppId: tagihan.id,
-      siswaId: tagihan.siswaId,
-      orderId: orderId,
-      jumlah: tagihan.nominal,
-      metode: "midtrans",
-      status: "pending",
-    },
-  });
 
   const parameter = {
     transaction_details: {
@@ -80,11 +95,33 @@ export async function POST(
         name: `SPP Bulan ${tagihan.bulan} / ${tagihan.tahun}`,
       },
     ],
+    // Kontrol eksplisit berapa lama sesi bayar ini valid, biar konsisten
+    // (bukan default Midtrans yang gak jelas). Catatan: channel QRIS punya
+    // batas sendiri dari jaringan QRIS nasional, gak selalu ikut ini.
+    custom_expiry: {
+      expiry_duration: SESI_BAYAR_EXPIRY_JAM,
+      unit: "hour",
+    },
   };
 
   try {
     const transaction = await snap.createTransaction(parameter);
-    return NextResponse.json({ token: transaction.token, clientKey, isProd });
+
+    // Simpan record pembayaran pending ke DB, token disimpan di rawResponse
+    // biar bisa di-reuse kalau diklik lagi sebelum expired.
+    await prisma.pembayaran.create({
+      data: {
+        tagihanSppId: tagihan.id,
+        siswaId: tagihan.siswaId,
+        orderId: orderId,
+        jumlah: tagihan.nominal,
+        metode: "midtrans",
+        status: "pending",
+        rawResponse: { token: transaction.token, redirect_url: transaction.redirect_url, clientKey, isProd },
+      },
+    });
+
+    return NextResponse.json({ token: transaction.token, clientKey, isProd, reused: false });
   } catch (err: any) {
     console.error("Midtrans error:", err);
     return NextResponse.json({ error: "Gagal membuat transaksi ke Midtrans" }, { status: 500 });

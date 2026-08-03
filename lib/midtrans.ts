@@ -50,6 +50,46 @@ export async function getSnapClient() {
   return { snap, clientKey, isProduction };
 }
 
+/** Berapa lama sesi bayar (Snap token) kita anggap masih valid sebelum
+ *  dianggap kadaluarsa dan generate baru diperbolehkan lagi. Dikirim juga
+ *  eksplisit ke Midtrans lewat `custom_expiry` biar konsisten (Midtrans
+ *  default-nya 24 jam kalau gak diset, tapi channel tertentu kayak QRIS
+ *  punya batas sendiri dari jaringan QRIS nasional, di luar kendali kita). */
+export const SESI_BAYAR_EXPIRY_JAM = 24;
+
+/** Core API client Midtrans — dipakai buat cancel transaksi pending lama
+ * (misal user klik "Ganti Metode Pembayaran") sebelum bikin transaksi baru. */
+export async function getCoreApiClient() {
+  const pengaturan = await getPengaturanPembayaran();
+  const { clientKey, serverKey, isProduction } = getActiveKeys(pengaturan);
+
+  if (!serverKey || !clientKey) {
+    throw new Error(
+      "Payment Settings belum diisi lengkap. Owner perlu isi Client Key & Server Key di halaman Settings."
+    );
+  }
+
+  const coreApi = new midtransClient.CoreApi({
+    isProduction,
+    serverKey,
+    clientKey,
+  });
+
+  return coreApi;
+}
+
+/** Cancel transaksi pending di Midtrans (best-effort — kalau transaksinya
+ * udah expired/gak ada di sisi Midtrans, itu bukan error fatal buat kita,
+ * yang penting transaksi baru tetap bisa dibuat). */
+export async function batalkanTransaksiMidtrans(orderId: string) {
+  try {
+    const coreApi = await getCoreApiClient();
+    await coreApi.transaction.cancel(orderId);
+  } catch (err) {
+    console.warn(`[Midtrans] Gagal cancel transaksi ${orderId} (mungkin udah expired/gak ada):`, err);
+  }
+}
+
 /**
  * Verifikasi signature key yang dikirim Midtrans di body webhook.
  * Rumus: SHA512(order_id + status_code + gross_amount + ServerKey)
