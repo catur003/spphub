@@ -77,7 +77,17 @@ export async function generatePdfFromPath(opts: GeneratePdfOptions): Promise<Buf
   }
 
   const browser = await getBrowser();
-  const page = await browser.newPage();
+  // PENTING: jangan browser.newPage() langsung (itu pakai default browser
+  // context yang DIBAGI ke semua request). Kalau dibagi, Set-Cookie dari
+  // request pertama (mis. cookieCache Better Auth yang di-refresh pas
+  // navigasi) ke-simpen di cookie jar context itu dan bisa "nyasar"/bentrok
+  // sama header Cookie yang kita paksa-set manual di request berikutnya —
+  // ini penyebab paling mungkin kenapa print pertama (portrait) sukses tapi
+  // print kedua (landscape) langsung sesudahnya malah balik ke /login.
+  // Fix: tiap generatePdfFromPath() jalan di browser context baru (incognito
+  // style) yang cookie jar-nya kosong & terisolasi, ditutup lagi sesudahnya.
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
   try {
     if (cookieHeader) {
       await page.setExtraHTTPHeaders({ Cookie: cookieHeader });
@@ -131,6 +141,7 @@ export async function generatePdfFromPath(opts: GeneratePdfOptions): Promise<Buf
     return Buffer.from(pdfUint8);
   } finally {
     await page.close();
+    await context.close();
   }
 }
 
