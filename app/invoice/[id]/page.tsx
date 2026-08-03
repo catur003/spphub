@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { IconPrinter, IconCheck, IconWarning } from "@/components/admin/icons";
+import { IconPrinter, IconDownload, IconCheck, IconWarning } from "@/components/admin/icons";
 
 type TagihanInvoice = {
   id: string;
@@ -40,6 +40,33 @@ export default function InvoicePage() {
   const [tagihan, setTagihan] = useState<TagihanInvoice | null>(null);
   const [sekolah, setSekolah] = useState<ProfilSekolah | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+
+  // Tahap 8 — Custom Print (Opsi B): PDF di-generate di server (Puppeteer
+  // membuka ulang halaman /invoice/[id] ini apa adanya), bukan screenshot
+  // client-side — biar hasil PDF sama persis dengan preview di layar.
+  async function handleDownloadPDF() {
+    if (!id) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/pdf/invoice/${id}`);
+      if (!res.ok) throw new Error("Gagal generate PDF di server");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Invoice_${tagihan?.siswa?.namaLengkap?.replace(/\s+/g, "_") || "SPP"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Gagal generate PDF", err);
+      alert("Gagal mengunduh PDF. Coba lagi beberapa saat.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -87,13 +114,24 @@ export default function InvoicePage() {
           </button>
           <div className="flex gap-2">
             <button
-              className="rounded-full bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-sm2 transition hover:bg-accent-hover"
+              className="rounded-full border border-border-soft px-4 py-1.5 text-sm font-semibold text-ink-700 transition hover:bg-surface"
               onClick={() => window.print()}
             >
-              <span className="inline-flex items-center gap-1.5"><IconPrinter className="h-4 w-4" /> Cetak / Download PDF</span>
+              <span className="inline-flex items-center gap-1.5"><IconPrinter className="h-4 w-4" /> Cetak Printer</span>
+            </button>
+            <button
+              className="rounded-full bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-sm2 transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleDownloadPDF}
+              disabled={downloading}
+            >
+              {downloading ? "Memproses PDF..." : <span className="inline-flex items-center gap-1.5"><IconDownload className="h-4 w-4" /> Download PDF</span>}
             </button>
           </div>
         </div>
+
+        {/* Format kertas dikunci A4 portrait — sumber kebenaran tunggal buat
+            window.print() browser MAUPUN generate PDF server. */}
+        <style>{`@page { size: A4 portrait; margin: 12mm; }`}</style>
 
         <div className="rounded-[24px] border-0 bg-white p-5 shadow-lg2 print:border-none print:shadow-none">
           {/* Header */}

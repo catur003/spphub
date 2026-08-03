@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { IconPrinter, IconDownload, IconSchool } from "@/components/admin/icons";
 
@@ -14,28 +14,30 @@ function rupiah(angka: number) {
 }
 
 export default function KwitansiClient({ tagihan, profil }: { tagihan: any, profil: any }) {
-  const printRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
 
+  // Tahap 8 — Custom Print (Opsi B): PDF di-generate di SERVER (Puppeteer
+  // membuka ulang halaman ini persis apa adanya, lihat
+  // /api/pdf/kwitansi/[id]), bukan screenshot DOM di browser (html2canvas)
+  // kayak sebelumnya. Hasilnya dijamin sama persis dengan yang dilihat di
+  // preview karena sama-sama dirender dari HTML/CSS yang sama.
   async function handleDownloadPDF() {
-    if (!printRef.current) return;
     setDownloading(true);
-    
     try {
-      const html2pdf = (await import("html2pdf.js")).default;
-      const element = printRef.current;
-      const opt = {
-        margin:       [10, 10, 10, 10], // top, left, bottom, right in mm
-        filename:     `Kwitansi_SPP_${tagihan.siswa.namaLengkap.replace(/\s+/g, "_")}_${BULAN_LABEL[tagihan.bulan]}_${tagihan.tahun}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      await html2pdf().set(opt).from(element).save();
+      const res = await fetch(`/api/pdf/kwitansi/${tagihan.id}`);
+      if (!res.ok) throw new Error("Gagal generate PDF di server");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Kwitansi_SPP_${tagihan.siswa.namaLengkap.replace(/\s+/g, "_")}_${BULAN_LABEL[tagihan.bulan]}_${tagihan.tahun}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Gagal generate PDF", err);
-      alert("Gagal mengunduh PDF. Pastikan koneksi stabil.");
+      alert("Gagal mengunduh PDF. Coba lagi beberapa saat.");
     } finally {
       setDownloading(false);
     }
@@ -46,6 +48,10 @@ export default function KwitansiClient({ tagihan, profil }: { tagihan: any, prof
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] p-[2rem_1rem] [font-family:system-ui,sans-serif]">
+      {/* Format kertas dikunci A4 portrait — sumber kebenaran tunggal buat
+          window.print() browser MAUPUN generate PDF server (lihat
+          lib/generate-pdf.ts, preferCSSPageSize: true). */}
+      <style>{`@page { size: A4 portrait; margin: 12mm; }`}</style>
       <div className="mx-auto w-full max-w-[850px]">
 
         {/* Tombol Aksi (Tidak ikut ke-print) */}
@@ -75,7 +81,6 @@ export default function KwitansiClient({ tagihan, profil }: { tagihan: any, prof
 
         {/* Area Kwitansi A4 */}
         <div
-          ref={printRef}
           className="relative mx-auto overflow-hidden rounded-lg bg-white p-10 text-[#1e293b] shadow-[0_10px_40px_rgba(0,0,0,0.08)] print:max-w-none print:p-0 print:shadow-none"
         >
           {/* Lunas Watermark */}

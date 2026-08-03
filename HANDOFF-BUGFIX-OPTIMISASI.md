@@ -53,7 +53,7 @@ network, jalanin `npm install` lalu `npm run build` duluan.
 | 5 | Kartu saldo & StatCards jadi berwarna dinamis | ✅ Selesai |
 | 6 | Fitur baru: Tagihan Lainnya (seragam, daftar ulang) | 🔶 Milestone 1, 2 & 3 selesai (skema+API, halaman admin, laporan+portal siswa) — lihat bagian 1a di bawah |
 | 7 | Saldo kas lebih informatif (breakdown, tren) | ⬜ **BELUM DIKERJAKAN** |
-| 8 | Custom print PDF (bukan screenshot halaman) | ⬜ **BELUM DIKERJAKAN** — keputusan udah ada (lihat #2) |
+| 8 | Custom print PDF (bukan screenshot halaman) | ✅ Selesai dikerjakan (⚠️ belum pernah dicompile/dites — lihat bagian 0c di bawah) |
 
 ### 1a. Detail progres Tahap 6 (Tagihan Lainnya) — PENTING buat sesi berikutnya
 
@@ -168,6 +168,38 @@ di semua file yang disentuh). Prioritas pertama pas ada akses build:
 
 ---
 
+## 0c. Sesi terbaru — Tahap 8 Custom Print PDF (✅ dikerjakan, ⚠️ BELUM di-push/compile)
+
+Sesuai keputusan yang udah dicatat di bagian "Tahap 8 — Custom Print" di
+bawah (Opsi B + requirement WYSIWYG dari Zen: preview di layar dan hasil
+PDF harus sama persis). Ringkasan implementasi, detail lengkap di
+`CHANGELOG.md` entri paling atas:
+
+1. **Puppeteer, bukan reportlab/pdfkit** — PDF di-generate dengan cara
+   Puppeteer (headless Chrome) membuka ULANG halaman internal yang sama
+   yang dilihat user di browser, lalu `page.pdf()`. Ini yang bikin WYSIWYG
+   dijamin: preview & PDF sama-sama dirender dari HTML/CSS yang sama
+   persis, bukan 2 sistem render berbeda. Lihat `lib/generate-pdf.ts`.
+2. **Kwitansi & Invoice** — gak perlu rute baru, cukup ganti tombol
+   Download PDF-nya buat manggil API yang nge-capture halaman
+   `/kwitansi/[id]` / `/invoice/[id]` itu sendiri (keduanya emang udah gak
+   ada di bawah sidebar admin).
+3. **Laporan SPP & Laporan Keuangan** — DIBUATIN rute baru
+   `/cetak/laporan-spp` & `/cetak/laporan-keuangan` di luar
+   `app/admin/layout.tsx`, karena versi admin lama ketiban sidebar kalau
+   di-print langsung. Rute lama di `/admin/laporan` & `/admin/keuangan/
+   laporan` tombolnya sekarang cuma buka tab baru ke rute `/cetak/...` ini.
+4. **Belum sempat**: halaman Laporan Tagihan Lainnya
+   (`app/admin/tagihan-lainnya/laporan/`) belum dikasih custom print —
+   di luar scope 4 halaman yang disebutin Zen (lihat Tahap 8 di bawah),
+   tapi kalau nanti diminta, pola-nya sama persis kayak `/cetak/laporan-spp`
+   (bikin rute cetak terpisah + API PDF-nya).
+5. **WAJIB sebelum test**: `npm install` (nambah `puppeteer`, cabut
+   `html2pdf.js`) lalu cek Chromium beneran bisa jalan di lingkungan
+   deploy (lihat catatan Railway di `CHANGELOG.md`).
+
+---
+
 ## 2. Keputusan yang udah dikonfirmasi Zen (PENTING — jangan tanya ulang)
 
 ### Tahap 6 — Fitur Tagihan Lainnya
@@ -182,7 +214,10 @@ di `RENCANA-LANJUTAN.md` Tahap 6. Saran pemecahan milestone dari situ:
 2. Halaman admin (copy pola dari `app/admin/tagihan/`)
 3. Halaman siswa/portal (copy pola tabel dari tagihan SPP siswa) + Midtrans
 
-### Tahap 8 — Custom Print
+### Tahap 8 — Custom Print (✅ SUDAH DIKERJAKAN — lihat bagian 0c di atas
+buat ringkasan implementasi. Requirement asli di bawah ini dibiarin apa
+adanya sebagai catatan keputusan, bukan berarti masih pending.)
+
 **Opsi B dipilih**: generate PDF beneran di server (bukan cuma halaman
 print khusus + `window.print()`). Tambahan requirement dari Zen:
 - **Format A4**, dan **wajib support portrait DAN landscape** (biar

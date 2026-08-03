@@ -45,6 +45,8 @@ export async function GET() {
       pengeluaranAll,
       tunggakanGrouped,
       utangAgg,
+      pendapatanLainBulanIniAgg,
+      pengeluaranBulanIniAgg,
     ] = await Promise.all([
       prisma.siswa.count({ where: { status: "aktif" } }),
       prisma.siswa.count({ where: { createdAt: { gte: awalBulanIni } } }),
@@ -101,6 +103,16 @@ export async function GET() {
         _sum: { nominalPinjaman: true, nominalTerbayar: true },
         _count: true,
       }),
+      // Tahap 7: breakdown "arus kas bulan ini" butuh pendapatan lain &
+      // pengeluaran yang di-scope ke bulan berjalan aja (bukan all-time).
+      prisma.pendapatanLain.aggregate({
+        where: { tanggal: { gte: awalBulanIni } },
+        _sum: { nominal: true },
+      }),
+      prisma.pengeluaran.aggregate({
+        where: { tanggal: { gte: awalBulanIni } },
+        _sum: { nominal: true },
+      }),
     ]);
 
     const totalSppLunas = sppLunasAll._sum.nominal || 0;
@@ -127,6 +139,12 @@ export async function GET() {
     const tunggakanBulanIni = tagihanBulanIni
       .filter((t) => t.status === "belum_bayar" || t.status === "terlambat")
       .reduce((acc, curr) => acc + curr.nominal, 0);
+
+    // Tahap 7: saldo kas lebih informatif — breakdown sumber + arus kas
+    // BULAN INI (beda dari saldoKas yang all-time), biar gak ketuker.
+    const pendapatanLainBulanIni = pendapatanLainBulanIniAgg._sum.nominal || 0;
+    const pengeluaranBulanIni = pengeluaranBulanIniAgg._sum.nominal || 0;
+    const arusKasBulanIni = pendapatanBulanIni + pendapatanLainBulanIni - pengeluaranBulanIni;
 
     const jumlahTagihanBelumDibuat = Math.max(0, totalSiswa - siswaSudahAdaTagihanCount);
 
@@ -157,9 +175,35 @@ export async function GET() {
       return { name: `${BULAN_LABEL_SHORT[parseInt(m)]} ${y}`, total: barChartMap[key] };
     });
 
+    // Tahap 7: tren singkat dibanding bulan lalu, dari data yang sama
+    // dipakai barChartData (6 bulan terakhir pembayaran SPP sukses).
+    const bulanIniTotal = barChartData[barChartData.length - 1]?.total || 0;
+    const bulanLaluTotal = barChartData[barChartData.length - 2]?.total || 0;
+    let trenPersen = 0;
+    let trenArah: "naik" | "turun" | "sama" = "sama";
+    if (bulanLaluTotal > 0) {
+      trenPersen = Math.round(((bulanIniTotal - bulanLaluTotal) / bulanLaluTotal) * 100);
+      trenArah = trenPersen > 0 ? "naik" : trenPersen < 0 ? "turun" : "sama";
+    } else if (bulanIniTotal > 0) {
+      // Bulan lalu 0 tapi bulan ini ada pemasukan -> gak bisa dihitung %,
+      // tampilkan sebagai "naik" tanpa angka pasti biar gak salah kesan.
+      trenArah = "naik";
+    }
+
     const response = NextResponse.json({
       saldoKas,
       labaRugi,
+      // Tahap 7 — breakdown sumber saldo kas (all-time)
+      totalSppLunas,
+      totalPendapatanLain,
+      totalPengeluaran,
+      // Tahap 7 — arus kas BULAN INI (beda dari saldoKas yang akumulasi all-time)
+      arusKasBulanIni,
+      pendapatanLainBulanIni,
+      pengeluaranBulanIni,
+      // Tahap 7 — tren singkat dibanding bulan lalu
+      trenPersen,
+      trenArah,
       sppBelumDibayarTotal,
       sppBelumDibayarCount,
       utangPegawaiTotal,

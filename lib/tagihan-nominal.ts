@@ -45,3 +45,39 @@ export async function syncNominalKosong(defaultNominal: number): Promise<number>
 
   return hasil.reduce((total, r) => total + r.count, 0);
 }
+
+/**
+ * Sama seperti syncNominalKosong tapi buat Tagihan Lainnya — sumber nominal
+ * yang benar bukan dari Kelas, tapi dari nominalDefault jenis tagihannya
+ * masing-masing (mis. "Seragam" -> nominalDefault Jenis Tagihan "Seragam").
+ */
+export async function syncNominalKosongLain(): Promise<number> {
+  const tagihanNol = await prisma.tagihanLain.findMany({
+    where: { status: { in: ["belum_bayar", "terlambat"] }, nominal: 0 },
+    include: { jenisTagihanLain: true },
+  });
+
+  if (tagihanNol.length === 0) return 0;
+
+  const grupPerNominal = new Map<number, string[]>();
+
+  for (const t of tagihanNol) {
+    const nominalJenis = Number(t.jenisTagihanLain?.nominalDefault || 0);
+    if (nominalJenis <= 0) continue;
+
+    const idsUntukNominalIni = grupPerNominal.get(nominalJenis) || [];
+    idsUntukNominalIni.push(t.id);
+    grupPerNominal.set(nominalJenis, idsUntukNominalIni);
+  }
+
+  const hasil = await Promise.all(
+    Array.from(grupPerNominal.entries()).map(([nominal, ids]) =>
+      prisma.tagihanLain.updateMany({
+        where: { id: { in: ids } },
+        data: { nominal },
+      })
+    )
+  );
+
+  return hasil.reduce((total, r) => total + r.count, 0);
+}

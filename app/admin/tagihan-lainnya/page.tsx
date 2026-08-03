@@ -7,6 +7,7 @@ import StatCards from "@/app/admin/tagihan/components/StatCards";
 import SiswaDetailModal from "@/components/admin/SiswaDetailModal";
 import { JenisTagihanLain, KelasOption, TahunAjaran, TagihanLain, SortField } from "./types";
 import { STATUS_SISWA_NONAKTIF } from "@/app/admin/tagihan/types";
+import { IconSync } from "@/components/admin/icons";
 import JenisManager from "./components/JenisManager";
 import GenerateForm, { JatuhTempoPreset } from "./components/GenerateForm";
 import FilterToolbar from "./components/FilterToolbar";
@@ -54,6 +55,7 @@ export default function TagihanLainnyaPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [syncingNominal, setSyncingNominal] = useState(false);
   const [hapusLunasModal, setHapusLunasModal] = useState<{
     ids: string[];
     single?: boolean;
@@ -182,6 +184,24 @@ export default function TagihanLainnyaPage() {
     }
     await muatJenis();
     return null;
+  }
+
+  async function handleSyncNominal() {
+    setSyncingNominal(true);
+    try {
+      const res = await fetch("/api/tagihan-lain/sync-nominal", { method: "POST" });
+      const data = await res.json();
+      setSyncingNominal(false);
+      if (res.ok) {
+        await alertMsg(`${data.message}`);
+        muatTagihan();
+      } else {
+        await alertMsg(data.error || "Gagal menyinkronkan nominal");
+      }
+    } catch (err: any) {
+      setSyncingNominal(false);
+      await alertMsg("Gagal terhubung ke server: " + err.message);
+    }
   }
 
   async function handleGenerate(e: React.FormEvent) {
@@ -420,6 +440,10 @@ export default function TagihanLainnyaPage() {
     [safeDaftar]
   );
   const totalNominal = useMemo(() => safeDaftar.reduce((acc, t) => acc + (t.nominal || 0), 0), [safeDaftar]);
+  const tagihanRpNolCount = useMemo(
+    () => safeDaftar.filter((t) => t.nominal === 0 && t.status !== "lunas").length,
+    [safeDaftar]
+  );
 
   const isFilterActive = !!(filterStatus || filterJenisId || filterKelasId || filterQ || filterPresetId);
 
@@ -437,12 +461,28 @@ export default function TagihanLainnyaPage() {
       {modal}
 
       <div className="p-4">
-        <div className="mb-4">
-          <h1 className="mb-0 text-xl font-bold text-ink-900">Tagihan Lainnya</h1>
-          <p className="mb-0 text-sm text-ink-500">
-            Kelola tagihan di luar SPP bulanan — seragam, daftar ulang, dan jenis lain yang kamu
-            tentukan sendiri.
-          </p>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 className="mb-0 text-xl font-bold text-ink-900">Tagihan Lainnya</h1>
+            <p className="mb-0 text-sm text-ink-500">
+              Kelola tagihan di luar SPP bulanan — seragam, daftar ulang, dan jenis lain yang kamu
+              tentukan sendiri.
+            </p>
+          </div>
+          {tagihanRpNolCount > 0 && (
+            <button
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-400 px-3 py-1.5 text-sm font-bold text-ink-900 shadow-sm2 hover:bg-amber-500 disabled:opacity-60"
+              onClick={handleSyncNominal}
+              disabled={syncingNominal}
+            >
+              {syncingNominal ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-amber-100 border-t-ink-900" />
+              ) : (
+                <IconSync width={16} height={16} />
+              )}
+              Perbaiki {tagihanRpNolCount} Tagihan Rp 0
+            </button>
+          )}
         </div>
 
         <StatCards

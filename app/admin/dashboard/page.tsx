@@ -27,6 +27,14 @@ type Notifikasi = {
 type DashboardData = {
   saldoKas?: number;
   labaRugi?: number;
+  totalSppLunas?: number;
+  totalPendapatanLain?: number;
+  totalPengeluaran?: number;
+  arusKasBulanIni?: number;
+  pendapatanLainBulanIni?: number;
+  pengeluaranBulanIni?: number;
+  trenPersen?: number;
+  trenArah?: "naik" | "turun" | "sama";
   sppBelumDibayarTotal?: number;
   sppBelumDibayarCount?: number;
   utangPegawaiTotal?: number;
@@ -129,6 +137,12 @@ export default function DashboardPage() {
   const todayStr = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
   const saldoKas = Number(data.saldoKas ?? data.pendapatanBulanIni ?? 0);
   const labaRugi = Number(data.labaRugi ?? ((data.pendapatanBulanIni || 0) - (data.tunggakanBulanIni || 0)));
+  const totalSppLunas = Number(data.totalSppLunas ?? 0);
+  const totalPendapatanLain = Number(data.totalPendapatanLain ?? 0);
+  const totalPengeluaran = Number(data.totalPengeluaran ?? 0);
+  const arusKasBulanIni = Number(data.arusKasBulanIni ?? 0);
+  const trenPersen = Number(data.trenPersen ?? 0);
+  const trenArah = data.trenArah ?? "sama";
   const sppBelumTotal = Number(data.sppBelumDibayarTotal ?? data.tunggakanBulanIni ?? 0);
   const sppBelumCount = Number(data.sppBelumDibayarCount ?? 0);
   const utangPegawaiTotal = Number(data.utangPegawaiTotal ?? 0);
@@ -196,8 +210,17 @@ export default function DashboardPage() {
             gradient={saldoKas >= 0 ? CARD_GRADIENTS.green : CARD_GRADIENTS.red}
             icon={<IconMoney className="h-5 w-5" />}
             value={saldoKas.toLocaleString("id-ID")}
-            title="Saldo Kas Utama"
-            footer={<>Per {todayStr}</>}
+            title="Saldo Kas Utama (All-Time)"
+            footer={
+              <div className="flex w-full items-center justify-between">
+                <span>Arus kas bulan ini: Rp {arusKasBulanIni.toLocaleString("id-ID")}</span>
+                {trenArah !== "sama" && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-white/25 px-1.5 py-0.5 text-[0.68rem] font-bold">
+                    {trenArah === "naik" ? "▲" : "▼"} {trenPersen !== 0 ? `${Math.abs(trenPersen)}%` : ""}
+                  </span>
+                )}
+              </div>
+            }
           />
         </div>
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
@@ -230,6 +253,19 @@ export default function DashboardPage() {
             footer={<>{utangPegawaiCount} pegawai aktif</>}
           />
         </div>
+      </div>
+
+      {/* Tahap 7: breakdown sumber saldo kas (all-time), biar gak cuma 1 angka net */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm2">
+          Dari SPP: <strong className="text-emerald-600">Rp {totalSppLunas.toLocaleString("id-ID")}</strong>
+        </span>
+        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm2">
+          Pendapatan Lain: <strong className="text-emerald-600">Rp {totalPendapatanLain.toLocaleString("id-ID")}</strong>
+        </span>
+        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm2">
+          Total Pengeluaran: <strong className="text-red-500">Rp {totalPengeluaran.toLocaleString("id-ID")}</strong>
+        </span>
       </div>
 
       {/* Charts & Graphs Row */}

@@ -90,7 +90,7 @@ export default function LaporanKeuanganPage() {
             <div className="mt-3 flex flex-col gap-2">
               <button
                 className="flex items-center justify-between rounded-control border border-accent py-2 text-left font-bold text-accent transition hover:bg-accent-soft"
-                onClick={() => window.print()}
+                onClick={() => window.open("/cetak/laporan-keuangan", "_blank")}
               >
                 <span className="inline-flex items-center gap-1.5 px-3"><IconPrinter className="h-4 w-4" /> Cetak Laporan Keuangan Pembukuan</span>
                 <span className="px-3">→</span>

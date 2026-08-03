@@ -117,8 +117,13 @@ export default function LaporanPage() {
     };
   }, [muatLaporan]);
 
+  // Tahap 8 — Custom Print: dulu window.print() nyetak halaman admin ini
+  // apa adanya (termasuk sidebar-nya kalau lupa disembunyiin). Sekarang
+  // "Cetak PDF" buka dokumen A4 bersih terpisah (/cetak/laporan-spp) di
+  // tab baru, yang bisa di-print via browser ATAU di-download langsung
+  // sebagai file PDF beneran dari server.
   function handlePrint() {
-    window.print();
+    window.open(`/cetak/laporan-spp?${queryString()}`, "_blank");
   }
 
   function exportCSV() {
@@ -158,14 +163,6 @@ export default function LaporanPage() {
             <span className="inline-flex items-center gap-1.5"><IconChart className="h-4 w-4" /> Export CSV / Excel</span>
           </button>
         </div>
-      </div>
-
-      {/* Header saat print */}
-      <div className="hidden print:block print:mb-8 print:border-b-2 print:border-black print:pb-4 print:text-center">
-        <h2 className="m-0 text-lg font-bold">Laporan Pembayaran SPP Sekolah</h2>
-        <p className="m-0 text-sm">
-          Periode: {bulan ? BULAN_LABEL[Number(bulan)] : "Semua Bulan"} {tahun ? tahun : "Semua Tahun"}
-        </p>
       </div>
 
       {/* Filter Lengkap */}

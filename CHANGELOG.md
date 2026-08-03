@@ -5,6 +5,55 @@ yang paling baru.
 
 ---
 
+## [Tahap 8] Custom Print PDF — generate di server (Opsi B), bukan screenshot
+
+⚠️ Belum pernah dicompile/dites jalan beneran (sandbox kerja gak ada akses
+`npm install`/network). Semua perubahan diverifikasi lewat pembacaan kode +
+cek kurung/brace balance manual. **WAJIB `npm install` dulu** (nambah
+dependency `puppeteer`, cabut `html2pdf.js`) sebelum `npm run build`.
+
+- **Infrastruktur baru**: `lib/generate-pdf.ts` (Puppeteer/headless Chrome
+  — buka ulang halaman internal apa adanya lalu `page.pdf()`, WYSIWYG murni
+  karena preview & PDF dirender dari HTML/CSS yang sama persis, bukan
+  library PDF generator terpisah). Ukuran kertas & orientasi (A4
+  portrait/landscape) diatur lewat CSS `@page` di masing-masing halaman
+  (`preferCSSPageSize: true`), bukan hardcode di kode. `lib/request-
+  context.ts` & `lib/server-fetch.ts` — forward cookie sesi Better Auth ke
+  Puppeteer/fetch internal biar halaman yang di-capture tetap ke-otorisasi.
+- **Kwitansi & Invoice** (`/kwitansi/[id]`, `/invoice/[id]`): tombol
+  Download PDF diganti total dari `html2pdf.js` (screenshot html2canvas,
+  ini yang bikin "kayak screenshot halaman") jadi fetch ke
+  `/api/pdf/kwitansi/[id]` & `/api/pdf/invoice/[id]` (Puppeteer capture
+  halaman itu sendiri, PDF vector asli). Invoice sekarang punya 2 tombol
+  terpisah (dulu digabung "Cetak/Download" yang cuma window.print()): Cetak
+  Printer & Download PDF beneran. Keduanya dikasih `@page { size: A4
+  portrait }` eksplisit. `html2pdf.js` + `types/html2pdf.d.ts` dihapus dari
+  project.
+- **Laporan SPP & Laporan Keuangan** (admin): dibuat rute dokumen terpisah
+  **`/cetak/laporan-spp`** & **`/cetak/laporan-keuangan`** — sengaja di
+  luar `app/admin/layout.tsx` (gak ikut sidebar/topbar admin ke-print,
+  masalah lama yang bikin hasil print "kotor"). Fitur: kop surat sekolah
+  (logo+nama+alamat, `components/cetak/KopSurat.tsx`), toggle Portrait/
+  Landscape (`@page` CSS ganti sesuai query param `?orientation=`), tombol
+  Cetak Printer (`components/cetak/PrintButton.tsx`) & Download PDF. Tabel
+  laporan dikasih `thead{display:table-header-group}` + `tr{break-inside:
+  avoid}` biar rapi kalau kepotong halaman. API: `app/api/pdf/laporan-spp`
+  & `app/api/pdf/laporan-keuangan` (capture rute `/cetak/...` di atas).
+  Tombol "Cetak PDF"/"Cetak Laporan Keuangan" di halaman admin lama diganti
+  jadi buka tab baru ke rute `/cetak/...` (bukan `window.print()` di
+  halaman admin yang ada sidebar-nya lagi). Header print lama yang gak
+  kepakai lagi di `app/admin/laporan/page.tsx` (`hidden print:block`
+  block) dihapus.
+- **`next.config.mjs`**: tambah `serverExternalPackages: ["puppeteer"]`
+  biar Next.js gak coba bundle native module/binary Chromium-nya.
+- **Catatan deploy Railway**: `puppeteer` (bukan `puppeteer-core`) dipilih
+  karena Railway container persisten (bukan serverless kayak Lambda), jadi
+  Chromium bundled-nya bisa diinstall normal — TAPI perlu dicek base image
+  Railway punya library sistem yang Chromium butuhin (kemungkinan perlu
+  nixpacks config tambahan / Dockerfile custom). Kalau Chromium susah
+  jalan di Railway, alternatif: `puppeteer-core` + `@sparticuz/chromium`.
+
+
 ## [Penyesuaian] Preset jadi rentang tanggal, card list, format tanggal baru, filter by preset, siswa page digabung
 
 ⚠️ Belum di-`prisma db push` ulang (schema berubah lagi), belum pernah
