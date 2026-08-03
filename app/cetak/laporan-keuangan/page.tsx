@@ -33,8 +33,14 @@ export default async function CetakLaporanKeuanganPage({
     pendapatanBulanIni: d?.pendapatanBulanIni || 0,
   };
 
+  // @page di bawah ini cuma dipakai browser pas benar-benar nge-print /
+  // generate PDF, gak pernah memengaruhi tampilan di layar — makanya toggle
+  // Portrait/Landscape sebelumnya gak kelihatan efeknya di preview. Lebar
+  // kontainer di layar sengaja dibikin ikut orientasi (proporsi A4 96dpi).
+  const previewMaxWidth = orientation === "landscape" ? "max-w-[1123px]" : "max-w-[900px]";
+
   return (
-    <div className="mx-auto w-full max-w-[900px] p-4 print:p-0">
+    <div className={`mx-auto w-full ${previewMaxWidth} p-4 transition-[max-width] print:max-w-none print:p-0`}>
       <style>{`@page { size: A4 ${orientation}; margin: 14mm 12mm; }`}</style>
 
       {/* Kontrol — gak ikut tercetak/ke-PDF */}

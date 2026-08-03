@@ -89,8 +89,17 @@ export default async function CetakLaporanSppPage({ searchParams }: { searchPara
     Object.entries(sp).filter(([k, v]) => k !== "orientation" && v) as [string, string][]
   ).toString();
 
+  // @page di bawah ini cuma dipakai browser pas benar-benar nge-print /
+  // generate PDF (media type "print") — TIDAK pernah memengaruhi tampilan
+  // di layar. Makanya toggle Portrait/Landscape kelihatan "gak ngefek":
+  // URL & data-nya ganti, tapi lebar kontainer di layar statis. Supaya
+  // preview di layar juga kelihatan berubah, lebar kontainer sengaja
+  // dibikin ikut orientasi (kira-kira proporsi A4 di 96dpi), lalu di-reset
+  // ke auto pas print supaya @page yang jadi sumber kebenaran ukuran kertas.
+  const previewMaxWidth = orientation === "landscape" ? "max-w-[1123px]" : "max-w-[794px]";
+
   return (
-    <div className="mx-auto w-full max-w-[1100px] p-4 print:p-0">
+    <div className={`mx-auto w-full ${previewMaxWidth} p-4 transition-[max-width] print:max-w-none print:p-0`}>
       <style>{`@page { size: A4 ${orientation}; margin: 14mm 12mm; }`}</style>
 
       {/* Kontrol — gak ikut tercetak/ke-PDF */}

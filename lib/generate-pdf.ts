@@ -83,10 +83,28 @@ export async function generatePdfFromPath(opts: GeneratePdfOptions): Promise<Buf
       await page.setExtraHTTPHeaders({ Cookie: cookieHeader });
     }
 
-    await page.goto(`${origin}${path}`, {
+    const response = await page.goto(`${origin}${path}`, {
       waitUntil: "networkidle0",
       timeout: timeoutMs,
     });
+
+    // Kalau requireRole() di halaman internal nge-redirect ke /login (cookie
+    // sesi gak ke-forward / expired / origin salah), page.goto() TETAP
+    // "berhasil" secara teknis (Puppeteer ikutin redirect-nya) — tanpa cek
+    // ini, hasilnya adalah PDF halaman login yang ke-download diam-diam
+    // seolah-olah berhasil generate laporan. Deteksi eksplisit biar gagal
+    // dengan error yang jelas, bukan file PDF yang salah isinya.
+    const finalUrl = page.url();
+    if (/\/login(\?|$)/.test(new URL(finalUrl).pathname + new URL(finalUrl).search) || new URL(finalUrl).pathname.startsWith("/login")) {
+      throw new Error(
+        `Gagal generate PDF: sesi tidak terbawa ke request internal, malah ke-redirect ke halaman login (${finalUrl}). ` +
+        `Cek cookie sesi ter-forward dengan benar, dan pastikan BETTER_AUTH_URL / NEXT_PUBLIC_BETTER_AUTH_URL di .env ` +
+        `sudah diisi domain publik yang sebenarnya (bukan localhost) kalau ini di production.`
+      );
+    }
+    if (response && response.status() >= 400) {
+      throw new Error(`Gagal generate PDF: halaman internal ${path} merespons status ${response.status()}.`);
+    }
 
     // Tunggu font custom (kalau ada) selesai load biar teks di PDF gak
     // "loncat" pakai fallback font sistem.
