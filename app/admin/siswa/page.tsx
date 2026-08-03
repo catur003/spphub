@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
 import {
   Kelas,
@@ -23,6 +24,7 @@ import NaikKelasModal from "./components/NaikKelasModal";
 import { IconCheck, IconX, IconRefresh } from "@/components/admin/icons";
 
 export default function SiswaPage() {
+  const router = useRouter();
   const [daftar, setDaftar] = useState<Siswa[]>([]);
   const [kelasList, setKelasList] = useState<Kelas[]>([]);
   const [q, setQ] = useState("");
@@ -71,8 +73,8 @@ export default function SiswaPage() {
         : `Kelas ${kelasList.find((k) => k.id === naikKelasTujuan)?.namaKelas}`;
 
     if (
-      !(await confirm(`Yakin ingin memindahkan seluruh siswa aktif dari ${asalName} ke ${tujuanName}?`, {
-        confirmLabel: "Ya, Pindahkan Massal",
+      !(await confirm(`Yakin ingin menaikkan seluruh siswa aktif dari ${asalName} ke ${tujuanName}?`, {
+        confirmLabel: "Ya, Naikkan Massal",
       }))
     )
       return;
@@ -187,9 +189,39 @@ export default function SiswaPage() {
       setErrorTambah(data.error || "Gagal menyimpan");
       return;
     }
+    const siswaBaru: Siswa = await res.json();
     setFormTambah(FORM_TAMBAH_KOSONG);
     tampilToast("Siswa berhasil ditambahkan");
     muatData();
+    cekTagihanSppSiswaBaru(siswaBaru);
+  }
+
+  // Siswa baru gak otomatis punya tagihan SPP (itu tugas Generate Massal di
+  // halaman Tagihan, terpisah dari nambah data siswa) — gampang kelupaan
+  // kalau nambah siswa satu-satu di luar sesi generate massal bulanan.
+  // Popup modal (bukan cuma badge kecil) dipilih supaya beneran kelihatan,
+  // tapi tetap non-blocking: admin bisa pilih "Nanti Saja".
+  async function cekTagihanSppSiswaBaru(siswa: Siswa) {
+    try {
+      const res = await fetch(`/api/tagihan?siswaId=${siswa.id}`);
+      if (!res.ok) return;
+      const daftarTagihan = await res.json();
+      if (Array.isArray(daftarTagihan) && daftarTagihan.length === 0) {
+        const bukaHalamanTagihan = await confirm(
+          `Siswa "${siswa.namaLengkap}" berhasil ditambahkan, tapi belum punya tagihan SPP sama sekali. Buka halaman Tagihan SPP buat generate sekarang?`,
+          {
+            title: "Belum Ada Tagihan SPP",
+            confirmLabel: "Buka Halaman Tagihan",
+            cancelLabel: "Nanti Saja",
+            variant: "primary",
+          }
+        );
+        if (bukaHalamanTagihan) router.push("/admin/tagihan");
+      }
+    } catch {
+      // Diam-diam gagal — jangan sampai pengecekan reminder ini ganggu flow
+      // utama nambah siswa yang udah sukses.
+    }
   }
 
   // ——— Modal Edit ———
@@ -287,6 +319,18 @@ export default function SiswaPage() {
     setHasilImport(data);
     setFileImport(null);
     muatData();
+    if (data.berhasil > 0) {
+      const bukaHalamanTagihan = await confirm(
+        `${data.berhasil} siswa baru berhasil diimport. Mereka belum punya tagihan SPP — buka halaman Tagihan SPP buat Generate Massal sekarang?`,
+        {
+          title: "Belum Ada Tagihan SPP",
+          confirmLabel: "Buka Halaman Tagihan",
+          cancelLabel: "Nanti Saja",
+          variant: "primary",
+        }
+      );
+      if (bukaHalamanTagihan) router.push("/admin/tagihan");
+    }
   }
 
   const safeDaftar = Array.isArray(daftar) ? daftar : [];

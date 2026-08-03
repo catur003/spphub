@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import Pagination from "@/components/admin/Pagination";
 import { authClient } from "@/lib/auth-client";
 import {
   IconCheck, IconX, IconPlus, IconCrown,
@@ -42,6 +43,8 @@ export default function PenggunaPage() {
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortAsc, setSortAsc] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
@@ -246,6 +249,17 @@ export default function PenggunaPage() {
     return sortAsc ? comp : -comp;
   });
 
+  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / pageSize));
+  const pagedUsers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedUsers.slice(start, start + pageSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedUsers.map((u) => u.id).join(","), currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter]);
+
   function toggleSort(field: SortField) {
     if (sortField === field) setSortAsc(!sortAsc);
     else { setSortField(field); setSortAsc(true); }
@@ -403,7 +417,7 @@ export default function PenggunaPage() {
                         </td>
                       </tr>
                     ) : (
-                      sortedUsers.map((u) => {
+                      pagedUsers.map((u) => {
                         const isSelf = u.email === currentUserEmail;
 
                         return (
@@ -481,6 +495,17 @@ export default function PenggunaPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={sortedUsers.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+              />
             </div>
           </div>
         </div>

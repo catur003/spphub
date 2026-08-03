@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
+import Pagination from "@/components/admin/Pagination";
 import {
   IconCheckCircle, IconFolder, IconFileText, IconImage, IconUser, IconCalendar,
   IconEye, IconTrash, IconUpload, IconSave,
@@ -32,6 +33,8 @@ const inputClass =
 
 export default function ArsipDigitalPage() {
   const [daftar, setDaftar] = useState<Arsip[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
   const [daftarSiswa, setDaftarSiswa] = useState<SiswaOption[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,6 +86,16 @@ export default function ArsipDigitalPage() {
     muatData();
     muatSiswa();
   }, [kategoriFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [daftar.length]);
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(daftar.length / pageSize)), [daftar.length, pageSize]);
+  const pagedDaftar = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return daftar.slice(start, start + pageSize);
+  }, [daftar, currentPage, pageSize]);
 
   function tampilToast(msg: string, type: "success" | "error" = "success") {
     setToast({ msg, type });
@@ -203,8 +216,9 @@ export default function ArsipDigitalPage() {
             <p className="text-sm text-ink-500">Silakan tambah berkas baru untuk mulai mengarsipkan dokumen sekolah.</p>
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-12 gap-3">
-            {daftar.map((item) => {
+            {pagedDaftar.map((item) => {
               const kat = KATEGORI_LABEL[item.kategori] || { label: item.kategori, badge: "bg-ink-500" };
               const isPdf = item.fileType === "pdf" || item.fileUrl.endsWith(".pdf");
 
@@ -259,6 +273,21 @@ export default function ArsipDigitalPage() {
               );
             })}
           </div>
+          <div className="mt-3 overflow-hidden rounded-card border border-border-soft bg-white">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={daftar.length}
+              pageSizeOptions={[12, 24, 48, 96]}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+          </>
         )}
       </div>
 

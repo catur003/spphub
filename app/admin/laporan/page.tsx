@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { IconPrinter, IconChart, IconFileText } from "@/components/admin/icons";
+import Pagination from "@/components/admin/Pagination";
 
 type Kelas = { id: string; namaKelas: string; tingkat?: number };
 type Tagihan = {
@@ -70,6 +71,8 @@ export default function LaporanPage() {
   const [ringkasan, setRingkasan] = useState<Ringkasan | null>(null);
   const [daftar, setDaftar] = useState<Tagihan[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   useEffect(() => {
     fetch("/api/kelas").then(async (res) => {
@@ -116,6 +119,21 @@ export default function LaporanPage() {
       controller.abort();
     };
   }, [muatLaporan]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [daftar]);
+
+  // Pagination CUMA buat tampilan tabel di layar. "Cetak PDF" (buka
+  // /cetak/laporan-spp di tab baru) dan "Export CSV" tetap pakai `daftar`
+  // yang utuh (bukan `pagedDaftar`) — jadi hasil cetak/export selalu berisi
+  // SEMUA baris yang cocok sama filter, gak kepotong cuma halaman yang lagi
+  // dilihat di layar.
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(daftar.length / pageSize)), [daftar.length, pageSize]);
+  const pagedDaftar = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return daftar.slice(start, start + pageSize);
+  }, [daftar, currentPage, pageSize]);
 
   // Tahap 8 — Custom Print: dulu window.print() nyetak halaman admin ini
   // apa adanya (termasuk sidebar-nya kalau lupa disembunyiin). Sekarang
@@ -283,7 +301,18 @@ export default function LaporanPage() {
       )}
 
       {/* Tabel Riwayat Pembayaran Detail */}
-      <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
+      {/* print:hidden sengaja — tabel di halaman admin ini sekarang
+          dipaginasi (cuma nampilin 1 halaman data), jadi kalau di-print
+          langsung (Ctrl+P) tanpa lewat tombol "Cetak PDF", hasilnya bisa
+          cuma sebagian data & menyesatkan. Tombol "Cetak PDF" di atas udah
+          buka dokumen A4 terpisah (/cetak/laporan-spp) yang selalu berisi
+          SEMUA data sesuai filter, jadi itu satu-satunya jalur cetak yang
+          valid buat laporan ini. */}
+      <div className="hidden rounded-card border border-border-soft bg-white p-8 text-center text-sm text-ink-700 print:block">
+        Gunakan tombol <strong>&ldquo;Cetak PDF&rdquo;</strong> di halaman ini (bukan Ctrl+P langsung) untuk hasil
+        cetak laporan yang lengkap.
+      </div>
+      <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2 print:hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left print:border-collapse">
             <thead>
@@ -296,7 +325,7 @@ export default function LaporanPage() {
               </tr>
             </thead>
             <tbody>
-              {daftar.map((t) => {
+              {pagedDaftar.map((t) => {
                 const info = STATUS_INFO[t.status] || { label: t.status, bg: "#f3f4f6", color: "#374151" };
                 return (
                   <tr key={t.id} className="border-b border-border-soft last:border-0">
@@ -328,6 +357,18 @@ export default function LaporanPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={daftar.length}
+          pageSizeOptions={[15, 25, 50, 100]}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </div>
     </div>
   );
