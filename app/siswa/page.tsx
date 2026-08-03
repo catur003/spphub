@@ -637,7 +637,7 @@ export default function SiswaPortalPage() {
                       </div>
                       {sesiTerbuka.has(t.id) && (
                         <button
-                          className="mt-1 text-right text-[0.7rem] font-medium text-ink-500 underline decoration-dotted hover:text-accent disabled:opacity-60"
+                          className="mt-1 w-full rounded-full border border-dashed border-border-soft px-3 py-1.5 text-xs font-semibold text-ink-500 transition hover:border-accent hover:text-accent disabled:opacity-60"
                           onClick={() => handleBayar(t.id, true)}
                           disabled={isBayarLoading || isCekLoading}
                         >

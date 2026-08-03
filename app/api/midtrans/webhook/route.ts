@@ -73,7 +73,13 @@ export async function POST(req: NextRequest) {
         data: {
           status: statusBaru,
           midtransTransactionId: midtransTransactionId || null,
-          rawResponse: body,
+          // PENTING: jangan timpa rawResponse mentah-mentah — di situ kita
+          // nyimpen token Snap buat di-reuse kalau user klik "Bayar Sekarang"
+          // lagi (lihat /bayar route). Payload webhook gak punya field
+          // token, jadi kalau ditimpa langsung, reuse-nya jadi selalu gagal
+          // begitu Midtrans kirim notifikasi pertama (biasanya pas metode
+          // bayar baru dipilih, sebelum transaksi kelar).
+          rawResponse: { ...(pembayaranLain.rawResponse as any), midtransNotifikasi: body },
           paidAt: statusBaru === "success" ? new Date() : null,
         },
       });
@@ -107,7 +113,9 @@ export async function POST(req: NextRequest) {
       data: {
         status: statusBaru,
         midtransTransactionId: midtransTransactionId || null,
-        rawResponse: body,
+        // Sama seperti PembayaranLain di atas: merge, jangan timpa —
+        // rawResponse nyimpen token Snap yang dipakai buat reuse sesi bayar.
+        rawResponse: { ...(pembayaran.rawResponse as any), midtransNotifikasi: body },
         paidAt: statusBaru === "success" ? new Date() : null,
       },
     });
