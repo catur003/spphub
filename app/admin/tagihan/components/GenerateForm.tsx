@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { IconSync, IconZap, IconWarning, IconCheckCircle, IconClock } from "@/components/admin/icons";
+import PeriodeJatuhTempoWarning from "@/components/admin/PeriodeJatuhTempoWarning";
 import { TahunAjaran, KelasOption, BULAN_LABEL, TAHUN_OPTIONS, formatTanggalPanjang } from "../types";
 
 type GenState = {
@@ -215,6 +216,9 @@ export default function GenerateForm({
               <span className="inline-flex items-center gap-1.5"><IconZap className="h-4 w-4" /> Generate Massal</span>
             )}
           </button>
+        </div>
+        <div className="md:col-span-12">
+          <PeriodeJatuhTempoWarning bulan={gen.bulan} tahun={gen.tahun} jatuhTempo={gen.jatuhTempo} />
         </div>
       </form>
     </div>
