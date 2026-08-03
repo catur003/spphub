@@ -5,6 +5,41 @@ yang paling baru.
 
 ---
 
+## [Bugfix] Proteksi hapus siswa bolong untuk tagihan lunas manual/tunai + Tagihan Lainnya
+
+⚠️ Belum pernah dicompile/dites di sesi ini juga.
+
+- **Bug**: `DELETE /api/siswa/[id]` cuma ngecek tabel `Pembayaran` (status
+  `success`) buat nentuin siswa punya riwayat lunas atau enggak. Tagihan
+  yang ditandai LUNAS manual (tombol "Tandai LUNAS (pembayaran tunai
+  manual)") cuma `PATCH status: "lunas"` ke `TagihanSpp`, **gak pernah**
+  bikin row di `Pembayaran` — jadi siswa (aktif ATAU nonaktif) yang semua
+  tagihannya lunas tunai lolos hapus tanpa proteksi/warning sama sekali,
+  riwayat tagihannya ikut kehapus permanen lewat cascade delete. Tabel
+  `PembayaranLain` (Tagihan Lainnya) juga gak pernah dicek.
+- **Fix**: proteksi sekarang cek status `TagihanSpp.status === "lunas"` +
+  `TagihanLain.status === "lunas"` langsung (sumber kebenaran tunggal,
+  konsisten dipakai baik oleh PATCH manual maupun webhook Midtrans) —
+  bukan tabel Pembayaran lagi. Siswa **aktif** dengan riwayat lunas
+  SELALU ditolak hapus (gak ada bypass). Siswa **nonaktif/lulus/pindah**
+  boleh dihapus tapi wajib konfirmasi eksplisit (modal ketik "HAPUS",
+  reuse `ConfirmHapusLunasModal` yang sama polanya kayak hapus tagihan
+  massal). `app/api/siswa/[id]/route.ts` (DELETE, terima
+  `confirmHapusLunas` di body, balikin `butuhKonfirmasi`/`jumlahLunas`/
+  `totalNominal` di response 409 kalau perlu konfirmasi) &
+  `app/admin/siswa/page.tsx` (`eksekusiHapusSiswa`, render
+  `ConfirmHapusLunasModal`).
+
+## [Bugfix] Alert native diganti modal popup
+
+- `app/invoice/[id]/page.tsx` & `app/kwitansi/[id]/KwitansiClient.tsx`:
+  `alert()` bawaan browser (pesan gagal download PDF) diganti
+  `alertMsg()` dari `useConfirmModal()` (`components/admin/ConfirmModal.tsx`)
+  — pola yang sama udah dipakai di semua halaman admin, cuma 2 file ini
+  yang ketinggalan.
+
+---
+
 ## [Tahap 8] Custom Print PDF — generate di server (Opsi B), bukan screenshot
 
 ⚠️ Belum pernah dicompile/dites jalan beneran (sandbox kerja gak ada akses

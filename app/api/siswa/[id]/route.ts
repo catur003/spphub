@@ -171,8 +171,10 @@ export async function PUT(
   }
 }
 
+const STATUS_SISWA_NONAKTIF_HAPUS = ["nonaktif", "lulus", "pindah"];
+
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -180,33 +182,70 @@ export async function DELETE(
     if (errAkses) return errAkses;
 
     const { id } = await params;
+    const body = await req.json().catch(() => ({}));
+    const confirmHapusLunas = body?.confirmHapusLunas === true;
 
     const siswa = await prisma.siswa.findUnique({
       where: { id },
-      select: { akunId: true },
+      select: { akunId: true, status: true },
     });
 
     if (!siswa) {
       return NextResponse.json({ error: "Siswa tidak ditemukan" }, { status: 404 });
     }
 
-    // Penting: relasi Siswa -> Pembayaran pakai onDelete Cascade di schema.
-    // Kalau siswa ini punya riwayat pembayaran yang sudah "success", hapus
-    // permanen akan ikut menghapus bukti transaksi keuangan itu selamanya.
-    // Lebih aman ditolak di sini dan arahkan admin untuk menonaktifkan saja.
-    const punyaRiwayatBayar = await prisma.pembayaran.findFirst({
-      where: { siswaId: id, status: "success" },
-      select: { id: true },
-    });
+    // PENTING: cek riwayat lunas lewat status TagihanSpp/TagihanLain
+    // ("lunas"), BUKAN lewat tabel Pembayaran/PembayaranLain saja. Tagihan
+    // yang ditandai lunas manual (pembayaran tunai lewat tombol "Tandai
+    // LUNAS") cuma PATCH status tagihan-nya, gak pernah bikin row di
+    // Pembayaran — jadi kalau cuma ngecek tabel Pembayaran, siswa yang
+    // semua tagihannya lunas tunai lolos tanpa proteksi sama sekali
+    // (riwayatnya ikut kehapus permanen lewat cascade delete Siswa ->
+    // TagihanSpp / TagihanLain). Status "lunas" di tagihan itu sendiri
+    // adalah sumber kebenaran tunggal, konsisten dipakai baik oleh PATCH
+    // manual maupun webhook Midtrans (lihat app/api/midtrans/webhook).
+    const [tagihanLunas, tagihanLainLunas] = await Promise.all([
+      prisma.tagihanSpp.findMany({
+        where: { siswaId: id, status: "lunas" },
+        select: { nominal: true },
+      }),
+      prisma.tagihanLain.findMany({
+        where: { siswaId: id, status: "lunas" },
+        select: { nominal: true },
+      }),
+    ]);
 
-    if (punyaRiwayatBayar) {
-      return NextResponse.json(
-        {
-          error:
-            "Siswa ini punya riwayat pembayaran yang sudah lunas. Menghapus siswa akan menghapus permanen riwayat keuangannya juga. Ubah status siswa jadi 'nonaktif' atau 'pindah' saja lewat form edit, jangan dihapus.",
-        },
-        { status: 409 }
-      );
+    const jumlahLunas = tagihanLunas.length + tagihanLainLunas.length;
+
+    if (jumlahLunas > 0) {
+      const totalNominal =
+        tagihanLunas.reduce((acc, t) => acc + t.nominal, 0) +
+        tagihanLainLunas.reduce((acc, t) => acc + t.nominal, 0);
+
+      const siswaNonAktif = siswa.status
+        ? STATUS_SISWA_NONAKTIF_HAPUS.includes(siswa.status)
+        : false;
+
+      // Sama seperti hapus tagihan massal: siswa AKTIF dengan riwayat
+      // lunas SELALU ditolak, gak ada jalan bypass. Siswa
+      // nonaktif/lulus/pindah boleh dihapus, tapi cuma kalau frontend
+      // sudah eksplisit konfirmasi (user ngetik "HAPUS" di modal).
+      if (!siswaNonAktif || !confirmHapusLunas) {
+        return NextResponse.json(
+          {
+            error: siswaNonAktif
+              ? "Siswa ini punya riwayat tagihan lunas. Konfirmasi diperlukan sebelum menghapus."
+              : "Siswa ini masih berstatus aktif dan punya riwayat tagihan lunas. Menghapus siswa akan menghapus permanen riwayat tagihan & keuangannya juga. Ubah status siswa jadi 'nonaktif'/'pindah'/'lulus' dulu lewat form edit kalau memang mau dihapus, jangan dihapus langsung selagi aktif.",
+            butuhKonfirmasi: siswaNonAktif,
+            jumlahLunas,
+            totalNominal,
+          },
+          { status: 409 }
+        );
+      }
+      // Catatan: nominal tagihan lunas ini akan hilang dari Laporan
+      // Keuangan bulan terkait. Peringatan ini sudah ditampilkan ke user
+      // di modal konfirmasi FE.
     }
 
     await prisma.siswa.delete({ where: { id } });

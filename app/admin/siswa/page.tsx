@@ -21,6 +21,7 @@ import SiswaTable from "./components/SiswaTable";
 import SiswaDetailModal from "@/components/admin/SiswaDetailModal";
 import SiswaEditModal from "./components/SiswaEditModal";
 import NaikKelasModal from "./components/NaikKelasModal";
+import ConfirmHapusLunasModal from "@/components/admin/ConfirmHapusLunasModal";
 import { IconCheck, IconX, IconRefresh } from "@/components/admin/icons";
 
 export default function SiswaPage() {
@@ -46,6 +47,11 @@ export default function SiswaPage() {
   const [detailSiswaId, setDetailSiswaId] = useState<string | null>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [hapusLunasSiswaModal, setHapusLunasSiswaModal] = useState<{
+    id: string;
+    jumlahLunas: number;
+    totalNominal: number;
+  } | null>(null);
 
   const [fileImport, setFileImport] = useState<File | null>(null);
   const [importLoading, setImportLoading] = useState(false);
@@ -285,14 +291,31 @@ export default function SiswaPage() {
       confirmLabel: "Ya, Hapus Permanen",
     });
     if (!yakin) return;
+    await eksekusiHapusSiswa(id, false);
+  }
+
+  async function eksekusiHapusSiswa(id: string, confirmHapusLunas: boolean) {
     setDeletingId(id);
-    const res = await fetch(`/api/siswa/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/siswa/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmHapusLunas }),
+    });
     setDeletingId(null);
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (data.butuhKonfirmasi) {
+        setHapusLunasSiswaModal({
+          id,
+          jumlahLunas: data.jumlahLunas || 0,
+          totalNominal: data.totalNominal || 0,
+        });
+        return;
+      }
       await alertMsg(data.error || "Gagal menghapus");
       return;
     }
+    setHapusLunasSiswaModal(null);
     tampilToast("Siswa berhasil dihapus");
     muatData();
   }
@@ -369,6 +392,16 @@ export default function SiswaPage() {
   return (
     <>
       {modal}
+      <ConfirmHapusLunasModal
+        show={!!hapusLunasSiswaModal}
+        jumlahTagihan={hapusLunasSiswaModal?.jumlahLunas || 0}
+        totalNominal={hapusLunasSiswaModal?.totalNominal || 0}
+        loading={deletingId === hapusLunasSiswaModal?.id}
+        onClose={() => setHapusLunasSiswaModal(null)}
+        onConfirm={() => {
+          if (hapusLunasSiswaModal) eksekusiHapusSiswa(hapusLunasSiswaModal.id, true);
+        }}
+      />
 
       {toast && (
         <div

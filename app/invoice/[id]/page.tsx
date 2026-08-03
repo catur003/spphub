@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { IconPrinter, IconDownload, IconCheck, IconWarning } from "@/components/admin/icons";
+import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 type TagihanInvoice = {
   id: string;
@@ -41,6 +42,7 @@ export default function InvoicePage() {
   const [sekolah, setSekolah] = useState<ProfilSekolah | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const { alertMsg, modal } = useConfirmModal();
 
   // Tahap 8 — Custom Print (Opsi B): PDF di-generate di server (Puppeteer
   // membuka ulang halaman /invoice/[id] ini apa adanya), bukan screenshot
@@ -62,7 +64,7 @@ export default function InvoicePage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Gagal generate PDF", err);
-      alert("Gagal mengunduh PDF. Coba lagi beberapa saat.");
+      await alertMsg("Gagal mengunduh PDF. Coba lagi beberapa saat.");
     } finally {
       setDownloading(false);
     }
@@ -224,6 +226,7 @@ export default function InvoicePage() {
           </div>
         </div>
       </div>
+      {modal}
     </div>
   );
 }

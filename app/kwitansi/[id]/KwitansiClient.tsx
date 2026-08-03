@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { IconPrinter, IconDownload, IconSchool } from "@/components/admin/icons";
+import { useConfirmModal } from "@/components/admin/ConfirmModal";
 
 const BULAN_LABEL = [
   "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -15,6 +16,7 @@ function rupiah(angka: number) {
 
 export default function KwitansiClient({ tagihan, profil }: { tagihan: any, profil: any }) {
   const [downloading, setDownloading] = useState(false);
+  const { alertMsg, modal } = useConfirmModal();
 
   // Tahap 8 — Custom Print (Opsi B): PDF di-generate di SERVER (Puppeteer
   // membuka ulang halaman ini persis apa adanya, lihat
@@ -37,7 +39,7 @@ export default function KwitansiClient({ tagihan, profil }: { tagihan: any, prof
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Gagal generate PDF", err);
-      alert("Gagal mengunduh PDF. Coba lagi beberapa saat.");
+      await alertMsg("Gagal mengunduh PDF. Coba lagi beberapa saat.");
     } finally {
       setDownloading(false);
     }
@@ -191,6 +193,7 @@ export default function KwitansiClient({ tagihan, profil }: { tagihan: any, prof
 
         </div>
       </div>
+      {modal}
     </div>
   );
 }
