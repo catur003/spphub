@@ -8,6 +8,17 @@ export const auth = betterAuth({
     provider: "mysql",
   }),
 
+  // Eksplisit baseURL + trustedOrigins dari env, jangan andalkan auto-detect
+  // Better Auth doang. Kalau app diakses lewat custom domain (mis.
+  // spp.zenin.my.id) tapi BETTER_AUTH_URL di env gak persis sama (typo,
+  // trailing slash, masih domain Railway bawaan, dst.), validasi sesi bisa
+  // gagal diam-diam pas request datang dari origin yang "gak dikenal" —
+  // termasuk request internal Puppeteer di fitur Custom Print PDF.
+  baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [process.env.BETTER_AUTH_URL, process.env.NEXT_PUBLIC_BETTER_AUTH_URL].filter(
+    (v): v is string => Boolean(v)
+  ),
+
   // Map nama tabel default Better Auth (user/session/account/verification)
   // ke nama tabel Indonesia yang udah didefinisiin di schema.prisma.
   user: {

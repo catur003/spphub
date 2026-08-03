@@ -82,6 +82,17 @@ export async function generatePdfFromPath(opts: GeneratePdfOptions): Promise<Buf
     if (cookieHeader) {
       await page.setExtraHTTPHeaders({ Cookie: cookieHeader });
     }
+    // Diagnostik — cuma NAMA cookie yang di-log, bukan value-nya (jangan
+    // pernah log session token mentah). Kalau nanti masih ke-redirect ke
+    // /login, cek log ini: kalau nama cookie sesi Better Auth (biasa
+    // "better-auth.session_token" / "__Secure-better-auth.session_token")
+    // gak ada di daftar, berarti masalahnya di forwarding cookie-nya
+    // (proxy/CDN di depan app strip header Cookie), bukan di baseURL/domain.
+    console.log(
+      "[generatePdfFromPath] origin:", origin,
+      "path:", path,
+      "cookie names forwarded:", cookieHeader ? cookieHeader.split(";").map((c) => c.trim().split("=")[0]) : "(kosong)"
+    );
 
     const response = await page.goto(`${origin}${path}`, {
       waitUntil: "networkidle0",
