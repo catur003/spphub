@@ -48,8 +48,14 @@ export async function POST(req: NextRequest) {
     const semuaKelas = await prisma.kelas.findMany();
     const petaKelas = new Map(semuaKelas.map((k) => [k.namaKelas.trim().toLowerCase(), k.id]));
 
-    const nisSudahAda = new Set((await prisma.siswa.findMany({ select: { nis: true } })).map((s) => s.nis));
+    const siswaAda = await prisma.siswa.findMany({ select: { nis: true, nisn: true } });
+    const nisSudahAda = new Set(siswaAda.map((s) => s.nis));
+    // NISN juga @unique di schema, tapi dulu import cuma ngecek NIS. Baris
+    // dengan NISN duplikat ditelan diam-diam oleh `skipDuplicates: true` dan
+    // TETAP dilaporkan "berhasil" ke user — data hilang tanpa jejak.
+    const nisnSudahAda = new Set(siswaAda.map((s) => s.nisn).filter((n): n is string => Boolean(n)));
     const nisDiFileIni = new Set<string>();
+    const nisnDiFileIni = new Set<string>();
 
     // Slot hasil per baris, diisi belakangan di pass mana pun baris itu
     // diproses — urutan tampil ke user tetap sesuai urutan baris di file.
@@ -81,6 +87,17 @@ export async function POST(req: NextRequest) {
         continue;
       }
       nisDiFileIni.add(data.nis);
+
+      if (data.nisn && (nisnSudahAda.has(data.nisn) || nisnDiFileIni.has(data.nisn))) {
+        hasil[i] = {
+          baris: nomorBaris,
+          status: "gagal",
+          alasan: `NISN "${data.nisn}" sudah ada di sistem (dilewati agar tidak duplikat)`,
+          nama: data.namaLengkap,
+        };
+        continue;
+      }
+      if (data.nisn) nisnDiFileIni.add(data.nisn);
 
       let kelasId: string | null = null;
       if (data.namaKelas) {
@@ -139,8 +156,32 @@ export async function POST(req: NextRequest) {
           })),
           skipDuplicates: true,
         });
+
+        // JANGAN asal tandai semua baris di chunk ini "berhasil".
+        // `skipDuplicates: true` bikin baris yang bentrok unique constraint
+        // (NIS/NISN) di-skip DIAM-DIAM oleh MySQL — dulu kode di sini tetap
+        // melaporkan semuanya berhasil, jadi user ngira data keimport padahal
+        // enggak. Baca balik NIS yang beneran masuk buat laporan yang jujur.
+        const nisChunk = chunk.map((s) => s.data.nis);
+        const tersimpan = new Set(
+          (
+            await prisma.siswa.findMany({
+              where: { nis: { in: nisChunk } },
+              select: { nis: true },
+            })
+          ).map((s) => s.nis)
+        );
+
         for (const s of chunk) {
-          hasil[s.idx] = { baris: s.nomorBaris, status: "berhasil", nama: s.data.namaLengkap };
+          hasil[s.idx] = tersimpan.has(s.data.nis)
+            ? { baris: s.nomorBaris, status: "berhasil", nama: s.data.namaLengkap }
+            : {
+                baris: s.nomorBaris,
+                status: "gagal",
+                alasan:
+                  "Dilewati database karena bentrok data unik (NIS/NISN sudah dipakai siswa lain)",
+                nama: s.data.namaLengkap,
+              };
         }
       } catch (e: any) {
         // createMany gak ngasih hasil per-baris kalau gagal — lebih jujur

@@ -264,10 +264,16 @@ export default function TagihanPage() {
     )
       return;
     setVerifyingId(id);
-    const res = await fetch(`/api/tagihan/${id}`, {
-      method: "PATCH",
+    // PENTING: harus lewat /verifikasi, BUKAN PATCH status ke /api/tagihan/[id].
+    // PATCH cuma ganti kolom status tanpa bikin row Pembayaran, jadi
+    // pembayaran tunai gak pernah muncul di grafik tren dashboard dan
+    // halaman kwitansi jadi kosong. Endpoint /verifikasi bikin Pembayaran +
+    // update status tagihan dalam satu transaksi (pola yang sama dipakai
+    // Tagihan Lainnya).
+    const res = await fetch(`/api/tagihan/${id}/verifikasi`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "lunas" }),
+      body: JSON.stringify({ metode: "tunai" }),
     });
     setVerifyingId(null);
     if (!res.ok) {

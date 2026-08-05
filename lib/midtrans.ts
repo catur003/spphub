@@ -1,6 +1,6 @@
 import midtransClient from "midtrans-client";
 import { prisma } from "./prisma";
-import { decrypt } from "./crypto";
+import { decrypt, terenkripsi } from "./crypto";
 
 /**
  * Ambil baris PengaturanPembayaran (cuma 1 baris, single-tenant).
@@ -23,22 +23,37 @@ export function getActiveKeys(pengaturan: {
   productionServerKey: string | null;
 }) {
   const isProd = pengaturan.environment === "production";
+  const serverKeyTersimpan = isProd ? pengaturan.productionServerKey : pengaturan.sandboxServerKey;
+  const serverKey = decrypt(serverKeyTersimpan);
+
+  // Bedakan "key memang belum diisi" vs "key ADA di DB tapi gagal didekrip"
+  // (ENCRYPTION_KEY hilang/berubah). Dua-duanya bikin serverKey null, tapi
+  // pesan ke admin harus beda — yang kedua bukan soal belum setup, tapi env
+  // var yang kececer waktu redeploy.
+  const serverKeyRusak = terenkripsi(serverKeyTersimpan) && serverKey === null;
+
   return {
     clientKey: isProd ? pengaturan.productionClientKey : pengaturan.sandboxClientKey,
-    serverKey: decrypt(isProd ? pengaturan.productionServerKey : pengaturan.sandboxServerKey),
+    serverKey,
+    serverKeyRusak,
     isProduction: isProd,
   };
+}
+
+/** Pesan error yang jelas buat admin, dipakai Snap & CoreApi client. */
+function pesanKeyBermasalah(serverKeyRusak: boolean) {
+  return serverKeyRusak
+    ? "Server Key Midtrans gagal didekrip — ENCRYPTION_KEY kemungkinan berubah/hilang sejak key ini disimpan. Isi ulang ENCRYPTION_KEY yang benar di environment, atau simpan ulang Server Key di halaman Settings."
+    : "Payment Settings belum diisi lengkap. Owner perlu isi Client Key & Server Key di halaman Settings.";
 }
 
 /** Snap client Midtrans, dibangun dari key aktif di DB. */
 export async function getSnapClient() {
   const pengaturan = await getPengaturanPembayaran();
-  const { clientKey, serverKey, isProduction } = getActiveKeys(pengaturan);
+  const { clientKey, serverKey, serverKeyRusak, isProduction } = getActiveKeys(pengaturan);
 
   if (!serverKey || !clientKey) {
-    throw new Error(
-      "Payment Settings belum diisi lengkap. Owner perlu isi Client Key & Server Key di halaman Settings."
-    );
+    throw new Error(pesanKeyBermasalah(serverKeyRusak));
   }
 
   const snap = new midtransClient.Snap({
@@ -61,12 +76,10 @@ export const SESI_BAYAR_EXPIRY_JAM = 24;
  * (misal user klik "Ganti Metode Pembayaran") sebelum bikin transaksi baru. */
 export async function getCoreApiClient() {
   const pengaturan = await getPengaturanPembayaran();
-  const { clientKey, serverKey, isProduction } = getActiveKeys(pengaturan);
+  const { clientKey, serverKey, serverKeyRusak, isProduction } = getActiveKeys(pengaturan);
 
   if (!serverKey || !clientKey) {
-    throw new Error(
-      "Payment Settings belum diisi lengkap. Owner perlu isi Client Key & Server Key di halaman Settings."
-    );
+    throw new Error(pesanKeyBermasalah(serverKeyRusak));
   }
 
   const coreApi = new midtransClient.CoreApi({
@@ -101,8 +114,15 @@ export async function verifySignature(body: {
   signature_key: string;
 }) {
   const pengaturan = await getPengaturanPembayaran();
-  const { serverKey } = getActiveKeys(pengaturan);
-  if (!serverKey) return false;
+  const { serverKey, serverKeyRusak } = getActiveKeys(pengaturan);
+  if (!serverKey) {
+    // Jangan gagal senyap: tanpa log di sini, gejalanya cuma "semua webhook
+    // Midtrans balas 403 dan tagihan gak pernah lunas" tanpa petunjuk apa pun.
+    console.error(
+      "[Midtrans] Webhook ditolak karena Server Key tidak tersedia. " + pesanKeyBermasalah(serverKeyRusak)
+    );
+    return false;
+  }
 
   const crypto = await import("crypto");
   const expected = crypto

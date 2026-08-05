@@ -4,8 +4,20 @@ import { NextResponse } from "next/server";
 
 export type Peran = "owner" | "petugas" | "siswa";
 
+/** Sesi yang sudah DIPASTIKAN ada (bukan null). */
+export type SesiTervalidasi = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+
+/**
+ * PENTING: branch sukses pakai `SesiTervalidasi` (NonNullable), BUKAN tipe
+ * mentah dari `auth.api.getSession` yang masih mengandung `null`. Kalau pakai
+ * tipe mentah, TypeScript strict tetap menganggap `session` bisa null setelah
+ * `if (error) return error;` — akibatnya setiap pemakaian `session.user.x`
+ * (mis. app/api/pendapatan, /pengeluaran, /users/[id]) gagal compile dengan
+ * "'session' is possibly 'null'". Narrowing lewat discriminant `error` cuma
+ * menghapus branch gagal, bukan `null` di dalam branch sukses.
+ */
 type HasilCekPeran =
-  | { session: Awaited<ReturnType<typeof auth.api.getSession>>; error: null }
+  | { session: SesiTervalidasi; error: null }
   | { session: null; error: NextResponse };
 
 /**

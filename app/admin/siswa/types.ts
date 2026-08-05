@@ -185,7 +185,17 @@ export function kompresGambar(file: File, maxPx = 400): Promise<Blob> {
 }
 
 /** Upload file foto (sudah dikompres) ke endpoint /api/upload, kembalikan URL. */
+export const MIME_FOTO_DIIZINKAN = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
 export async function uploadFotoFile(file: File): Promise<string> {
+  // Dicegat di client duluan: kompresGambar() pakai <img>.onload yang GAK
+  // PERNAH fire buat file non-gambar, jadi promise-nya menggantung selamanya
+  // dan spinner "Mengunggah..." muter tanpa ujung. Server juga nolak, tapi
+  // request-nya gak pernah sampai ke sana.
+  if (!MIME_FOTO_DIIZINKAN.includes(file.type)) {
+    throw new Error("Format foto harus JPG, PNG, WEBP, atau GIF.");
+  }
+
   const blobKompres = await kompresGambar(file);
   const formData = new FormData();
   formData.append("file", blobKompres, "foto_siswa.jpg");

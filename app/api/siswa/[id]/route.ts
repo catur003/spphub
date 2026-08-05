@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    const { error } = await requireApiRole(["owner", "petugas"]);
     if (error) return error;
 
     const { id } = await params;
@@ -45,18 +45,34 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    const { error } = await requireApiRole(["owner", "petugas"]);
     if (error) return error;
 
     const { id } = await params;
     const body = await req.json();
 
-    if (body.nis) {
+    const nis = body.nis ? String(body.nis).trim() : undefined;
+    // Normalisasi ke null, bukan "" — kolom nisn @unique, dan MySQL cuma
+    // ngizinin duplikat kalau nilainya NULL.
+    const nisn = body.nisn ? String(body.nisn).trim() : null;
+
+    if (nis) {
       const nisDipakai = await prisma.siswa.findFirst({
-        where: { nis: body.nis, NOT: { id } },
+        where: { nis, NOT: { id } },
       });
       if (nisDipakai) {
         return NextResponse.json({ error: "NIS sudah dipakai siswa lain" }, { status: 400 });
+      }
+    }
+
+    // NISN juga @unique tapi dulu gak divalidasi — duplikatnya keluar sebagai
+    // 500 "Unique constraint failed" yang gak bisa dibaca admin.
+    if (nisn) {
+      const nisnDipakai = await prisma.siswa.findFirst({
+        where: { nisn, NOT: { id } },
+      });
+      if (nisnDipakai) {
+        return NextResponse.json({ error: "NISN sudah dipakai siswa lain" }, { status: 400 });
       }
     }
 
@@ -72,7 +88,13 @@ export async function PUT(
 
     if (!siswaSekarang.akunId) {
       if (body.buatAkun && body.email && body.password) {
-        const emailDipakai = await prisma.akun.findUnique({ where: { email: body.email } });
+        // Normalisasi SEKALI lalu dipakai buat cek duplikat DAN buat nyimpen.
+        // Dulu cek pakai body.email mentah tapi nyimpen versi lowercase.
+        const emailBersih = String(body.email).trim().toLowerCase();
+        if (String(body.password).length < 8) {
+          return NextResponse.json({ error: "Password minimal 8 karakter" }, { status: 400 });
+        }
+        const emailDipakai = await prisma.akun.findUnique({ where: { email: emailBersih } });
         if (emailDipakai) {
           return NextResponse.json({ error: "Email sudah dipakai akun lain" }, { status: 400 });
         }
@@ -81,8 +103,8 @@ export async function PUT(
           const newAkun = await prisma.$transaction(async (tx) => {
             const akun = await tx.akun.create({
               data: {
-                name: body.namaLengkap || body.nis,
-                email: String(body.email).trim().toLowerCase(),
+                name: body.namaLengkap || nis,
+                email: emailBersih,
                 role: "siswa",
               },
             });
@@ -112,15 +134,16 @@ export async function PUT(
       const akunId = siswaSekarang.akunId;
 
       if (body.gantiEmail && body.emailBaru) {
+        const emailBaruBersih = String(body.emailBaru).trim().toLowerCase();
         const emailDipakai = await prisma.akun.findFirst({
-          where: { email: body.emailBaru, NOT: { id: akunId } },
+          where: { email: emailBaruBersih, NOT: { id: akunId } },
         });
         if (emailDipakai) {
           return NextResponse.json({ error: "Email baru sudah dipakai akun lain" }, { status: 400 });
         }
         await prisma.akun.update({
           where: { id: akunId },
-          data: { email: body.emailBaru },
+          data: { email: emailBaruBersih },
         });
       }
 
@@ -147,8 +170,8 @@ export async function PUT(
       where: { id },
       data: {
         kelasId: body.kelasId || null,
-        nis: body.nis,
-        nisn: body.nisn || null,
+        nis,
+        nisn,
         namaLengkap: body.namaLengkap,
         jenisKelamin: body.jenisKelamin,
         tanggalLahir: body.tanggalLahir ? new Date(body.tanggalLahir) : null,

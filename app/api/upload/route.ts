@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiRole } from "@/lib/api-auth";
 import crypto from "crypto";
 
+// Whitelist tipe gambar. Dulu route ini nerima Blob APA PUN tanpa dicek —
+// artinya file non-gambar (bahkan .html/.svg berisi script) bisa diunggah dan
+// URL-nya nyangkut di kolom fotoUrl.
+const MIME_DIIZINKAN = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+/** Batas atas kalau upload beneran masuk Cloudinary. */
+const MAKS_BYTE = 2 * 1024 * 1024; // 2 MB
+
+/** Batas jauh lebih ketat buat fallback base64, karena hasilnya masuk ke
+ *  kolom `fotoUrl` (@db.LongText) di DB, bukan ke CDN — dan kolom itu ikut
+ *  kekirim di SETIAP GET /api/siswa. Base64 juga nambah ~33% dari ukuran asli. */
+const MAKS_BYTE_BASE64 = 400 * 1024; // 400 KB
+
 export async function POST(req: NextRequest) {
   try {
-    const { session, error } = await requireApiRole(["owner", "petugas"]);
+    const { error } = await requireApiRole(["owner", "petugas"]);
     if (error) return error;
 
     const formData = await req.formData();
@@ -12,6 +25,21 @@ export async function POST(req: NextRequest) {
 
     if (!file || !(file instanceof Blob)) {
       return NextResponse.json({ error: "File gambar tidak ditemukan" }, { status: 400 });
+    }
+
+    const mimeType = file.type || "";
+    if (!MIME_DIIZINKAN.includes(mimeType)) {
+      return NextResponse.json(
+        { error: "Format file harus JPG, PNG, WEBP, atau GIF." },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAKS_BYTE) {
+      return NextResponse.json(
+        { error: `Ukuran foto maksimal ${Math.round(MAKS_BYTE / 1024 / 1024)} MB.` },
+        { status: 400 }
+      );
     }
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -25,7 +53,7 @@ export async function POST(req: NextRequest) {
     // ——— OPSI 1: Jika Cloudinary ENV Terpasang ———
     if (cloudName && (uploadPreset || (apiKey && apiSecret))) {
       const cloudinaryForm = new FormData();
-      const blob = new Blob([buffer], { type: file.type || "image/jpeg" });
+      const blob = new Blob([buffer], { type: mimeType });
       cloudinaryForm.append("file", blob, (file as File).name || "photo.jpg");
 
       if (uploadPreset) {
@@ -55,8 +83,20 @@ export async function POST(req: NextRequest) {
     }
 
     // ——— OPSI 2: Fallback ke Base64 (jika Cloudinary ENV belum diisi) ———
+    if (file.size > MAKS_BYTE_BASE64) {
+      return NextResponse.json(
+        {
+          error: `Cloudinary belum dikonfigurasi, jadi foto disimpan langsung ke database dan ukurannya dibatasi ${Math.round(
+            MAKS_BYTE_BASE64 / 1024
+          )} KB. Kompres fotonya dulu, atau isi ENV Cloudinary supaya bisa upload sampai ${Math.round(
+            MAKS_BYTE / 1024 / 1024
+          )} MB.`,
+        },
+        { status: 400 }
+      );
+    }
+
     const base64 = buffer.toString("base64");
-    const mimeType = file.type || "image/jpeg";
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
     return NextResponse.json({

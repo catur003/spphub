@@ -83,6 +83,25 @@ export async function PATCH(
       );
     }
 
+    // PENTING: status "lunas" TIDAK boleh diset lewat endpoint ini. Dulu
+    // tombol "Tandai LUNAS" di admin nembak ke sini, jadi tagihan berubah
+    // jadi lunas TANPA row Pembayaran sama sekali — akibatnya pembayaran
+    // tunai gak pernah kelihatan di grafik tren dashboard (yang baca tabel
+    // Pembayaran status success) dan halaman /kwitansi/[id] kosong karena
+    // ikut nyari row Pembayaran. Satu-satunya jalan sah buat melunaskan
+    // manual adalah POST /api/tagihan/[id]/verifikasi, yang bikin
+    // Pembayaran + update status dalam satu transaksi. Pelunasan otomatis
+    // dari Midtrans juga lewat jalurnya sendiri (webhook / cek-status).
+    if (body.status === "lunas") {
+      return NextResponse.json(
+        {
+          error:
+            "Status 'lunas' tidak bisa diset lewat endpoint ini. Gunakan POST /api/tagihan/[id]/verifikasi supaya riwayat pembayarannya ikut tercatat.",
+        },
+        { status: 400 }
+      );
+    }
+
     const tagihan = await prisma.tagihanSpp.update({
       where: { id },
       data: { status: body.status },

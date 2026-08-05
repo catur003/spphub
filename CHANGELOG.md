@@ -1,5 +1,190 @@
 # Changelog — SPP Hub
 
+## [Bugfix Sedang] Kegagalan dekrip senyap, akun yatim, NISN duplikat ketelan, upload tanpa validasi
+
+⚠️ Belum dicompile di sesi ini (sandbox tanpa network/`node_modules`).
+Diverifikasi lewat pembacaan kode + cek brace balance. **`npm run build` dulu**
+sebelum deploy.
+
+### 4. `decrypt()` gagal senyap → semua webhook Midtrans ditolak tanpa jejak
+
+- **Bug**: `lib/crypto.ts` — kalau gagal dekrip (ENCRYPTION_KEY hilang/berubah,
+  mis. kececer waktu redeploy Railway), `decrypt()` mengembalikan ciphertext
+  mentah `"enc:..."` apa adanya. Server key Midtrans jadi string sampah, dan:
+  - `verifySignature()` SELALU false → **semua webhook Midtrans dibalas 403**
+    → tagihan yang sudah dibayar tidak pernah jadi lunas, tanpa satu pun log
+    atau pesan error yang menjelaskan kenapa.
+  - Snap/CoreApi client dibangun dengan key sampah → 401 dari Midtrans, tapi
+    pesan yang muncul ke admin tetap "Payment Settings belum diisi lengkap",
+    yang menyesatkan karena key-nya sebenarnya ADA di DB.
+- **Fix**:
+  - `lib/crypto.ts` — `decrypt()` sekarang balikin `null` + `console.error`
+    yang eksplisit kalau gagal (termasuk kalau ada data terenkripsi tapi
+    ENCRYPTION_KEY belum diset sama sekali). Ditambah helper `terenkripsi()`
+    biar pemanggil bisa bedain "belum diisi" vs "gagal didekrip".
+  - `lib/midtrans.ts` — `getActiveKeys()` balikin flag `serverKeyRusak`, dan
+    `getSnapClient()` / `getCoreApiClient()` / `verifySignature()` pakai pesan
+    yang beda buat dua kasus itu. `verifySignature()` juga nge-log alasan
+    penolakan, jadi gejala "webhook 403 terus" ada jejaknya di log.
+  - Route yang decrypt langsung (`/api/tagihan/[id]/cek-status`,
+    `/api/tagihan-lain/[id]/cek-status`, `/api/settings/payment`) sudah handle
+    `null` dengan benar, tidak perlu diubah.
+
+### 5. Akun + kredensial yatim kalau `siswa.create` gagal
+
+- **Bug**: `POST /api/siswa` bikin `Akun` + `Kredensial` di dalam satu
+  `$transaction`, lalu manggil `prisma.siswa.create()` **di luar** transaksi
+  itu. Kalau siswa.create gagal (kelasId FK invalid, NIS/NISN bentrok,
+  tanggalLahir invalid), akun & kredensialnya nyangkut permanen — emailnya
+  keburu "kepakai" padahal gak ada siswa yang megang, dan admin gak bisa pakai
+  email itu lagi tanpa masuk ke DB manual.
+- **Fix**: akun + kredensial + siswa sekarang dibungkus dalam SATU
+  `prisma.$transaction`. Kalau ada yang gagal, semuanya di-rollback.
+  Ditambah penanganan `P2002` yang menerjemahkan unique constraint jadi pesan
+  Indonesia yang bisa dibaca ("NIS/NISN/Email sudah dipakai"), bukan error 500
+  "Unique constraint failed" mentah.
+
+### 6. NISN duplikat = data hilang diam-diam waktu import
+
+- **Bug**: kolom `nisn` itu `@unique` di schema, tapi `/api/siswa/import` cuma
+  ngecek duplikat NIS. Baris dengan NISN duplikat ditelan diam-diam oleh
+  `createMany({ skipDuplicates: true })`, **tapi kode tetap menandai seluruh
+  chunk sebagai "berhasil"** — user diberi tahu 500 siswa keimport padahal
+  sebagiannya gak pernah masuk DB.
+- **Fix**:
+  - Pass 1 sekarang juga ngecek duplikat NISN (terhadap DB maupun sesama baris
+    di file yang sama), dengan pesan gagal per-baris yang jelas.
+  - Sesudah tiap `createMany`, NIS yang beneran tersimpan dibaca balik dari DB
+    (1 query per chunk) dan status per baris ditentukan dari situ — jadi
+    laporan "berhasil/gagal" ke user selalu jujur, apa pun yang di-skip MySQL.
+  - `POST /api/siswa` & `PUT /api/siswa/[id]` juga ikut validasi NISN unik
+    sebelum insert/update, plus normalisasi NISN kosong jadi `null` (bukan
+    `""`) — MySQL cuma ngizinin duplikat kalau nilainya NULL.
+
+### 7. `/api/upload` nerima file apa pun, tanpa batas ukuran
+
+- **Bug**: route ini nerima Blob apa pun tanpa cek MIME atau ukuran. Kalau ENV
+  Cloudinary belum diisi, fallback-nya nyimpen **data URL base64 langsung ke
+  kolom `fotoUrl` (`@db.LongText`)** — upload 5 MB jadi ~6,7 MB string di DB,
+  dan kolom itu ikut kekirim di SETIAP `GET /api/siswa`.
+- **Fix**:
+  - Whitelist MIME (`image/jpeg|png|webp|gif`) + batas 2 MB untuk jalur
+    Cloudinary, dan batas jauh lebih ketat (400 KB) khusus untuk fallback
+    base64, dengan pesan yang ngarahin admin buat ngisi ENV Cloudinary.
+  - `app/admin/siswa/types.ts` — `uploadFotoFile()` nolak file non-gambar di
+    client duluan. Sebelumnya file non-gambar bikin `kompresGambar()`
+    menggantung selamanya (`<img>.onload` gak pernah fire buat file yang bukan
+    gambar), jadi spinner "Mengunggah..." muter tanpa ujung dan request-nya
+    gak pernah nyampe server.
+
+### 8. Email tidak dinormalisasi konsisten
+
+- **Bug**: di `PUT /api/siswa/[id]`, jalur ganti email ngecek duplikat pakai
+  `body.emailBaru` mentah dan menyimpannya mentah juga, sementara jalur bikin
+  akun baru menyimpan versi `.trim().toLowerCase()`. Hasilnya data email
+  campur case dan pengecekan duplikat bisa meleset.
+- **Fix**: email dinormalisasi SEKALI di awal (`trim().toLowerCase()`) lalu
+  nilai yang sama itu dipakai baik untuk cek duplikat maupun untuk disimpan —
+  di `POST /api/siswa`, jalur "buat akun" pada PUT, dan jalur "ganti email"
+  pada PUT. Validasi password minimal 8 karakter juga ditambahkan ke
+  `POST /api/siswa` (sebelumnya cuma ada di PUT).
+
+### Catatan test
+
+1. Hapus/ubah `ENCRYPTION_KEY` sementara → buka Settings Payment: field Server
+   Key harus kosong (bukan berisi `enc:...`), dan log server harus muncul
+   peringatan dekrip. Kembalikan key → semuanya normal lagi.
+2. Tambah siswa dengan `kelasId` ngawur + centang "buat akun" → cek tabel
+   `akun`: tidak boleh ada akun baru yang nyangkut.
+3. Import file berisi dua baris dengan NISN sama → baris kedua harus muncul di
+   daftar gagal, bukan dihitung berhasil.
+4. Upload file .pdf / .txt sebagai foto → ditolak di client dengan pesan jelas,
+   spinner tidak menggantung.
+5. Tambah siswa dengan NISN yang sudah dipakai → pesan "NISN sudah dipakai
+   siswa lain", bukan 500.
+
+---
+
+## [Bugfix Kritis] Pelunasan manual tanpa row Pembayaran, TS strict null di requireApiRole, kop surat invoice kosong buat siswa
+
+⚠️ Belum pernah dicompile di sesi ini (sandbox tanpa network/`node_modules`).
+Diverifikasi lewat pembacaan kode + cek brace balance. **Jalanin `npm install`
+lalu `npm run build` duluan** sebelum deploy.
+
+### 1. Tombol "Tandai LUNAS" SPP gak pernah bikin row `Pembayaran`
+
+- **Bug**: `handleVerifikasi()` di `app/admin/tagihan/page.tsx` nembak
+  `PATCH /api/tagihan/[id]` `{ status: "lunas" }` — cuma ganti kolom status
+  `TagihanSpp`, gak bikin row `Pembayaran` sama sekali. Endpoint
+  `POST /api/tagihan/[id]/verifikasi` yang justru bikin `Pembayaran` +
+  update status dalam satu transaksi ternyata **dead code, gak dipanggil dari
+  mana-mana**. Sisi Tagihan Lainnya (`app/admin/tagihan-lainnya/page.tsx`)
+  udah bener pakai `/verifikasi` sejak awal — cuma sisi SPP yang nyeleweng.
+  Akibatnya semua pembayaran tunai/manual:
+  - **Hilang dari grafik tren 6 bulan di dashboard** — `app/api/dashboard`
+    baca `prisma.pembayaran` `status: "success"`, jadi cuma transaksi
+    Midtrans yang kehitung.
+  - **Bikin halaman `/kwitansi/[id]` kosong** — halaman itu include
+    `pembayaran: { where: { status: "success" } }`, yang untuk tagihan lunas
+    tunai selalu array kosong.
+  - Bikin sumber kebenaran "siswa ini pernah bayar apa belum" jadi dua
+    (kolom status vs tabel Pembayaran) — ini juga akar masalah kenapa
+    proteksi hapus siswa kemarin harus ditulis ulang.
+- **Fix**:
+  - `app/admin/tagihan/page.tsx` — `handleVerifikasi()` sekarang
+    `POST /api/tagihan/${id}/verifikasi` dengan body `{ metode: "tunai" }`.
+  - `app/api/tagihan/[id]/route.ts` (PATCH) — **nolak** `status: "lunas"`
+    dengan 400 + pesan yang ngarahin ke `/verifikasi`, biar gak ada lagi
+    jalur belakang yang melunaskan tagihan tanpa jejak pembayaran. Status
+    lain (`belum_bayar`, `terlambat`, `menunggu_verifikasi`) tetap boleh
+    lewat PATCH seperti biasa.
+  - `app/api/tagihan/[id]/verifikasi/route.ts` — dirapikan: `req.json()`
+    dikasih `.catch()` (request tanpa body gak lagi jadi 500), `metode`
+    divalidasi terhadap whitelist (`tunai` / `transfer_bank`, default
+    `tunai`), tagihan bernominal Rp 0 ditolak biar laporan keuangan gak
+    nyatet pemasukan Rp 0, plus error handling + logging yang konsisten
+    sama route lain.
+
+### 2. `requireApiRole()` bikin `next build` gagal (TS strict)
+
+- **Bug**: branch sukses `HasilCekPeran` di `lib/api-auth.ts` diketik
+  `Awaited<ReturnType<typeof auth.api.getSession>>` — tipe itu **masih
+  mengandung `null`**. Narrowing lewat `if (error) return error;` cuma
+  menghapus branch gagal, bukan `null` di dalam branch sukses. Jadi setiap
+  pemakaian `session.user.*` sesudahnya kena
+  `'session' is possibly 'null'` di `strict: true`:
+  `app/api/pendapatan/route.ts:55`, `app/api/pengeluaran/route.ts:54`,
+  `app/api/users/[id]/route.ts:34` & `:95`.
+- **Fix**: tambah type alias `SesiTervalidasi =
+  NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>` dan pakai itu
+  di branch sukses. Satu perubahan tipe, keempat call-site di atas ikut
+  beres tanpa disentuh.
+
+### 3. Halaman invoice nembak endpoint admin-only → kop surat kosong buat siswa
+
+- **Bug**: `app/invoice/[id]/page.tsx` & `app/invoice-lain/[id]/page.tsx`
+  fetch `/api/settings/sekolah`, padahal GET-nya dijaga
+  `requireApiRole(["owner","petugas"])`. Dua halaman itu boleh dibuka siswa
+  (otorisasinya per-tagihan, udah bener), jadi siswa selalu dapat 401 di
+  situ dan **nama/alamat/WA bendahara di kop surat kosong** — kebawa juga ke
+  PDF karena Puppeteer forward cookie siswa. `app/siswa/page.tsx` udah pakai
+  endpoint publik, cuma dua file ini yang ketinggalan.
+- **Fix**: dua-duanya diarahkan ke `/api/settings/sekolah-public`, yang
+  memang dibikin buat ini dan cuma ngeluarin `nama`, `alamat`, `logoUrl`,
+  `noHpBendahara` (field sensitif kayak `fonnteToken` gak ikut kebawa).
+
+### Catatan test
+
+1. Tandai satu tagihan SPP lunas lewat tombol admin → cek tabel `pembayaran`
+   ada row baru `metode: "tunai"`, `status: success`, `paidAt` keisi.
+2. Buka `/kwitansi/[id]` tagihan tsb → data pembayaran harus muncul.
+3. Cek dashboard: nominal itu harus ikut nongol di grafik tren bulan ini.
+4. Login sebagai siswa → buka invoice-nya → kop surat harus keisi, dan
+   tombol Download PDF hasilnya juga.
+5. `npm run build` harus lolos tanpa error `possibly 'null'`.
+
+---
+
 Catatan perubahan dari sesi audit + bugfix + migrasi Tailwind. Urutan dari
 yang paling baru.
 

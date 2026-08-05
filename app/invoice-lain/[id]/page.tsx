@@ -40,7 +40,11 @@ export default function InvoiceLainPage() {
     if (!id) return;
     Promise.all([
       fetch(`/api/tagihan-lain/${id}`).then((r) => r.ok ? r.json() : null),
-      fetch("/api/settings/sekolah").then((r) => r.ok ? r.json() : null),
+      // Halaman ini dibuka juga oleh SISWA, sementara /api/settings/sekolah
+      // dibatasi owner+petugas — dulu siswa selalu dapat 401 di sini, jadi
+      // kop surat (nama & alamat sekolah) kosong, termasuk di PDF hasil
+      // Puppeteer yang forward cookie siswa. Pakai endpoint publik.
+      fetch("/api/settings/sekolah-public").then((r) => (r.ok ? r.json() : null)),
     ]).then(([tagihanData, sekolahData]) => {
       if (tagihanData) setTagihan(tagihanData);
       if (sekolahData) setSekolah(sekolahData);
