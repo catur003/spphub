@@ -67,14 +67,6 @@ export async function POST(
     await batalkanTransaksiMidtrans(pendingTerakhir.orderId);
   }
 
-  // Tandai semua pending lama punya tagihan ini sebagai "expired" sebelum
-  // bikin yang baru — siswa suka klik berkali-kali, daripada numpuk row
-  // pending yatim.
-  await prisma.pembayaran.updateMany({
-    where: { tagihanSppId: tagihan.id, status: "pending" },
-    data: { status: "expired" },
-  });
-
   // Buat Order ID unik (TagihanID + Timestamp)
   const orderId = `SPP-${tagihan.id}-${Date.now()}`;
 
@@ -109,17 +101,30 @@ export async function POST(
 
     // Simpan record pembayaran pending ke DB, token disimpan di rawResponse
     // biar bisa di-reuse kalau diklik lagi sebelum expired.
-    await prisma.pembayaran.create({
-      data: {
-        tagihanSppId: tagihan.id,
-        siswaId: tagihan.siswaId,
-        orderId: orderId,
-        jumlah: tagihan.nominal,
-        metode: "midtrans",
-        status: "pending",
-        rawResponse: { token: transaction.token, redirect_url: transaction.redirect_url, clientKey, isProd },
-      },
-    });
+    // Baru SESUDAH Midtrans mengonfirmasi transaksinya, pending lama
+    // ditandai "expired" — dan bareng pembuatan record baru dalam satu
+    // transaksi DB. Dulu updateMany ini jalan DULUAN, sebelum
+    // snap.createTransaction(): kalau Midtrans error (timeout, key salah,
+    // rate limit), sesi bayar lama yang sebenarnya MASIH VALID sudah terlanjur
+    // dimatikan di DB, jadi siswa kehilangan sesi bayarnya cuma-cuma dan DB
+    // jadi gak sinkron sama Midtrans.
+    await prisma.$transaction([
+      prisma.pembayaran.updateMany({
+        where: { tagihanSppId: tagihan.id, status: "pending" },
+        data: { status: "expired" },
+      }),
+      prisma.pembayaran.create({
+        data: {
+          tagihanSppId: tagihan.id,
+          siswaId: tagihan.siswaId,
+          orderId: orderId,
+          jumlah: tagihan.nominal,
+          metode: "midtrans",
+          status: "pending",
+          rawResponse: { token: transaction.token, redirect_url: transaction.redirect_url, clientKey, isProd },
+        },
+      }),
+    ]);
 
     return NextResponse.json({ token: transaction.token, clientKey, isProd, reused: false });
   } catch (err: any) {

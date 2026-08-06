@@ -70,6 +70,11 @@ export default function LaporanPage() {
 
   const [ringkasan, setRingkasan] = useState<Ringkasan | null>(null);
   const [daftar, setDaftar] = useState<Tagihan[]>([]);
+  // Server membatasi jumlah baris detail yang dikirim (angka ringkasan tetap
+  // dihitung dari seluruh data). Kalau kepotong, user harus dikasih tau —
+  // jangan sampai dia ngira tabel/CSV-nya sudah lengkap padahal enggak.
+  const [terpotong, setTerpotong] = useState(false);
+  const [maksBaris, setMaksBaris] = useState(0);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -101,6 +106,8 @@ export default function LaporanPage() {
         const data = await res.json();
         setRingkasan(data.ringkasan);
         setDaftar(data.daftar);
+        setTerpotong(Boolean(data.terpotong));
+        setMaksBaris(Number(data.maksBaris) || 0);
       }
     } catch (err: any) {
       if (err.name !== "AbortError") console.error("[muatLaporan] error:", err);
@@ -130,6 +137,12 @@ export default function LaporanPage() {
   // SEMUA baris yang cocok sama filter, gak kepotong cuma halaman yang lagi
   // dilihat di layar.
   const totalPages = useMemo(() => Math.max(1, Math.ceil(daftar.length / pageSize)), [daftar.length, pageSize]);
+
+  // Kalau filter dipersempit dan jumlah halaman menyusut, currentPage bisa
+  // nyangkut di angka yang udah gak ada — tabelnya kosong padahal datanya ada.
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
   const pagedDaftar = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return daftar.slice(start, start + pageSize);
@@ -268,6 +281,15 @@ export default function LaporanPage() {
           </div>
         </div>
       </div>
+
+      {terpotong && (
+        <div className="mb-4 rounded-control border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 print:hidden">
+          Tabel detail di bawah dibatasi <strong>{maksBaris.toLocaleString("id-ID")}</strong> baris pertama, jadi
+          daftar dan Export CSV-nya <strong>belum lengkap</strong>. Angka pada kartu ringkasan tetap dihitung dari
+          seluruh data yang cocok dengan filter. Persempit filternya (pilih kelas, rentang tanggal, atau status)
+          untuk melihat detail selengkapnya.
+        </div>
+      )}
 
       {/* Ringkasan Laporan */}
       {ringkasan && (

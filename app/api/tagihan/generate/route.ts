@@ -41,8 +41,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Auto-sync tagihan belum bayar sebelumnya yang masih Rp 0 agar konsisten & sinkron
-    await syncNominalKosong(defaultNominal);
+    // Auto-sync tagihan belum bayar sebelumnya yang masih Rp 0 agar konsisten & sinkron.
+    //
+    // Fallback-nya HARUS nominal default sekolah, bukan `defaultNominal`
+    // (yang bisa berisi `nominal` hasil ketikan admin khusus untuk generate
+    // kali ini). Dulu nilai ad-hoc itu ikut kepakai di sini, jadi generate
+    // bulan Juni dengan nominal sekali-pakai Rp 500.000 diam-diam nulis ulang
+    // tagihan Rp 0 milik Januari, Februari, dst jadi Rp 500.000 juga — efek
+    // samping lintas periode yang gak kelihatan sama sekali di UI.
+    await syncNominalKosong(profil?.nominalSppDefault || 0);
 
     // 3. Cek tagihan yang sudah pernah dibuat untuk periode bulan & tahun ini (Melindungi status Lunas dll)
     const existing = await prisma.tagihanSpp.findMany({

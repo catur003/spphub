@@ -41,7 +41,24 @@ export async function POST(req: NextRequest) {
   // yang udah stabil.
   const isTagihanLain = orderId.startsWith("LAIN-");
 
-  let statusBaru: "pending" | "success" | "failed" | "expired" = "pending";
+  // Status yang artinya duit BALIK ke siswa setelah transaksi sempat sukses.
+  // Tabel Pembayaran cuma punya pending/success/failed/expired, jadi gak ada
+  // state yang pas buat ini — dan pengecekan idempoten di bawah bakal
+  // nge-skip-nya diam-diam karena statusnya udah "success". Minimal harus
+  // ke-log dengan jelas biar bendahara tau ada tagihan yang statusnya "lunas"
+  // padahal uangnya udah dikembalikan.
+  const STATUS_PERLU_TINJAUAN = ["refund", "partial_refund", "chargeback", "partial_chargeback"];
+
+  if (STATUS_PERLU_TINJAUAN.includes(transactionStatus)) {
+    console.error(
+      `[Midtrans Webhook] PERLU TINJAUAN MANUAL — order ${orderId} berstatus "${transactionStatus}". ` +
+        `Tagihan terkait kemungkinan masih tertandai LUNAS padahal dananya dikembalikan. ` +
+        `Cek dashboard Midtrans dan sesuaikan status tagihannya manual.`
+    );
+    return NextResponse.json({ received: true, note: "status perlu tinjauan manual" });
+  }
+
+  let statusBaru: "pending" | "success" | "failed" | "expired";
 
   if (STATUS_SUKSES.includes(transactionStatus)) {
     // Untuk kartu kredit, capture cuma sukses kalau fraud_status accept
@@ -56,6 +73,15 @@ export async function POST(req: NextRequest) {
     statusBaru = "expired";
   } else if (transactionStatus === "pending") {
     statusBaru = "pending";
+  } else {
+    // JANGAN default ke "pending". Dulu status yang gak dikenal (mis.
+    // "authorize", atau status baru yang ditambah Midtrans di kemudian hari)
+    // diam-diam nurunin pembayaran jadi pending dan nge-null-in paidAt.
+    // Lebih aman: gak usah diubah sama sekali, cukup dicatat di log.
+    console.warn(
+      `[Midtrans Webhook] transaction_status tidak dikenal: "${transactionStatus}" (order ${orderId}). Diabaikan.`
+    );
+    return NextResponse.json({ received: true, note: "status tidak dikenal, diabaikan" });
   }
 
   if (isTagihanLain) {

@@ -4,6 +4,7 @@ import { IconRefresh, IconSearch, IconWarning, IconCheck, IconFileText, IconTras
 import { TagihanLain, SortField, STATUS_INFO, getAvatarColor, getInisial, formatTanggalPanjang } from "../types";
 import { STATUS_SISWA_NONAKTIF } from "@/app/admin/tagihan/types";
 import { STATUS_LABEL as SISWA_STATUS_LABEL, STATUS_BADGE as SISWA_STATUS_BADGE, formatTingkat } from "@/app/admin/siswa/types";
+import Pagination from "@/components/admin/Pagination";
 
 type Props = {
   loadingData: boolean;
@@ -271,87 +272,21 @@ export default function TagihanTable({
         </table>
       </div>
 
-      {sortedCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-soft bg-white px-5 py-3">
-          <div className="flex items-center gap-2 text-sm text-ink-500">
-            <span>Tampilkan</span>
-            <select
-              className="w-[70px] rounded-control border border-border-soft px-2 py-1 text-sm text-ink-900"
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-            >
-              {[10, 15, 25, 50, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <span>
-              dari <strong>{sortedCount}</strong> data (Halaman <strong>{currentPage}</strong> dari{" "}
-              <strong>{totalPages}</strong>)
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              className="rounded-control border border-border-soft bg-white px-3 py-1 text-xs font-semibold text-ink-700 transition hover:border-accent hover:bg-accent-soft hover:text-accent disabled:opacity-50"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(1)}
-              title="Halaman Pertama"
-            >
-              « First
-            </button>
-            <button
-              className="rounded-control border border-border-soft bg-white px-3 py-1 text-xs font-semibold text-ink-700 transition hover:border-accent hover:bg-accent-soft hover:text-accent disabled:opacity-50"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            >
-              ‹ Prev
-            </button>
-
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum = currentPage;
-              if (currentPage <= 3) pageNum = i + 1;
-              else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
-              else pageNum = currentPage - 2 + i;
-              if (pageNum < 1 || pageNum > totalPages) return null;
-
-              return (
-                <button
-                  key={pageNum}
-                  className={`rounded-control border px-3 py-1 text-xs font-semibold transition ${
-                    currentPage === pageNum
-                      ? "border-accent bg-accent text-white"
-                      : "border-border-soft bg-white text-ink-700 hover:border-accent hover:bg-accent-soft hover:text-accent"
-                  }`}
-                  onClick={() => setCurrentPage(pageNum)}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-
-            <button
-              className="rounded-control border border-border-soft bg-white px-3 py-1 text-xs font-semibold text-ink-700 transition hover:border-accent hover:bg-accent-soft hover:text-accent disabled:opacity-50"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Next ›
-            </button>
-            <button
-              className="rounded-control border border-border-soft bg-white px-3 py-1 text-xs font-semibold text-ink-700 transition hover:border-accent hover:bg-accent-soft hover:text-accent disabled:opacity-50"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(totalPages)}
-              title="Halaman Terakhir"
-            >
-              Last »
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Dulu tiap tabel nulis ulang blok pagination-nya sendiri (3 salinan
+          hampir identik), jadi bug jendela nomor halaman harus diperbaiki di
+          3 tempat dan gampang kelewat satu. Sekarang semuanya lewat komponen
+          bersama components/admin/Pagination.tsx. */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={sortedCount}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(n) => {
+          setPageSize(n);
+          setCurrentPage(1);
+        }}
+      />
     </div>
   );
 }

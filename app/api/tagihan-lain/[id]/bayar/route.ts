@@ -63,13 +63,6 @@ export async function POST(
     await batalkanTransaksiMidtrans(pendingTerakhir.orderId);
   }
 
-  // Sama seperti alur SPP: tandai pending lama punya tagihan ini sebagai
-  // "expired" dulu sebelum bikin transaksi baru, biar gak numpuk row yatim.
-  await prisma.pembayaranLain.updateMany({
-    where: { tagihanLainId: tagihan.id, status: "pending" },
-    data: { status: "expired" },
-  });
-
   const orderId = `LAIN-${tagihan.id}-${Date.now()}`;
 
   const parameter = {
@@ -98,17 +91,27 @@ export async function POST(
   try {
     const transaction = await snap.createTransaction(parameter);
 
-    await prisma.pembayaranLain.create({
-      data: {
-        tagihanLainId: tagihan.id,
-        siswaId: tagihan.siswaId,
-        orderId,
-        jumlah: tagihan.nominal,
-        metode: "midtrans",
-        status: "pending",
-        rawResponse: { token: transaction.token, redirect_url: transaction.redirect_url, clientKey, isProd },
-      },
-    });
+    // Sama seperti alur SPP: penandaan "expired" untuk pending lama baru
+    // dijalankan SESUDAH Midtrans mengonfirmasi, dan digabung dengan create
+    // dalam satu transaksi DB. Kalau dijalankan duluan lalu Midtrans gagal,
+    // sesi bayar lama yang masih valid ikut mati percuma.
+    await prisma.$transaction([
+      prisma.pembayaranLain.updateMany({
+        where: { tagihanLainId: tagihan.id, status: "pending" },
+        data: { status: "expired" },
+      }),
+      prisma.pembayaranLain.create({
+        data: {
+          tagihanLainId: tagihan.id,
+          siswaId: tagihan.siswaId,
+          orderId,
+          jumlah: tagihan.nominal,
+          metode: "midtrans",
+          status: "pending",
+          rawResponse: { token: transaction.token, redirect_url: transaction.redirect_url, clientKey, isProd },
+        },
+      }),
+    ]);
 
     return NextResponse.json({ token: transaction.token, clientKey, isProd, reused: false });
   } catch (err: any) {

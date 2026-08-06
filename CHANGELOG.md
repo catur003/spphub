@@ -1,5 +1,123 @@
 # Changelog — SPP Hub
 
+## [Bugfix Minor] Pagination off-by-one + duplikasi, laporan tanpa batas, efek samping sync nominal, webhook refund, urutan expiry sesi bayar
+
+⚠️ Belum dicompile di sesi ini (sandbox tanpa network/`node_modules`).
+**`npm run build` dulu** sebelum deploy.
+
+### 9. Tombol halaman aktif bisa hilang dari pagination
+
+- **Bug**: rumus jendela nomor halaman (`pageNum = totalPages - 4 + i`)
+  menghasilkan nomor `<= 0` waktu `totalPages < 5`, dan nomor itu dibuang oleh
+  guard `pageNum < 1`. Konkretnya: kalau `totalPages = 4` dan user ada di
+  halaman 4, tombol yang kerender cuma **1-2-3** — tombol halaman aktifnya
+  sendiri gak ikut muncul.
+- **Fix**: titik awal jendela sekarang dihitung sekali dan di-clamp dua sisi
+  (`Math.min(Math.max(1, currentPage - 2), Math.max(1, totalPages - n + 1))`),
+  jadi jendelanya selalu berisi tepat `min(5, totalPages)` nomor yang valid.
+
+### 10. Blok pagination diduplikasi di 3 tabel
+
+- **Bug**: `components/admin/Pagination.tsx` sudah ada, tapi `SiswaTable`,
+  `TagihanTable` (SPP), dan `TagihanTable` (Tagihan Lainnya) masing-masing
+  menyalin ulang blok pagination-nya sendiri — 4 salinan logika yang sama,
+  jadi bug #9 di atas harus diperbaiki di 4 tempat dan gampang kelewat satu.
+- **Fix**: ketiga tabel sekarang memakai komponen bersama. Ikut hilang ~70
+  baris JSX duplikat per file.
+- **Bonus**: ditambahkan pengaman `currentPage > totalPages → setCurrentPage(totalPages)`
+  di halaman Siswa, Tagihan, Tagihan Lainnya, dan Laporan. Sebelumnya kalau
+  jumlah halaman menyusut (data kehapus / filter dipersempit), `currentPage`
+  bisa nyangkut di angka yang sudah gak ada dan tabelnya kosong melompong
+  padahal datanya ada di halaman sebelumnya.
+
+### 11. `GET /api/laporan` menarik seluruh tabel tanpa batas
+
+- **Bug**: `findMany` tanpa `take`, dengan `include` siswa + kelas +
+  pembayaran. Sekolah 300 siswa × 12 bulan = 3.600 row relasional dalam satu
+  respons JSON, dan seluruhnya di-`reduce` di memori cuma buat dapat angka
+  ringkasan.
+- **Fix**:
+  - Angka ringkasan sekarang dihitung di DB lewat `groupBy(["status"])` —
+    hasilnya tetap akurat untuk **seluruh** data yang cocok filter, dan gak
+    perlu narik row-nya ke memori.
+  - Daftar detail dibatasi 2.000 baris (`MAKS_BARIS_LAPORAN`), dengan flag
+    `terpotong` di respons.
+  - `app/admin/laporan/page.tsx` menampilkan banner peringatan kalau
+    terpotong, supaya user gak mengira tabel & Export CSV-nya sudah lengkap.
+    Kartu ringkasan tetap menampilkan total penuh.
+
+### 12. Generate tagihan diam-diam menulis ulang nominal periode lain
+
+- **Bug**: `/api/tagihan/generate` memanggil
+  `syncNominalKosong(defaultNominal)`, di mana `defaultNominal` =
+  `Number(nominal) || profil.nominalSppDefault`. Artinya nominal sekali-pakai
+  yang diketik admin untuk generate bulan ini ikut dipakai buat nulis ulang
+  **semua** tagihan Rp 0 yang belum lunas di seluruh periode. Generate Juni
+  dengan nominal Rp 500.000 diam-diam mengubah tagihan Rp 0 milik Januari,
+  Februari, dst jadi Rp 500.000 juga — tanpa jejak apa pun di UI.
+- **Fix**: fallback sync sekarang selalu `profil?.nominalSppDefault`, bukan
+  nilai ad-hoc dari form generate. Nominal ketikan admin tetap dipakai untuk
+  tagihan periode yang memang sedang di-generate.
+
+### 13. Webhook Midtrans: refund ditelan, status asing jadi "pending"
+
+- **Bug**:
+  - `transaction_status` di luar daftar yang dikenal (mis. `authorize`, atau
+    status baru yang ditambah Midtrans nanti) jatuh ke nilai awal `"pending"`
+    — diam-diam menurunkan status pembayaran dan me-null-kan `paidAt`.
+  - `refund` / `chargeback` gak ditangani sama sekali. Karena pembayarannya
+    sudah `success`, guard idempoten langsung `return` — jadi uang yang
+    dikembalikan gak meninggalkan jejak apa pun, sementara tagihannya tetap
+    tertandai **LUNAS**.
+- **Fix**:
+  - `refund`, `partial_refund`, `chargeback`, `partial_chargeback` dicegat
+    lebih awal dan di-`console.error` dengan pesan eksplisit "perlu tinjauan
+    manual" berikut order ID-nya. (Schema `Pembayaran` belum punya state
+    refund — ini sengaja jadi jejak log dulu, bukan perubahan skema.)
+  - Status yang gak dikenal sekarang di-`console.warn` dan **diabaikan**
+    (record gak disentuh sama sekali), bukan lagi didefault ke `pending`.
+
+### 14. Sesi bayar valid ikut mati kalau Midtrans error
+
+- **Bug**: di `/api/tagihan/[id]/bayar` dan `/api/tagihan-lain/[id]/bayar`,
+  `updateMany` yang menandai pending lama sebagai `expired` dijalankan
+  **sebelum** `snap.createTransaction()`. Kalau Midtrans gagal (timeout, key
+  salah, rate limit), sesi bayar lama yang sebenarnya masih valid sudah
+  terlanjur dimatikan di DB — siswa kehilangan sesinya cuma-cuma dan DB jadi
+  gak sinkron dengan Midtrans.
+- **Fix**: penandaan `expired` dipindah ke **setelah** Midtrans
+  mengonfirmasi, dan digabung dengan `create` record baru dalam satu
+  `prisma.$transaction([...])`.
+
+### 15. `/api/siswa/template` terbuka tanpa login
+
+- **Bug**: satu-satunya route `/api/siswa/*` yang gak punya pengecekan sesi.
+- **Fix**: ditambahkan `requireApiRole(["owner", "petugas"])`. Isinya memang
+  "cuma" template kosong, tapi tetap membocorkan struktur data internal dan
+  gak ada alasan endpoint ini perlu bisa diakses publik.
+
+### Catatan: `siswaIds` di `/api/siswa/naik-kelas`
+
+Setelah dibaca ulang, ini **bukan bug**. `NaikKelasModal` memang gak pernah
+punya UI pemilihan per-siswa, dan teks konfirmasinya konsisten bilang "seluruh
+siswa aktif". Parameter `siswaIds` di API cuma opsional dan belum terpakai —
+dibiarkan apa adanya karena berguna kalau nanti mau ditambah pemilihan
+per-siswa. Menambahkan UI-nya sekarang itu fitur baru, bukan perbaikan bug.
+
+### Catatan test
+
+1. Filter data siswa sampai `totalPages` tepat 4, buka halaman 4 → tombol "4"
+   harus muncul dan tersorot.
+2. Di halaman 5, persempit filter sampai tinggal 1 halaman → tabel harus
+   langsung menampilkan data, bukan kosong.
+3. Buka Laporan tanpa filter di DB besar → banner peringatan muncul, tapi
+   kartu ringkasan tetap menampilkan total penuh.
+4. Generate tagihan bulan baru dengan nominal ketikan berbeda → cek tagihan
+   Rp 0 di bulan-bulan lain **tidak** ikut berubah.
+5. Akses `/api/siswa/template` tanpa login → 401.
+
+---
+
 ## [Bugfix Sedang] Kegagalan dekrip senyap, akun yatim, NISN duplikat ketelan, upload tanpa validasi
 
 ⚠️ Belum dicompile di sesi ini (sandbox tanpa network/`node_modules`).

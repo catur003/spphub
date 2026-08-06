@@ -384,6 +384,14 @@ export default function SiswaPage() {
     () => Math.max(1, Math.ceil(sortedDaftar.length / pageSize)),
     [sortedDaftar.length, pageSize]
   );
+
+  // Jaring pengaman: kalau jumlah halaman menyusut (data kehapus, filter
+  // dipersempit dari tempat lain), currentPage bisa nyangkut di angka yang
+  // udah gak ada — tabelnya kosong melompong padahal datanya ada di halaman
+  // sebelumnya. Tarik balik ke halaman terakhir yang valid.
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
   const paginatedDaftar = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return sortedDaftar.slice(startIndex, startIndex + pageSize);

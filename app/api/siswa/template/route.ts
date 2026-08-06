@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { buatTemplateWorkbook } from "@/lib/excel-siswa";
+import { requireApiRole } from "@/lib/api-auth";
 
 export async function GET() {
   try {
+    // Satu-satunya route /api/siswa/* yang dulu kebuka tanpa login. Isinya
+    // "cuma" template kosong, tapi tetap membocorkan struktur data internal
+    // ke publik dan gak ada alasan endpoint ini bisa diakses tanpa sesi —
+    // yang butuh template cuma admin di halaman Import Siswa.
+    const { error } = await requireApiRole(["owner", "petugas"]);
+    if (error) return error;
+
     const uint8Buffer = buatTemplateWorkbook();
 
     return new NextResponse(uint8Buffer, {
