@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConfirmModal } from "@/components/admin/ConfirmModal";
-import { Kelas, DetailKelasResponse } from "./types";
+import { Kelas, KelasSortField, DetailKelasResponse } from "./types";
 import { IconCheck, IconX } from "@/components/admin/icons";
 import KelasFormTambah from "./components/KelasFormTambah";
 import KelasTable from "./components/KelasTable";
@@ -21,6 +21,33 @@ export default function KelasPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const { confirm, alertMsg, modal } = useConfirmModal();
+
+  // ——— Sort tabel ———
+  const [sortField, setSortField] = useState<KelasSortField>("nama");
+  const [sortAsc, setSortAsc] = useState(true);
+
+  function toggleSort(field: KelasSortField) {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else {
+      setSortField(field);
+      setSortAsc(true);
+    }
+  }
+
+  const sortedDaftar = useMemo(() => {
+    const arr = [...daftar];
+    arr.sort((a, b) => {
+      let comp = 0;
+      if (sortField === "nama") {
+        comp = (a.namaKelas || "").localeCompare(b.namaKelas || "");
+        if (comp === 0) comp = (a.tingkat || 0) - (b.tingkat || 0);
+      } else if (sortField === "wali") comp = (a.waliKelas || "").localeCompare(b.waliKelas || "");
+      else if (sortField === "spp") comp = (a.nominalSpp || 0) - (b.nominalSpp || 0);
+      else if (sortField === "jumlahSiswa") comp = (a._count.siswa || 0) - (b._count.siswa || 0);
+      return sortAsc ? comp : -comp;
+    });
+    return arr;
+  }, [daftar, sortField, sortAsc]);
 
   // State Modal Detail & Rekap Kelas
   const [detailKelasData, setDetailKelasData] = useState<DetailKelasResponse | null>(null);
@@ -210,8 +237,11 @@ export default function KelasPage() {
 
           <div className="lg:col-span-8">
             <KelasTable
-              daftar={daftar}
+              daftar={sortedDaftar}
               deletingId={deletingId}
+              sortField={sortField}
+              sortAsc={sortAsc}
+              toggleSort={toggleSort}
               onDetail={bukaDetail}
               onEdit={bukaEdit}
               onDelete={handleDelete}

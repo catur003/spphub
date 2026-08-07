@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRole } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
+import { StatusSiswa } from "@prisma/client";
+
+const STATUS_SISWA_VALID = Object.values(StatusSiswa) as string[];
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,7 +15,11 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get("q") || "";
     const kelasId = searchParams.get("kelasId") || undefined;
     const tingkat = searchParams.get("tingkat") || undefined;
-    const status = searchParams.get("status") || undefined;
+    const statusRaw = searchParams.get("status") || undefined;
+    const status =
+      statusRaw && STATUS_SISWA_VALID.includes(statusRaw)
+        ? (statusRaw as StatusSiswa)
+        : undefined;
     const limit = searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined;
 
     const siswa = await prisma.siswa.findMany({

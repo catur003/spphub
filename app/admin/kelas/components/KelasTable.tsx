@@ -1,31 +1,53 @@
 "use client";
 
-import { Kelas, kelasColor, formatRupiah } from "../types";
+import { Kelas, KelasSortField, kelasColor, formatRupiah } from "../types";
 import { IconWarning, IconUsers, IconEdit, IconSchool } from "@/components/admin/icons";
 
 type Props = {
   daftar: Kelas[];
   deletingId: string | null;
+  sortField: KelasSortField;
+  sortAsc: boolean;
+  toggleSort: (f: KelasSortField) => void;
   onDetail: (id: string) => void;
   onEdit: (k: Kelas) => void;
   onDelete: (id: string) => void;
 };
 
-export default function KelasTable({ daftar, deletingId, onDetail, onEdit, onDelete }: Props) {
+function SortHeader({
+  label,
+  field,
+  sortField,
+  sortAsc,
+  onClick,
+}: {
+  label: string;
+  field: KelasSortField;
+  sortField: KelasSortField;
+  sortAsc: boolean;
+  onClick: (f: KelasSortField) => void;
+}) {
+  return (
+    <th
+      onClick={() => onClick(field)}
+      className="cursor-pointer select-none border-b-2 border-border-soft bg-surface px-3.5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-ink-500 transition hover:bg-accent-soft/40"
+    >
+      {label} {sortField === field ? (sortAsc ? "▲" : "▼") : ""}
+    </th>
+  );
+}
+
+export default function KelasTable({ daftar, deletingId, sortField, sortAsc, toggleSort, onDetail, onEdit, onDelete }: Props) {
   return (
     <div className="overflow-hidden rounded-card border border-border-soft bg-white shadow-sm2">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse">
           <thead>
             <tr>
-              {["Nama Jurusan", "Wali Kelas", "Biaya SPP / Bulan", "Jumlah Siswa"].map((h) => (
-                <th
-                  key={h}
-                  className="border-b-2 border-border-soft bg-surface px-3.5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-ink-500"
-                >
-                  {h}
-                </th>
-              ))}
+              <SortHeader label="Nama Jurusan" field="nama" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
+              <SortHeader label="Wali Kelas" field="wali" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
+              <SortHeader label="Biaya SPP / Bulan" field="spp" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
+              <SortHeader label="Jumlah Siswa" field="jumlahSiswa" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <th className="whitespace-nowrap border-b-2 border-border-soft bg-surface px-3.5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-ink-500">
                 Aksi
               </th>

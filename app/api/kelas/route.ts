@@ -46,10 +46,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "namaKelas dan tingkat wajib diisi" }, { status: 400 });
     }
 
+    const namaKelasTrim = String(body.namaKelas).trim();
+    const tingkatNum = Number(body.tingkat);
+
+    // Cek duplikat manual: model Kelas gak punya @@unique constraint di
+    // schema, jadi P2002 di bawah gak pernah kepicu. Duplikat dianggap sama
+    // kalau namaKelas (case-insensitive) DAN tingkat-nya identik — karena
+    // jurusan yang sama boleh punya kelas beda tingkat (mis. "RPL 1" tingkat
+    // 10 vs 11 itu sah, bukan duplikat).
+    const existing = await prisma.kelas.findFirst({
+      where: {
+        tingkat: tingkatNum,
+        namaKelas: { equals: namaKelasTrim, mode: "insensitive" },
+      },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: `Kelas "${namaKelasTrim}" tingkat ${tingkatNum} sudah ada.` },
+        { status: 400 }
+      );
+    }
+
     const kelas = await prisma.kelas.create({
       data: {
-        namaKelas: String(body.namaKelas).trim(),
-        tingkat: Number(body.tingkat),
+        namaKelas: namaKelasTrim,
+        tingkat: tingkatNum,
         ...(body.nominalSpp !== undefined ? { nominalSpp: Number(body.nominalSpp) } : {}),
         ...(body.waliKelas !== undefined ? { waliKelas: String(body.waliKelas).trim() } : {}),
       },

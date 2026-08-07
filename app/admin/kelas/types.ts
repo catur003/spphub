@@ -7,6 +7,8 @@ export type Kelas = {
   _count: { siswa: number };
 };
 
+export type KelasSortField = "nama" | "wali" | "spp" | "jumlahSiswa";
+
 export type SiswaDetail = {
   id: string;
   namaLengkap: string;

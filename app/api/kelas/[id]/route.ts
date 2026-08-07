@@ -94,6 +94,25 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
 
+    // Cek duplikat manual (sama seperti POST), abaikan record ini sendiri.
+    if (body.namaKelas && body.tingkat) {
+      const namaKelasTrim = String(body.namaKelas).trim();
+      const tingkatNum = Number(body.tingkat);
+      const existing = await prisma.kelas.findFirst({
+        where: {
+          id: { not: id },
+          tingkat: tingkatNum,
+          namaKelas: { equals: namaKelasTrim, mode: "insensitive" },
+        },
+      });
+      if (existing) {
+        return NextResponse.json(
+          { error: `Kelas "${namaKelasTrim}" tingkat ${tingkatNum} sudah ada.` },
+          { status: 400 }
+        );
+      }
+    }
+
     const kelas = await prisma.kelas.update({
       where: { id },
       data: {
