@@ -51,13 +51,15 @@ export async function POST(req: NextRequest) {
 
     // Cek duplikat manual: model Kelas gak punya @@unique constraint di
     // schema, jadi P2002 di bawah gak pernah kepicu. Duplikat dianggap sama
-    // kalau namaKelas (case-insensitive) DAN tingkat-nya identik — karena
-    // jurusan yang sama boleh punya kelas beda tingkat (mis. "RPL 1" tingkat
-    // 10 vs 11 itu sah, bukan duplikat).
+    // kalau namaKelas DAN tingkat-nya identik — karena jurusan yang sama
+    // boleh punya kelas beda tingkat (mis. "RPL 1" tingkat 10 vs 11 itu sah,
+    // bukan duplikat). Gak pakai mode:"insensitive" karena provider MySQL
+    // gak dukung opsi itu di Prisma — tapi collation default MySQL
+    // (utf8mb4_general_ci/unicode_ci) udah case-insensitive secara native.
     const existing = await prisma.kelas.findFirst({
       where: {
         tingkat: tingkatNum,
-        namaKelas: { equals: namaKelasTrim, mode: "insensitive" },
+        namaKelas: namaKelasTrim,
       },
     });
     if (existing) {

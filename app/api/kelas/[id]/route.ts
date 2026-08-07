@@ -102,7 +102,7 @@ export async function PUT(
         where: {
           id: { not: id },
           tingkat: tingkatNum,
-          namaKelas: { equals: namaKelasTrim, mode: "insensitive" },
+          namaKelas: namaKelasTrim,
         },
       });
       if (existing) {
