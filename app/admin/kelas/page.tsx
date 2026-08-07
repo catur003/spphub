@@ -39,8 +39,8 @@ export default function KelasPage() {
     arr.sort((a, b) => {
       let comp = 0;
       if (sortField === "nama") {
-        comp = (a.namaKelas || "").localeCompare(b.namaKelas || "");
-        if (comp === 0) comp = (a.tingkat || 0) - (b.tingkat || 0);
+        comp = (a.tingkat || 0) - (b.tingkat || 0);
+        if (comp === 0) comp = (a.namaKelas || "").localeCompare(b.namaKelas || "");
       } else if (sortField === "wali") comp = (a.waliKelas || "").localeCompare(b.waliKelas || "");
       else if (sortField === "spp") comp = (a.nominalSpp || 0) - (b.nominalSpp || 0);
       else if (sortField === "jumlahSiswa") comp = (a._count.siswa || 0) - (b._count.siswa || 0);

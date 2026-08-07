@@ -44,7 +44,7 @@ export default function KelasTable({ daftar, deletingId, sortField, sortAsc, tog
         <table className="w-full min-w-[720px] border-collapse">
           <thead>
             <tr>
-              <SortHeader label="Nama Jurusan" field="nama" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
+              <SortHeader label="Kelas / Jurusan" field="nama" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <SortHeader label="Wali Kelas" field="wali" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <SortHeader label="Biaya SPP / Bulan" field="spp" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
               <SortHeader label="Jumlah Siswa" field="jumlahSiswa" sortField={sortField} sortAsc={sortAsc} onClick={toggleSort} />
@@ -65,11 +65,8 @@ export default function KelasTable({ daftar, deletingId, sortField, sortAsc, tog
                     >
                       {k.namaKelas.slice(0, 2).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="font-bold text-ink-900">{k.namaKelas}</div>
-                      <span className="rounded-full border border-border-soft bg-surface px-2 py-0 text-[0.7rem] text-ink-700">
-                        Kelas {k.tingkat}
-                      </span>
+                    <div className="font-bold text-ink-900">
+                      {k.tingkat} — {k.namaKelas}
                     </div>
                   </div>
                 </td>
