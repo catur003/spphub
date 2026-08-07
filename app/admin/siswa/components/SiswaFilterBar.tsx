@@ -62,7 +62,7 @@ export default function SiswaFilterBar({
             <option value="">Semua Jurusan {filterTingkat ? `(Kelas ${filterTingkat})` : ""}</option>
             {kelasOptions.map((k) => (
               <option key={k.id} value={k.id}>
-                {k.namaKelas}
+                {k.tingkat ?? "?"} — {k.namaKelas}
               </option>
             ))}
           </select>

@@ -109,7 +109,7 @@ export default function SiswaEditModal({
                   <option value="">— Belum Ada Kelas —</option>
                   {kelasList.map((k) => (
                     <option key={k.id} value={k.id}>
-                      {k.namaKelas}
+                      {k.tingkat ?? "?"} — {k.namaKelas}
                     </option>
                   ))}
                 </select>

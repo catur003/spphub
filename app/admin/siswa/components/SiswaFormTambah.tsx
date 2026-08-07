@@ -90,7 +90,7 @@ export default function SiswaFormTambah({
                 <option value="">— Pilih Kelas —</option>
                 {kelasList.map((k) => (
                   <option key={k.id} value={k.id}>
-                    {k.namaKelas}
+                    {k.tingkat ?? "?"} — {k.namaKelas}
                   </option>
                 ))}
               </select>
