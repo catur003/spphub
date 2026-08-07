@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { amankanBarisExcel } from "./excel-sanitize";
 
 const BULAN_LABEL = [
   "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -22,15 +23,17 @@ export function buatLaporanWorkbook(
     jatuhTempo: Date;
   }>
 ): XLSX.WorkBook {
-  const rows = daftar.map((t) => ({
-    "Nama Siswa": t.siswa.namaLengkap,
-    NIS: t.siswa.nis,
-    Kelas: t.siswa.kelas?.namaKelas || "-",
-    Periode: `${BULAN_LABEL[t.bulan]} ${t.tahun}`,
-    Nominal: t.nominal,
-    Status: STATUS_LABEL[t.status] || t.status,
-    "Jatuh Tempo": t.jatuhTempo.toISOString().slice(0, 10),
-  }));
+  const rows = daftar.map((t) =>
+    amankanBarisExcel({
+      "Nama Siswa": t.siswa.namaLengkap,
+      NIS: t.siswa.nis,
+      Kelas: t.siswa.kelas?.namaKelas || "-",
+      Periode: `${BULAN_LABEL[t.bulan]} ${t.tahun}`,
+      Nominal: t.nominal,
+      Status: STATUS_LABEL[t.status] || t.status,
+      "Jatuh Tempo": t.jatuhTempo.toISOString().slice(0, 10),
+    })
+  );
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Rekap Tagihan");

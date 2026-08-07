@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRole } from "@/lib/api-auth";
-import { syncNominalKosong } from "@/lib/tagihan-nominal";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,15 +40,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Auto-sync tagihan belum bayar sebelumnya yang masih Rp 0 agar konsisten & sinkron.
-    //
-    // Fallback-nya HARUS nominal default sekolah, bukan `defaultNominal`
-    // (yang bisa berisi `nominal` hasil ketikan admin khusus untuk generate
-    // kali ini). Dulu nilai ad-hoc itu ikut kepakai di sini, jadi generate
-    // bulan Juni dengan nominal sekali-pakai Rp 500.000 diam-diam nulis ulang
-    // tagihan Rp 0 milik Januari, Februari, dst jadi Rp 500.000 juga — efek
-    // samping lintas periode yang gak kelihatan sama sekali di UI.
-    await syncNominalKosong(profil?.nominalSppDefault || 0);
+    // Dulu ada panggilan `await syncNominalKosong(defaultNominal)` di sini —
+    // dihapus karena berbahaya: `defaultNominal` itu nominal yang DIKETIK
+    // admin buat generate BULAN INI (bisa beda tiap kali generate, mis. ada
+    // kenaikan SPP tahun ajaran baru), tapi syncNominalKosong() nyapu SEMUA
+    // tagihan Rp 0 di SELURUH periode/bulan lain — bukan cuma yang lagi
+    // digenerate. Efeknya: generate tagihan Maret dengan nominal custom
+    // bisa diam-diam nimpa tagihan Rp 0 di bulan Januari yang sengaja
+    // dibiarkan 0 (mis. nunggu admin isi keringanan/beasiswa) jadi ikutan
+    // ke-set nominal Maret itu. Sinkronisasi nominal kosong sudah ada
+    // tombol & endpoint terpisah yang eksplisit (POST /api/tagihan/sync-nominal,
+    // dipanggil dari admin/tagihan/page.tsx), yang benar pakai
+    // profilSekolah.nominalSppDefault sebagai fallback global — itu tempat
+    // yang tepat buat aksi ini, bukan efek samping tersembunyi di generate.
 
     // 3. Cek tagihan yang sudah pernah dibuat untuk periode bulan & tahun ini (Melindungi status Lunas dll)
     const existing = await prisma.tagihanSpp.findMany({
@@ -73,30 +76,73 @@ export async function POST(req: NextRequest) {
     const tglStr = String(jatuhTempo).split("T")[0];
     const isoJatuhTempo = new Date(`${tglStr}T12:00:00.000Z`);
 
-    // 4. Batch Create Tagihan
-    await prisma.tagihanSpp.createMany({
-      data: siswaBaru.map((s) => {
-        const nominalKelas =
-          s.kelas?.nominalSpp && Number(s.kelas.nominalSpp) > 0
-            ? Number(s.kelas.nominalSpp)
-            : defaultNominal;
+    const dataTagihan = siswaBaru.map((s) => {
+      const nominalKelas =
+        s.kelas?.nominalSpp && Number(s.kelas.nominalSpp) > 0
+          ? Number(s.kelas.nominalSpp)
+          : defaultNominal;
 
-        return {
-          siswaId: s.id,
-          tahunAjaranId,
-          bulan: Number(bulan),
-          tahun: Number(tahun),
-          nominal: nominalKelas,
-          jatuhTempo: isoJatuhTempo,
-          status: "belum_bayar" as const,
-        };
-      }),
+      return {
+        siswaId: s.id,
+        tahunAjaranId,
+        bulan: Number(bulan),
+        tahun: Number(tahun),
+        nominal: nominalKelas,
+        jatuhTempo: isoJatuhTempo,
+        status: "belum_bayar" as const,
+      };
     });
 
-    return NextResponse.json({
-      dibuat: siswaBaru.length,
-      dilewati: siswaAktif.length - siswaBaru.length,
-    });
+    // 4. Batch Create Tagihan.
+    //
+    // RACE CONDITION: antara SELECT "existing" di atas dan INSERT ini ada
+    // jeda waktu. Kalau admin double-klik tombol Generate (submit dobel
+    // hampir bersamaan — realistis kalau request pertama lambat), request
+    // KEDUA bisa lolos filter siswaBaru dengan siswaId yang SAMA seperti
+    // yang baru saja diinsert request pertama. MySQL nolak insert itu lewat
+    // constraint @@unique([siswaId, tahunAjaranId, bulan, tahun]) di schema
+    // (jadi data TETAP konsisten, gak ada duplikat tagihan) — tapi Prisma
+    // MySQL gak dukung `skipDuplicates` di createMany, jadi tanpa fallback
+    // ini SELURUH batch bakal gagal 500 walau cuma 1 siswa yang bentrok.
+    //
+    // Fix: coba createMany dulu (jalur cepat, umumnya berhasil karena race
+    // ini jarang kejadian). Kalau kena P2002 (unique constraint), baru
+    // fallback ke insert satu-satu yang masing-masing nangkep P2002-nya
+    // sendiri, biar siswa yang gak bentrok tetap kebuat tagihannya.
+    try {
+      await prisma.tagihanSpp.createMany({ data: dataTagihan });
+
+      return NextResponse.json({
+        dibuat: dataTagihan.length,
+        dilewati: siswaAktif.length - dataTagihan.length,
+      });
+    } catch (err: any) {
+      if (err?.code !== "P2002") throw err;
+
+      let dibuat = 0;
+      let bentrok = 0;
+      for (const item of dataTagihan) {
+        try {
+          await prisma.tagihanSpp.create({ data: item });
+          dibuat++;
+        } catch (errBaris: any) {
+          if (errBaris?.code === "P2002") {
+            bentrok++;
+            continue;
+          }
+          throw errBaris;
+        }
+      }
+
+      return NextResponse.json({
+        dibuat,
+        dilewati: siswaAktif.length - dataTagihan.length + bentrok,
+        note:
+          bentrok > 0
+            ? `${bentrok} siswa dilewati karena tagihan periode ini baru saja dibuat request lain (kemungkinan tombol Generate diklik dobel).`
+            : undefined,
+      });
+    }
   } catch (error: any) {
     console.error("[POST /api/tagihan/generate] Error:", error);
     return NextResponse.json(

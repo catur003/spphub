@@ -1,4 +1,10 @@
-export type Kelas = { id: string; namaKelas: string; tingkat?: number };
+// PENTING: field di sini harus tetap superset/cocok dengan Kelas di
+// app/admin/kelas/types.ts (dan model Kelas di schema.prisma) — dulu type
+// lokal ini cuma { id, namaKelas, tingkat }, gak punya `waliKelas`, padahal
+// SiswaDetailModal.tsx makai `detailSiswa.kelas.waliKelas`. Akibatnya file
+// itu gagal type-check (TS2339: Property 'waliKelas' does not exist),
+// cuma gak ketahuan karena next.config.mjs set `ignoreBuildErrors: true`.
+export type Kelas = { id: string; namaKelas: string; tingkat?: number; waliKelas?: string | null };
 
 export type Siswa = {
   id: string;

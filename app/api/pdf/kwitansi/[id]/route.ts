@@ -44,7 +44,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
     const filename = `Kwitansi_SPP_${tagihan.siswa.namaLengkap.replace(/\s+/g, "_")}_${BULAN_LABEL[tagihan.bulan]}_${tagihan.tahun}.pdf`;
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

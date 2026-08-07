@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get("q") || "";
     const kelasId = searchParams.get("kelasId") || undefined;
     const tingkat = searchParams.get("tingkat") || undefined;
+    const status = searchParams.get("status") || undefined;
     const limit = searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined;
 
     const siswa = await prisma.siswa.findMany({
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
           : tingkat
           ? { kelas: { tingkat: Number(tingkat) } }
           : {}),
+        ...(status ? { status } : {}),
         ...(q
           ? {
               OR: [

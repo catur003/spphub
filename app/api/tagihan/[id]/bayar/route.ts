@@ -99,15 +99,17 @@ export async function POST(
   try {
     const transaction = await snap.createTransaction(parameter);
 
-    // Simpan record pembayaran pending ke DB, token disimpan di rawResponse
-    // biar bisa di-reuse kalau diklik lagi sebelum expired.
-    // Baru SESUDAH Midtrans mengonfirmasi transaksinya, pending lama
-    // ditandai "expired" — dan bareng pembuatan record baru dalam satu
-    // transaksi DB. Dulu updateMany ini jalan DULUAN, sebelum
-    // snap.createTransaction(): kalau Midtrans error (timeout, key salah,
-    // rate limit), sesi bayar lama yang sebenarnya MASIH VALID sudah terlanjur
-    // dimatikan di DB, jadi siswa kehilangan sesi bayarnya cuma-cuma dan DB
-    // jadi gak sinkron sama Midtrans.
+    // Tandai pending lama punya tagihan ini sebagai "expired" & simpan
+    // record pembayaran baru DALAM SATU TRANSAKSI DB — dan cuma dijalankan
+    // SETELAH createTransaction ke Midtrans di atas dipastikan berhasil.
+    //
+    // Dulu updateMany "expired" ini jalan SEBELUM snap.createTransaction(),
+    // sebagai langkah persiapan. Bug: kalau Midtrans API lagi down/timeout
+    // saat createTransaction dipanggil, sesi bayar lama yang masih valid
+    // sudah kadung di-expire duluan — siswa kehilangan DUA-DUANYA (sesi lama
+    // hangus, sesi baru gagal dibuat), padahal sebelum klik dia masih punya
+    // sesi bayar yang sah. Sekarang expire-nya jadi bagian dari hasil sukses,
+    // bukan persiapan di depan.
     await prisma.$transaction([
       prisma.pembayaran.updateMany({
         where: { tagihanSppId: tagihan.id, status: "pending" },

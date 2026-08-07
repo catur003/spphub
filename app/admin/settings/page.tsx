@@ -9,6 +9,8 @@ type PaymentSettings = {
   sandboxServerKey: string | null;
   productionClientKey: string | null;
   productionServerKey: string | null;
+  /** false = ENCRYPTION_KEY belum diset di server -> server key tersimpan PLAINTEXT di DB. */
+  enkripsiAktif?: boolean;
 };
 
 type SekolahSettings = {
@@ -26,6 +28,7 @@ const PAYMENT_KOSONG: PaymentSettings = {
   sandboxServerKey: "",
   productionClientKey: "",
   productionServerKey: "",
+  enkripsiAktif: true,
 };
 
 const SEKOLAH_KOSONG: SekolahSettings = {
@@ -148,6 +151,15 @@ export default function SettingsPage() {
           {paymentMsg && (
             <div className="mb-3 flex items-center gap-2 rounded-control border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
               <IconCheck className="inline h-4 w-4" /> {paymentMsg}
+            </div>
+          )}
+          {payment.enkripsiAktif === false && (
+            <div className="mb-3 rounded-control border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <strong>Peringatan:</strong> ENCRYPTION_KEY belum diset di environment server. Client Key/Server
+              Key Midtrans yang disimpan di sini <strong>tersimpan sebagai teks biasa (tidak terenkripsi)</strong> di
+              database. Isi env var <code className="rounded bg-amber-100 px-1">ENCRYPTION_KEY</code> di
+              server (generate misalnya lewat <code className="rounded bg-amber-100 px-1">openssl rand -hex 32</code>),
+              lalu simpan ulang key di bawah ini supaya ikut terenkripsi.
             </div>
           )}
 

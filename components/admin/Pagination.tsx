@@ -29,23 +29,6 @@ export default function Pagination({
 }: Props) {
   if (totalItems === 0) return null;
 
-  // Jendela nomor halaman, digeser + di-clamp sekaligus.
-  //
-  // Rumus lama (`totalPages - 4 + i`) menghasilkan nomor <= 0 waktu totalPages
-  // < 5, dan nomor itu dibuang oleh guard `pageNum < 1`. Efeknya: kalau
-  // totalPages = 4 dan user ada di halaman 4, tombol yang kerender cuma 1-2-3
-  // — tombol halaman aktifnya sendiri HILANG dari daftar.
-  //
-  // Sekarang titik awalnya dihitung sekali: geser biar currentPage ada di
-  // tengah, tapi jangan pernah lewat dari batas kanan (totalPages) maupun
-  // batas kiri (1).
-  const jumlahTombol = Math.min(5, totalPages);
-  const mulai = Math.min(
-    Math.max(1, currentPage - Math.floor(jumlahTombol / 2)),
-    Math.max(1, totalPages - jumlahTombol + 1)
-  );
-  const nomorHalaman = Array.from({ length: jumlahTombol }, (_, i) => mulai + i);
-
   return (
     <div
       className={`flex flex-wrap items-center justify-between gap-2 border-t border-border-soft bg-white px-5 py-3 ${
@@ -83,7 +66,13 @@ export default function Pagination({
           ‹ Prev
         </button>
 
-        {nomorHalaman.map((pageNum) => {
+        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          let pageNum = currentPage;
+          if (currentPage <= 3) pageNum = i + 1;
+          else if (currentPage >= totalPages - 2) pageNum = Math.max(1, totalPages - 4) + i;
+          else pageNum = currentPage - 2 + i;
+          if (pageNum < 1 || pageNum > totalPages) return null;
+
           return (
             <button
               key={pageNum}

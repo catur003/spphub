@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { requireApiRole } from "@/lib/api-auth";
 
 export async function GET(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // BUG KEAMANAN (diperbaiki): sebelumnya di sini cuma cek
+  // `if (!session)` — asal login, ROLE APAPUN (termasuk siswa) bisa
+  // narik SELURUH arsip digital SEMUA siswa (bukti transfer, kwitansi,
+  // surat, dokumen pribadi siswa lain). Endpoint ini cuma dipakai
+  // app/admin/arsip/page.tsx (gak ada satu pun halaman siswa yang makai),
+  // jadi dibatasi konsisten dengan POST di file yang sama: owner/petugas.
+  const { error } = await requireApiRole(["owner", "petugas"]);
+  if (error) return error;
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";

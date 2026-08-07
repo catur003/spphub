@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { amankanBarisExcel } from "./excel-sanitize";
 
 export const KOLOM_SISWA = [
   "Nama Lengkap",
@@ -68,18 +69,20 @@ export function buatTemplateWorkbook(): Uint8Array {
 
 /** Bikin workbook export data siswa */
 export function buatExportWorkbook(daftar: any[]) {
-  const dataMap = daftar.map((s) => ({
-    "Nama Lengkap": s.namaLengkap || "",
-    NIS: s.nis || "",
-    NISN: s.nisn || "",
-    Kelas: s.kelas?.namaKelas || "-",
-    "Jenis Kelamin (L/P)": s.jenisKelamin || "L",
-    "Tanggal Lahir": s.tanggalLahir ? new Date(s.tanggalLahir).toISOString().slice(0, 10) : "-",
-    "Nama Wali": s.namaWali || "-",
-    "Kontak Wali": s.kontakWali || "-",
-    Status: s.status || "aktif",
-    Email: s.akun?.email || "-",
-  }));
+  const dataMap = daftar.map((s) =>
+    amankanBarisExcel({
+      "Nama Lengkap": s.namaLengkap || "",
+      NIS: s.nis || "",
+      NISN: s.nisn || "",
+      Kelas: s.kelas?.namaKelas || "-",
+      "Jenis Kelamin (L/P)": s.jenisKelamin || "L",
+      "Tanggal Lahir": s.tanggalLahir ? new Date(s.tanggalLahir).toISOString().slice(0, 10) : "-",
+      "Nama Wali": s.namaWali || "-",
+      "Kontak Wali": s.kontakWali || "-",
+      Status: s.status || "aktif",
+      Email: s.akun?.email || "-",
+    })
+  );
 
   const ws = XLSX.utils.json_to_sheet(dataMap);
   const wb = XLSX.utils.book_new();

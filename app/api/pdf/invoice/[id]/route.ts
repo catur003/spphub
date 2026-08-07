@@ -38,7 +38,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const invoiceNo = `INV-${tagihan.tahun}-${String(tagihan.bulan).padStart(2, "0")}-${id.slice(-5).toUpperCase()}`;
     const filename = `Invoice_${tagihan.siswa?.namaLengkap.replace(/\s+/g, "_") || "SPP"}_${invoiceNo}.pdf`;
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

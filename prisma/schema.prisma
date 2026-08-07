@@ -131,6 +131,7 @@ model Siswa {
 
   tagihanLain    TagihanLain[]
   pembayaranLain PembayaranLain[]
+  arsipDigital   ArsipDigital[]
 
   @@index([namaLengkap])
   @@index([kelasId])
@@ -383,4 +384,34 @@ model UtangPegawai {
   updatedAt       DateTime @updatedAt
 
   @@map("utang_pegawai")
+}
+
+/**
+ * BUG YANG DIPERBAIKI: model ini sebelumnya HILANG dari schema sama sekali,
+ * padahal app/api/arsip/route.ts, app/api/arsip/[id]/route.ts, dan
+ * app/admin/arsip/page.tsx semua sudah lengkap makai `prisma.arsipDigital`.
+ * Tanpa model ini, Prisma Client gak pernah generate field/method itu, jadi
+ * SETIAP request ke fitur Arsip Digital pasti crash runtime (bukan cuma
+ * error tipe) — fitur ini 100% gak bisa dipakai sampai model ini ada.
+ * Field & nama disamakan persis dengan yang sudah dipakai kode existing
+ * (kategori: bukti_transfer/kwitansi/surat/dokumen_siswa — lihat
+ * KATEGORI_LABEL di app/admin/arsip/page.tsx; fileType: pdf/image).
+ */
+model ArsipDigital {
+  id          String   @id @default(cuid())
+  judul       String
+  kategori    String
+  fileUrl     String   @db.Text
+  fileType    String
+  siswaId     String?
+  siswa       Siswa?   @relation(fields: [siswaId], references: [id], onDelete: SetNull)
+  tanggal     DateTime @default(now())
+  keterangan  String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([kategori])
+  @@index([siswaId])
+  @@index([tanggal])
+  @@map("arsip_digital")
 }

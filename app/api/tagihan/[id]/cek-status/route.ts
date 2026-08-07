@@ -135,11 +135,16 @@ export async function GET(
       isUpdated = true;
     }
 
+    // Keamanan: dulu endpoint ini balikin `raw: body` (payload mentah dari
+    // Midtrans — bisa termasuk detail metode bayar/kartu) dan
+    // `transactionStatus` langsung ke response API. Endpoint ini bisa
+    // diakses siswa (bukan cuma admin), dan frontend (app/siswa/page.tsx,
+    // app/admin/tagihan/page.tsx) ternyata cuma pernah pakai field
+    // `status` & `updated` — jadi field tambahan itu cuma over-exposure
+    // data tanpa kegunaan, dihapus dari response publik.
     return NextResponse.json({
       status: statusBaru === "success" ? "lunas" : statusBaru,
       updated: isUpdated,
-      transactionStatus,
-      raw: body,
     });
   } catch (err: any) {
     console.error("Cek status Midtrans error:", err);

@@ -165,10 +165,6 @@ export default function SiswaTable({
         </table>
       </div>
 
-      {/* Dulu tiap tabel nulis ulang blok pagination-nya sendiri (3 salinan
-          hampir identik), jadi bug jendela nomor halaman harus diperbaiki di
-          3 tempat dan gampang kelewat satu. Sekarang semuanya lewat komponen
-          bersama components/admin/Pagination.tsx. */}
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}

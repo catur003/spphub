@@ -126,11 +126,14 @@ export async function GET(
       isUpdated = true;
     }
 
+    // Sama seperti bug yang sudah diperbaiki di app/api/tagihan/[id]/cek-status
+    // (file ini duplikat pola yang sama, jadi bug-nya ikut terduplikasi):
+    // dulu balikin `raw: body` (payload Midtrans mentah) & `transactionStatus`
+    // ke response yang bisa diakses siswa. Frontend (TagihanLainSection.tsx,
+    // admin/tagihan-lainnya/page.tsx) cuma pernah pakai `status` & `updated`.
     return NextResponse.json({
       status: statusBaru === "success" ? "lunas" : statusBaru,
       updated: isUpdated,
-      transactionStatus,
-      raw: body,
     });
   } catch (err: any) {
     console.error("Cek status Midtrans error:", err);

@@ -4,8 +4,15 @@ import { verifySignature } from "@/lib/midtrans";
 
 // Status Midtrans yang dianggap "berhasil bayar"
 const STATUS_SUKSES = ["capture", "settlement"];
-// Status Midtrans yang dianggap gagal/batal
+// Status Midtrans yang dianggap gagal/batal SEBELUM sempat sukses
 const STATUS_GAGAL = ["deny", "cancel", "failure"];
+// Status Midtrans yang berarti duit BALIK setelah transaksi sempat sukses.
+// Enum StatusPembayaran di schema BELUM punya nilai "refunded" sendiri
+// (itu perlu migration terpisah, di luar scope fix ini) — dipetakan ke
+// "failed" sebagai nilai terdekat yang tersedia, supaya minimal tagihan
+// gak nyangkut tercatat "lunas" selamanya walau duitnya sudah dikembalikan.
+// Payload webhook mentah tetap kesimpan penuh di rawResponse buat audit.
+const STATUS_REFUND = ["refund", "partial_refund", "chargeback"];
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -41,24 +48,7 @@ export async function POST(req: NextRequest) {
   // yang udah stabil.
   const isTagihanLain = orderId.startsWith("LAIN-");
 
-  // Status yang artinya duit BALIK ke siswa setelah transaksi sempat sukses.
-  // Tabel Pembayaran cuma punya pending/success/failed/expired, jadi gak ada
-  // state yang pas buat ini — dan pengecekan idempoten di bawah bakal
-  // nge-skip-nya diam-diam karena statusnya udah "success". Minimal harus
-  // ke-log dengan jelas biar bendahara tau ada tagihan yang statusnya "lunas"
-  // padahal uangnya udah dikembalikan.
-  const STATUS_PERLU_TINJAUAN = ["refund", "partial_refund", "chargeback", "partial_chargeback"];
-
-  if (STATUS_PERLU_TINJAUAN.includes(transactionStatus)) {
-    console.error(
-      `[Midtrans Webhook] PERLU TINJAUAN MANUAL — order ${orderId} berstatus "${transactionStatus}". ` +
-        `Tagihan terkait kemungkinan masih tertandai LUNAS padahal dananya dikembalikan. ` +
-        `Cek dashboard Midtrans dan sesuaikan status tagihannya manual.`
-    );
-    return NextResponse.json({ received: true, note: "status perlu tinjauan manual" });
-  }
-
-  let statusBaru: "pending" | "success" | "failed" | "expired";
+  let statusBaru: "pending" | "success" | "failed" | "expired" = "pending";
 
   if (STATUS_SUKSES.includes(transactionStatus)) {
     // Untuk kartu kredit, capture cuma sukses kalau fraud_status accept
@@ -69,19 +59,12 @@ export async function POST(req: NextRequest) {
     }
   } else if (STATUS_GAGAL.includes(transactionStatus)) {
     statusBaru = "failed";
+  } else if (STATUS_REFUND.includes(transactionStatus)) {
+    statusBaru = "failed";
   } else if (transactionStatus === "expire") {
     statusBaru = "expired";
   } else if (transactionStatus === "pending") {
     statusBaru = "pending";
-  } else {
-    // JANGAN default ke "pending". Dulu status yang gak dikenal (mis.
-    // "authorize", atau status baru yang ditambah Midtrans di kemudian hari)
-    // diam-diam nurunin pembayaran jadi pending dan nge-null-in paidAt.
-    // Lebih aman: gak usah diubah sama sekali, cukup dicatat di log.
-    console.warn(
-      `[Midtrans Webhook] transaction_status tidak dikenal: "${transactionStatus}" (order ${orderId}). Diabaikan.`
-    );
-    return NextResponse.json({ received: true, note: "status tidak dikenal, diabaikan" });
   }
 
   if (isTagihanLain) {
@@ -89,7 +72,20 @@ export async function POST(req: NextRequest) {
     if (!pembayaranLain) {
       return NextResponse.json({ received: true, note: "order_id tidak dikenal" });
     }
-    if (pembayaranLain.status === "success" || pembayaranLain.status === "failed") {
+
+    const iniRefundSetelahSukses =
+      STATUS_REFUND.includes(transactionStatus) && pembayaranLain.status === "success";
+
+    // Idempoten seperti sebelumnya (skip kalau udah final) — TAPI refund yang
+    // datang setelah transaksi sempat "success" tetap harus diproses, bukan
+    // ikut keblokir guard ini. Tanpa pengecualian ini, transaksi yang sudah
+    // "success" gak akan pernah ke-update lagi walau Midtrans ngirim webhook
+    // refund/chargeback setelahnya — tagihan nyangkut "lunas" selamanya
+    // padahal duitnya udah balik ke pembeli.
+    if (
+      (pembayaranLain.status === "success" || pembayaranLain.status === "failed") &&
+      !iniRefundSetelahSukses
+    ) {
       return NextResponse.json({ received: true });
     }
 
@@ -115,6 +111,14 @@ export async function POST(req: NextRequest) {
           where: { id: pembayaranLain.tagihanLainId },
           data: { status: "lunas" },
         });
+      } else if (iniRefundSetelahSukses) {
+        // Transaksi tadinya sukses & tagihan udah ke-set "lunas" — sekarang
+        // duitnya balik, jadi tagihan HARUS dikembalikan ke "belum_bayar",
+        // bukan dibiarkan nyangkut "lunas" di laporan/dashboard.
+        await tx.tagihanLain.update({
+          where: { id: pembayaranLain.tagihanLainId },
+          data: { status: "belum_bayar" },
+        });
       }
     });
 
@@ -128,8 +132,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, note: "order_id tidak dikenal" });
   }
 
-  // Idempoten: kalau udah diproses jadi success/failed sebelumnya, jangan diulang
-  if (pembayaran.status === "success" || pembayaran.status === "failed") {
+  // Idempoten: kalau udah diproses jadi success/failed sebelumnya, jangan
+  // diulang — KECUALI ini refund/chargeback yang datang setelah transaksi
+  // sempat "success" (lihat penjelasan lengkap di blok TagihanLain di atas).
+  const iniRefundSetelahSukses =
+    STATUS_REFUND.includes(transactionStatus) && pembayaran.status === "success";
+
+  if ((pembayaran.status === "success" || pembayaran.status === "failed") && !iniRefundSetelahSukses) {
     return NextResponse.json({ received: true });
   }
 
@@ -150,6 +159,13 @@ export async function POST(req: NextRequest) {
       await tx.tagihanSpp.update({
         where: { id: pembayaran.tagihanSppId },
         data: { status: "lunas" },
+      });
+    } else if (iniRefundSetelahSukses) {
+      // Transaksi tadinya sukses & tagihan udah "lunas" — sekarang duitnya
+      // balik, tagihan HARUS dikembalikan ke "belum_bayar".
+      await tx.tagihanSpp.update({
+        where: { id: pembayaran.tagihanSppId },
+        data: { status: "belum_bayar" },
       });
     }
   });

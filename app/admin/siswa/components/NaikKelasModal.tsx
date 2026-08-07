@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Kelas } from "../types";
 import { IconRefresh, IconCheckCircle, IconWarning } from "@/components/admin/icons";
+
+type SiswaRingkas = { id: string; namaLengkap: string; nis: string };
 
 type Props = {
   show: boolean;
@@ -13,7 +15,8 @@ type Props = {
   setNaikKelasTujuan: (v: string) => void;
   loadingNaikKelas: boolean;
   onClose: () => void;
-  onEksekusi: () => void;
+  /** siswaIds: undefined = semua siswa aktif di kelas asal (perilaku lama). */
+  onEksekusi: (siswaIds?: string[]) => void;
 };
 
 export default function NaikKelasModal({
@@ -29,6 +32,53 @@ export default function NaikKelasModal({
 }: Props) {
   const kelasAsalObj = kelasList.find((k) => k.id === naikKelasAsal) || null;
   const tingkatAsal = kelasAsalObj?.tingkat;
+
+  // Daftar siswa aktif di kelas asal — dipakai buat checkbox pilih-siswa.
+  // Di-fetch ulang tiap kali kelas asal ganti. Defaultnya SEMUA tercentang,
+  // biar perilaku "naikkan semua siswa di kelas ini" tetap jadi default
+  // yang sama seperti sebelum fitur pilih-siswa ini ada.
+  const [daftarSiswa, setDaftarSiswa] = useState<SiswaRingkas[]>([]);
+  const [terpilih, setTerpilih] = useState<Set<string>>(new Set());
+  const [loadingSiswa, setLoadingSiswa] = useState(false);
+
+  useEffect(() => {
+    if (!naikKelasAsal) {
+      setDaftarSiswa([]);
+      setTerpilih(new Set());
+      return;
+    }
+    let batal = false;
+    setLoadingSiswa(true);
+    fetch(`/api/siswa?kelasId=${naikKelasAsal}&status=aktif`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: SiswaRingkas[]) => {
+        if (batal) return;
+        setDaftarSiswa(data);
+        setTerpilih(new Set(data.map((s) => s.id))); // default: semua tercentang
+      })
+      .catch(() => {
+        if (!batal) setDaftarSiswa([]);
+      })
+      .finally(() => {
+        if (!batal) setLoadingSiswa(false);
+      });
+    return () => {
+      batal = true;
+    };
+  }, [naikKelasAsal]);
+
+  function toggleSiswa(id: string) {
+    setTerpilih((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSemua() {
+    setTerpilih((prev) => (prev.size === daftarSiswa.length ? new Set() : new Set(daftarSiswa.map((s) => s.id))));
+  }
 
   // INI BEDANYA "Naik Kelas" vs "Pindah Kelas" (yang bikin bingung
   // sebelumnya): kelas tujuan gak lagi bisa dipilih bebas ke jurusan mana
@@ -46,6 +96,14 @@ export default function NaikKelasModal({
     tingkatAsal !== undefined && kandidatTujuan.length === 0;
 
   if (!show) return null;
+
+  function handleEksekusiClick() {
+    // Kalau semua siswa yang ke-load tercentang, kirim tanpa siswaIds sama
+    // sekali (biar backend jalanin "semua siswa aktif di kelas asal" apa
+    // adanya, gak tergantung timing fetch daftarSiswa di modal ini).
+    const semuaTercentang = daftarSiswa.length > 0 && terpilih.size === daftarSiswa.length;
+    onEksekusi(semuaTercentang ? undefined : Array.from(terpilih));
+  }
 
   return (
     <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-ink-900/50 p-4" onClick={onClose}>
@@ -117,6 +175,53 @@ export default function NaikKelasModal({
               </p>
             )}
           </div>
+
+          {naikKelasAsal && (
+            <div className="mt-4">
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-ink-700">
+                  Siswa yang Dinaikkan ({terpilih.size}/{daftarSiswa.length})
+                </label>
+                {daftarSiswa.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-accent hover:underline"
+                    onClick={toggleSemua}
+                  >
+                    {terpilih.size === daftarSiswa.length ? "Batalkan semua" : "Pilih semua"}
+                  </button>
+                )}
+              </div>
+              <p className="mb-2 text-xs text-ink-500">
+                Defaultnya semua siswa aktif di kelas ini tercentang. Hilangkan centang siswa yang{" "}
+                <strong>tidak</strong> ikut dinaikkan (mis. tinggal kelas) — sisanya tetap di{" "}
+                {kelasAsalObj?.namaKelas || "kelas ini"}.
+              </p>
+              <div className="max-h-40 overflow-y-auto rounded-control border border-border-soft">
+                {loadingSiswa ? (
+                  <p className="p-3 text-center text-xs text-ink-500">Memuat daftar siswa...</p>
+                ) : daftarSiswa.length === 0 ? (
+                  <p className="p-3 text-center text-xs text-ink-500">Tidak ada siswa aktif di kelas ini.</p>
+                ) : (
+                  daftarSiswa.map((s) => (
+                    <label
+                      key={s.id}
+                      className="flex cursor-pointer items-center gap-2 border-b border-border-soft px-3 py-1.5 text-sm last:border-b-0 hover:bg-surface"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={terpilih.has(s.id)}
+                        onChange={() => toggleSiswa(s.id)}
+                        className="h-4 w-4 rounded border-border-soft text-accent focus:ring-accent"
+                      />
+                      <span className="text-ink-900">{s.namaLengkap}</span>
+                      <span className="text-xs text-ink-400">({s.nis})</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-2 rounded-b-[20px] bg-surface p-4">
           <button
@@ -129,8 +234,8 @@ export default function NaikKelasModal({
           <button
             type="button"
             className="rounded-full bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] px-4 py-2 text-sm font-bold text-white shadow-sm2 disabled:opacity-60"
-            disabled={loadingNaikKelas || !naikKelasAsal || !naikKelasTujuan}
-            onClick={onEksekusi}
+            disabled={loadingNaikKelas || !naikKelasAsal || !naikKelasTujuan || terpilih.size === 0}
+            onClick={handleEksekusiClick}
           >
             {loadingNaikKelas ? (
               "Memproses..."

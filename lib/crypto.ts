@@ -19,6 +19,17 @@ function ambilKey(): Buffer | null {
   return crypto.createHash("sha256").update(raw).digest();
 }
 
+/**
+ * Apakah ENCRYPTION_KEY sudah diset di environment? Dipakai Settings API
+ * (app/api/settings/payment) buat kasih warning EKSPLISIT ke owner kalau
+ * belum — sebelumnya sinyal satu-satunya cuma `console.error` di server
+ * yang gak pernah dilihat siapa pun, jadi server key Midtrans bisa
+ * tersimpan plaintext di DB berbulan-bulan tanpa ada yang sadar.
+ */
+export function encryptionKeyTersedia(): boolean {
+  return Boolean(process.env.ENCRYPTION_KEY);
+}
+
 /** Apakah nilai tersimpan ini hasil enkripsi kita (bukan data lama plaintext)? */
 export function terenkripsi(stored: string | null | undefined): boolean {
   return typeof stored === "string" && stored.startsWith(PREFIX);

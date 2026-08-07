@@ -91,10 +91,12 @@ export async function POST(
   try {
     const transaction = await snap.createTransaction(parameter);
 
-    // Sama seperti alur SPP: penandaan "expired" untuk pending lama baru
-    // dijalankan SESUDAH Midtrans mengonfirmasi, dan digabung dengan create
-    // dalam satu transaksi DB. Kalau dijalankan duluan lalu Midtrans gagal,
-    // sesi bayar lama yang masih valid ikut mati percuma.
+    // Sama seperti fix di alur SPP (app/api/tagihan/[id]/bayar): expire
+    // pending lama dipindah ke SETELAH createTransaction dipastikan
+    // berhasil (dibungkus 1 transaction DB bareng create pembayaran baru).
+    // Dulu updateMany "expired" jalan SEBELUM createTransaction — kalau
+    // Midtrans API error/timeout, sesi bayar lama yang masih valid udah
+    // kadung hangus duluan, siswa kehilangan dua-duanya.
     await prisma.$transaction([
       prisma.pembayaranLain.updateMany({
         where: { tagihanLainId: tagihan.id, status: "pending" },

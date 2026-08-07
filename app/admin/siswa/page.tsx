@@ -67,7 +67,7 @@ export default function SiswaPage() {
   const [naikKelasTujuan, setNaikKelasTujuan] = useState("");
   const [loadingNaikKelas, setLoadingNaikKelas] = useState(false);
 
-  async function handleEksekusiNaikKelas() {
+  async function handleEksekusiNaikKelas(siswaIds?: string[]) {
     if (!naikKelasAsal || !naikKelasTujuan) {
       await alertMsg("Pilih kelas asal dan kelas tujuan (atau status Lulus)");
       return;
@@ -78,19 +78,23 @@ export default function SiswaPage() {
         ? "Status LULUS"
         : `Kelas ${kelasList.find((k) => k.id === naikKelasTujuan)?.namaKelas}`;
 
-    if (
-      !(await confirm(`Yakin ingin menaikkan seluruh siswa aktif dari ${asalName} ke ${tujuanName}?`, {
-        confirmLabel: "Ya, Naikkan Massal",
-      }))
-    )
-      return;
+    const pesanKonfirmasi =
+      siswaIds && siswaIds.length > 0
+        ? `Yakin ingin menaikkan ${siswaIds.length} siswa terpilih dari ${asalName} ke ${tujuanName}?`
+        : `Yakin ingin menaikkan seluruh siswa aktif dari ${asalName} ke ${tujuanName}?`;
+
+    if (!(await confirm(pesanKonfirmasi, { confirmLabel: "Ya, Naikkan Massal" }))) return;
 
     setLoadingNaikKelas(true);
     try {
       const res = await fetch("/api/siswa/naik-kelas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kelasAsalId: naikKelasAsal, kelasTujuanId: naikKelasTujuan }),
+        body: JSON.stringify({
+          kelasAsalId: naikKelasAsal,
+          kelasTujuanId: naikKelasTujuan,
+          ...(siswaIds && siswaIds.length > 0 ? { siswaIds } : {}),
+        }),
       });
       const data = await res.json();
       setLoadingNaikKelas(false);
@@ -384,14 +388,6 @@ export default function SiswaPage() {
     () => Math.max(1, Math.ceil(sortedDaftar.length / pageSize)),
     [sortedDaftar.length, pageSize]
   );
-
-  // Jaring pengaman: kalau jumlah halaman menyusut (data kehapus, filter
-  // dipersempit dari tempat lain), currentPage bisa nyangkut di angka yang
-  // udah gak ada — tabelnya kosong melompong padahal datanya ada di halaman
-  // sebelumnya. Tarik balik ke halaman terakhir yang valid.
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
   const paginatedDaftar = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return sortedDaftar.slice(startIndex, startIndex + pageSize);

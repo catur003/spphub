@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRole } from "@/lib/api-auth";
 
-/** Batas atas jumlah baris detail yang dikirim dalam satu respons laporan.
- *  Angka ringkasan tetap dihitung dari SELURUH data lewat groupBy, jadi
- *  pembatasan ini cuma memotong tabel detailnya, bukan totalnya. */
-const MAKS_BARIS_LAPORAN = 2000;
+// Jaring pengaman terakhir: laporan tanpa filter periode sama sekali bisa
+// menarik SELURUH histori tagihan sekolah (semua bulan, semua tahun) dalam
+// satu response — 300 siswa x beberapa tahun operasional bisa gampang
+// tembus puluhan ribu row lengkap dengan relasi siswa+kelas+pembayaran.
+// Cap ini BUKAN pagination (frontend sengaja unbounded biar Export
+// CSV/Cetak PDF selalu dapat data lengkap sesuai filter — lihat komentar di
+// app/admin/laporan/page.tsx), tapi batas atas mutlak biar satu request
+// yang gak sengaja dipanggil tanpa filter (atau filter yang kebetulan
+// cocok ke ribuan row) gak bikin response raksasa / membebani DB & network.
+const MAKS_ROW_LAPORAN = 5000;
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,40 +57,11 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Ringkasan dihitung di DB lewat groupBy, BUKAN dengan me-reduce array
-    // hasil findMany. Dua alasan: (1) totalnya tetap benar walaupun daftar
-    // barisnya dibatasi, (2) gak perlu narik puluhan ribu row ke memori cuma
-    // buat dijumlahkan.
-    const perStatus = await prisma.tagihanSpp.groupBy({
-      by: ["status"],
-      where,
-      _count: { _all: true },
-      _sum: { nominal: true },
-    });
+    // Hitung total row yang cocok filter DULU (query ringan, cuma COUNT) —
+    // biar tahu apakah bakal kepotong cap SEBELUM narik semua kolom+relasi.
+    const totalCocok = await prisma.tagihanSpp.count({ where });
+    const terpotong = totalCocok > MAKS_ROW_LAPORAN;
 
-    const ringkasan = perStatus.reduce(
-      (acc, grup) => {
-        const jumlah = grup._count._all;
-        const nominal = grup._sum.nominal || 0;
-        acc.totalTagihan += jumlah;
-        acc.totalNominal += nominal;
-        if (grup.status === "lunas") {
-          acc.totalLunas += jumlah;
-          acc.nominalLunas += nominal;
-        } else {
-          acc.totalBelumLunas += jumlah;
-          acc.nominalBelumLunas += nominal;
-        }
-        return acc;
-      },
-      { totalTagihan: 0, totalNominal: 0, totalLunas: 0, nominalLunas: 0, totalBelumLunas: 0, nominalBelumLunas: 0 }
-    );
-
-    // Dulu findMany di sini gak punya `take` sama sekali — sekolah dengan 300
-    // siswa × 12 bulan udah 3.600 row, tiap row bawa relasi siswa + kelas +
-    // pembayaran, semuanya dikirim dalam satu JSON. Sekarang dibatasi, dan
-    // kalau kepotong, frontend dikasih tau lewat flag `terpotong` biar bisa
-    // nyaranin user mempersempit filternya.
     const daftar = await prisma.tagihanSpp.findMany({
       where,
       include: {
@@ -92,14 +69,44 @@ export async function GET(req: NextRequest) {
         pembayaran: { orderBy: { createdAt: "desc" }, take: 1 },
       },
       orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
-      take: MAKS_BARIS_LAPORAN,
+      take: MAKS_ROW_LAPORAN,
     });
+
+    // Ringkasan dihitung dari agregat DB langsung (bukan .reduce() di JS
+    // atas `daftar` yang bisa kepotong cap) — supaya angka total/nominal
+    // di kartu ringkasan TETAP akurat mencerminkan SEMUA row yang cocok
+    // filter, walau tabel detail di bawahnya kepotong cap.
+    const [agregatSemua, agregatLunas] = await Promise.all([
+      prisma.tagihanSpp.aggregate({ where, _count: { _all: true }, _sum: { nominal: true } }),
+      prisma.tagihanSpp.aggregate({
+        where: { ...where, status: "lunas" },
+        _count: { _all: true },
+        _sum: { nominal: true },
+      }),
+    ]);
+
+    const totalTagihan = agregatSemua._count._all;
+    const totalNominal = agregatSemua._sum.nominal || 0;
+    const totalLunas = agregatLunas._count._all;
+    const nominalLunas = agregatLunas._sum.nominal || 0;
+
+    const ringkasan = {
+      totalTagihan,
+      totalNominal,
+      totalLunas,
+      nominalLunas,
+      totalBelumLunas: totalTagihan - totalLunas,
+      nominalBelumLunas: totalNominal - nominalLunas,
+    };
 
     return NextResponse.json({
       ringkasan,
       daftar,
-      terpotong: ringkasan.totalTagihan > daftar.length,
-      maksBaris: MAKS_BARIS_LAPORAN,
+      terpotong,
+      totalCocok,
+      catatan: terpotong
+        ? `Menampilkan ${MAKS_ROW_LAPORAN} dari ${totalCocok} data yang cocok filter. Persempit filter (periode/kelas) untuk melihat & mengekspor semuanya.`
+        : undefined,
     });
   } catch (error: any) {
     console.error("[GET /api/laporan] Error:", error);

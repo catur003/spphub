@@ -88,14 +88,12 @@ export function AdminShell({ role, userName, children }: AdminShellProps) {
     router.push("/login");
   }
 
-  const groups = NAV_GROUPS.map((g) => {
+  const groups: NavGroup[] = NAV_GROUPS.map((g) => {
     if (g.header === "SISTEM" && role === "owner") {
+      const itemBaru: NavItem = { href: "/admin/settings", label: "Pengaturan", icon: IconSettings };
       return {
         ...g,
-        items: [
-          ...g.items,
-          { href: "/admin/settings", label: "Pengaturan", icon: IconSettings },
-        ],
+        items: [...g.items, itemBaru],
       };
     }
     return g;
