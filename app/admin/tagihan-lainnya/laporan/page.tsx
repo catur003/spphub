@@ -165,7 +165,7 @@ export default function LaporanTagihanLainPage() {
             <select className={selectClass} value={kelasId} onChange={(e) => setKelasId(e.target.value)}>
               <option value="">Semua Kelas</option>
               {kelasList.map((k) => (
-                <option key={k.id} value={k.id}>{k.namaKelas}</option>
+                <option key={k.id} value={k.id}>{k.tingkat ?? "?"} — {k.namaKelas}</option>
               ))}
             </select>
           </div>

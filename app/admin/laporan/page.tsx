@@ -238,7 +238,7 @@ export default function LaporanPage() {
             <select className={selectClass} value={kelasId} onChange={(e) => setKelasId(e.target.value)}>
               <option value="">Semua Jurusan {filterTingkat ? `(Kelas ${filterTingkat})` : ""}</option>
               {(filterTingkat ? kelasList.filter((k) => String(k.tingkat) === filterTingkat) : kelasList).map((k) => (
-                <option key={k.id} value={k.id}>{k.namaKelas}</option>
+                <option key={k.id} value={k.id}>{k.tingkat ?? "?"} — {k.namaKelas}</option>
               ))}
             </select>
           </div>

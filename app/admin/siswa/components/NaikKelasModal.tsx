@@ -144,7 +144,7 @@ export default function NaikKelasModal({
               <option value="">-- Pilih Kelas Asal --</option>
               {kelasList.map((k) => (
                 <option key={k.id} value={k.id}>
-                  {k.namaKelas} (Tingkat {k.tingkat ?? "?"})
+                  {k.tingkat ?? "?"} — {k.namaKelas}
                 </option>
               ))}
             </select>
@@ -162,7 +162,7 @@ export default function NaikKelasModal({
               <option value="">-- Pilih Kelas Tujuan --</option>
               {kandidatTujuan.map((k) => (
                 <option key={k.id} value={k.id}>
-                  {k.namaKelas} (Tingkat {k.tingkat})
+                  {k.tingkat} — {k.namaKelas}
                 </option>
               ))}
               <option value="lulus">Tandai LULUS / ALUMNI (Kelulusan)</option>

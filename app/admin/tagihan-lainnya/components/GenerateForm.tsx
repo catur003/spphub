@@ -164,7 +164,7 @@ export default function GenerateForm({
               <option value="">Semua Siswa Aktif</option>
               {kelasList.map((k) => (
                 <option key={k.id} value={k.id}>
-                  {k.namaKelas}
+                  {k.tingkat ?? "?"} — {k.namaKelas}
                 </option>
               ))}
             </select>

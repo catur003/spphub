@@ -86,7 +86,7 @@ export default function FilterToolbar({
             <option value="">Semua Kelas</option>
             {kelasList.map((k) => (
               <option key={k.id} value={k.id}>
-                {k.namaKelas}
+                {k.tingkat ?? "?"} — {k.namaKelas}
               </option>
             ))}
           </select>
