@@ -2,7 +2,7 @@
 
 import { IconWhatsapp } from "@/components/admin/icons";
 import { SiswaDetail, getAvatarColor, getInisial } from "../types";
-import { tingkatKeRomawi } from "@/app/admin/siswa/types";
+import { formatTingkat } from "@/app/admin/siswa/types";
 
 type Props = {
   detailSiswa: SiswaDetail | null;
@@ -58,7 +58,7 @@ export default function SiswaDetailModal({ detailSiswa, onClose }: Props) {
         </div>
         <div className="p-5">
           <div className="grid grid-cols-2 gap-3">
-            <InfoBox label="KELAS" value={detailSiswa.kelas ? tingkatKeRomawi(detailSiswa.kelas.tingkat) : "-"} />
+            <InfoBox label="KELAS" value={detailSiswa.kelas ? formatTingkat(detailSiswa.kelas.tingkat) : "-"} />
             <InfoBox label="JURUSAN" value={detailSiswa.kelas?.namaKelas || "-"} />
             <InfoBox
               label="JENIS KELAMIN"
