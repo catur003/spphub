@@ -159,54 +159,13 @@ export function getInisial(nama: string): string {
     .join("");
 }
 
-/** Kompres gambar di sisi client sebelum diunggah (max 400px, JPEG q0.82). */
-export function kompresGambar(file: File, maxPx = 400): Promise<Blob> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let w = img.width;
-        let h = img.height;
-        if (w > maxPx || h > maxPx) {
-          if (w > h) {
-            h = Math.round((h * maxPx) / w);
-            w = maxPx;
-          } else {
-            w = Math.round((w * maxPx) / h);
-            h = maxPx;
-          }
-        }
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0, w, h);
-        canvas.toBlob((blob) => resolve(blob || file), "image/jpeg", 0.82);
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
+// Kompresi & upload gambar diekstrak ke lib/upload-client.ts (dipakai bareng
+// dengan upload logo sekolah di Settings). Re-export di sini biar import
+// lama (`from "../types"`) di page.tsx & komponen form gak perlu diubah.
+export { MIME_GAMBAR_DIIZINKAN as MIME_FOTO_DIIZINKAN, kompresGambar } from "@/lib/upload-client";
+import { uploadGambar } from "@/lib/upload-client";
 
 /** Upload file foto (sudah dikompres) ke endpoint /api/upload, kembalikan URL. */
-export const MIME_FOTO_DIIZINKAN = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-
 export async function uploadFotoFile(file: File): Promise<string> {
-  // Dicegat di client duluan: kompresGambar() pakai <img>.onload yang GAK
-  // PERNAH fire buat file non-gambar, jadi promise-nya menggantung selamanya
-  // dan spinner "Mengunggah..." muter tanpa ujung. Server juga nolak, tapi
-  // request-nya gak pernah sampai ke sana.
-  if (!MIME_FOTO_DIIZINKAN.includes(file.type)) {
-    throw new Error("Format foto harus JPG, PNG, WEBP, atau GIF.");
-  }
-
-  const blobKompres = await kompresGambar(file);
-  const formData = new FormData();
-  formData.append("file", blobKompres, "foto_siswa.jpg");
-  const res = await fetch("/api/upload", { method: "POST", body: formData });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Gagal mengunggah foto");
-  return data.url;
+  return uploadGambar(file, "foto_siswa.jpg");
 }

@@ -44,23 +44,40 @@ export async function POST(
       );
     }
 
-    await prisma.$transaction([
-      prisma.pembayaranLain.create({
-        data: {
-          tagihanLainId: id,
-          siswaId: tagihan.siswaId,
-          orderId: `MANUAL-LAIN-${id}-${Date.now()}`,
-          jumlah: tagihan.nominal,
-          metode,
-          status: "success",
-          paidAt: new Date(),
-        },
-      }),
-      prisma.tagihanLain.update({
-        where: { id },
-        data: { status: "lunas" },
-      }),
-    ]);
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Sama seperti fix di app/api/tagihan/[id]/verifikasi: flip status
+        // secara atomik biar gak race sama webhook Midtrans yang nyelesaiin
+        // pembayaran online tagihan yang sama, yang bisa bikin 2 row
+        // PembayaranLain "success" buat 1 tagihan (pemasukan kecatet dobel).
+        const updated = await tx.tagihanLain.updateMany({
+          where: { id, status: { not: "lunas" } },
+          data: { status: "lunas" },
+        });
+        if (updated.count === 0) {
+          throw new Error("SUDAH_LUNAS");
+        }
+        await tx.pembayaranLain.create({
+          data: {
+            tagihanLainId: id,
+            siswaId: tagihan.siswaId,
+            orderId: `MANUAL-LAIN-${id}-${Date.now()}`,
+            jumlah: tagihan.nominal,
+            metode,
+            status: "success",
+            paidAt: new Date(),
+          },
+        });
+      });
+    } catch (err: any) {
+      if (err?.message === "SUDAH_LUNAS") {
+        return NextResponse.json(
+          { error: "Tagihan ini baru saja lunas (kemungkinan lewat pembayaran online). Refresh halaman dulu." },
+          { status: 409 }
+        );
+      }
+      throw err;
+    }
 
     return NextResponse.json({ success: true, metode });
   } catch (error: any) {

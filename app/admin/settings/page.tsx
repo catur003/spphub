@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { IconCreditCard, IconSchool, IconCheck, IconZap, IconEye, IconSave, IconWhatsapp } from "@/components/admin/icons";
+import { IconCreditCard, IconSchool, IconCheck, IconZap, IconEye, IconSave, IconWhatsapp, IconUpload, IconImage } from "@/components/admin/icons";
+import { uploadGambar } from "@/lib/upload-client";
 
 type PaymentSettings = {
   environment: "sandbox" | "production";
@@ -68,6 +69,8 @@ export default function SettingsPage() {
   const [sekolahError, setSekolahError] = useState("");
   const [sekolahLoading, setSekolahLoading] = useState(false);
   const [showFonnteToken, setShowFonnteToken] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState("");
 
   useEffect(() => {
     fetch("/api/settings/payment").then(async (res) => {
@@ -110,6 +113,24 @@ export default function SettingsPage() {
     if (!res.ok) { setSekolahError(data.error || "Gagal menyimpan"); return; }
     setSekolah(data);
     setSekolahMsg("Profil sekolah & pengaturan WhatsApp berhasil disimpan.");
+  }
+
+  async function handleFileLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // biar bisa pilih file yang sama lagi kalau mau ganti
+    if (!file) return;
+    setLogoError("");
+    setUploadingLogo(true);
+    try {
+      // Logo dipertahankan formatnya (PNG tetap PNG) supaya background
+      // transparan gak berubah jadi kotak solid saat dipakai di kop surat.
+      const url = await uploadGambar(file, "logo_sekolah.png", { maxPx: 600, outputType: "keep", quality: 0.92 });
+      setSekolah((s) => ({ ...s, logoUrl: url }));
+    } catch (err: any) {
+      setLogoError(err.message || "Gagal mengunggah logo");
+    } finally {
+      setUploadingLogo(false);
+    }
   }
 
   // Key yang aktif berdasarkan environment yang dipilih
@@ -369,13 +390,52 @@ export default function SettingsPage() {
               />
             </div>
             <div className="mb-3">
-              <label className={labelClass}>URL Logo Sekolah</label>
-              <input
-                className={inputClass}
-                value={sekolah.logoUrl || ""}
-                onChange={(e) => setSekolah({ ...sekolah, logoUrl: e.target.value })}
-                placeholder="https://link-logo-sekolah.png"
-              />
+              <label className={labelClass}>Logo Sekolah</label>
+              {logoError && (
+                <div className="mb-2 rounded-control border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {logoError}
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-soft bg-[linear-gradient(45deg,#f3f4f6_25%,transparent_25%),linear-gradient(-45deg,#f3f4f6_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f3f4f6_75%),linear-gradient(-45deg,transparent_75%,#f3f4f6_75%)] bg-[length:12px_12px] bg-[position:0_0,0_6px,6px_-6px,-6px_0]">
+                  {sekolah.logoUrl ? (
+                    <img src={sekolah.logoUrl} alt="Logo sekolah" className="h-full w-full object-contain" />
+                  ) : (
+                    <IconImage className="h-6 w-6 text-ink-500/50" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label
+                    className={`inline-flex cursor-pointer items-center gap-1.5 rounded-control border border-border-soft bg-white px-3 py-1.5 text-sm font-semibold text-ink-700 transition hover:border-accent hover:text-accent ${
+                      uploadingLogo ? "pointer-events-none opacity-60" : ""
+                    }`}
+                  >
+                    {uploadingLogo ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent-soft border-t-accent" />
+                    ) : (
+                      <IconUpload className="h-4 w-4" />
+                    )}
+                    {uploadingLogo ? "Mengunggah..." : sekolah.logoUrl ? "Ganti Logo" : "Unggah Logo"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileLogo}
+                      disabled={uploadingLogo}
+                    />
+                  </label>
+                  {sekolah.logoUrl && (
+                    <button
+                      type="button"
+                      className="ml-2 text-sm font-semibold text-red-600 hover:text-red-700"
+                      onClick={() => setSekolah((s) => ({ ...s, logoUrl: "" }))}
+                    >
+                      Hapus
+                    </button>
+                  )}
+                  <p className="mt-1 text-xs text-ink-500">JPG, PNG, WEBP, atau GIF. PNG transparan disarankan untuk kop surat.</p>
+                </div>
+              </div>
             </div>
             <div className="mb-1">
               <label className={labelClass}>Nominal SPP Default</label>

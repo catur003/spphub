@@ -74,15 +74,15 @@ function ExecutiveCard({
   return (
     <Link href={href} className="no-underline">
       <div
-        className="relative overflow-hidden rounded-2xl p-5 text-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
+        className="relative overflow-hidden rounded-2xl p-5 text-white shadow-sm2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md2"
         style={{ background: gradient }}
       >
-        <div className="absolute right-4 top-4 flex h-[42px] w-[42px] items-center justify-center rounded-full bg-white/25 backdrop-blur">
+        <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
           {icon}
         </div>
-        <div className="text-[1.65rem] font-extrabold leading-tight tracking-tight">{value}</div>
-        <div className="mt-1.5 text-sm font-semibold opacity-90">{title}</div>
-        <div className="mt-4 flex items-center gap-1.5 border-t border-white/20 pt-2.5 text-xs font-medium opacity-95">
+        <div className="text-[1.55rem] font-extrabold leading-tight tracking-tight">{value}</div>
+        <div className="mt-1 text-sm font-semibold text-white/85">{title}</div>
+        <div className="mt-3.5 flex items-center gap-1.5 border-t border-white/15 pt-2.5 text-xs font-medium text-white/85">
           {footer}
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function DashboardPage() {
       {/* 4 Executive Stat Cards — warna dinamis ngikutin nilai, biar sekali lihat
           langsung kebaca mana yang butuh perhatian (lihat Tahap 5 di
           RENCANA-LANJUTAN.md untuk alasan pemilihan warna). */}
-      <div className="mb-6 grid grid-cols-12 gap-3">
+      <div className="mb-6 grid grid-cols-12 gap-4">
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <ExecutiveCard
             href="/admin/keuangan/laporan"
@@ -256,23 +256,26 @@ export default function DashboardPage() {
       </div>
 
       {/* Tahap 7: breakdown sumber saldo kas (all-time), biar gak cuma 1 angka net */}
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm2">
-          Dari SPP: <strong className="text-emerald-600">Rp {totalSppLunas.toLocaleString("id-ID")}</strong>
-        </span>
-        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm2">
-          Pendapatan Lain: <strong className="text-emerald-600">Rp {totalPendapatanLain.toLocaleString("id-ID")}</strong>
-        </span>
-        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 shadow-sm2">
-          Total Pengeluaran: <strong className="text-red-500">Rp {totalPengeluaran.toLocaleString("id-ID")}</strong>
-        </span>
+      <div className="mb-6 grid grid-cols-1 divide-y divide-border-soft rounded-2xl bg-white shadow-sm2 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 sm:flex-col sm:items-start sm:justify-center">
+          <span className="text-xs font-medium text-ink-500">Dari SPP</span>
+          <strong className="text-base font-bold text-emerald-600">Rp {totalSppLunas.toLocaleString("id-ID")}</strong>
+        </div>
+        <div className="flex items-center justify-between gap-2 px-4 py-3 sm:flex-col sm:items-start sm:justify-center">
+          <span className="text-xs font-medium text-ink-500">Pendapatan Lain</span>
+          <strong className="text-base font-bold text-emerald-600">Rp {totalPendapatanLain.toLocaleString("id-ID")}</strong>
+        </div>
+        <div className="flex items-center justify-between gap-2 px-4 py-3 sm:flex-col sm:items-start sm:justify-center">
+          <span className="text-xs font-medium text-ink-500">Total Pengeluaran</span>
+          <strong className="text-base font-bold text-red-500">Rp {totalPengeluaran.toLocaleString("id-ID")}</strong>
+        </div>
       </div>
 
       {/* Charts & Graphs Row */}
-      <div className="mb-6 grid grid-cols-12 gap-3">
+      <div className="mb-6 grid grid-cols-12 gap-4">
         {/* Bar Chart: Tren Pemasukan 6 Bulan */}
         <div className="col-span-12 lg:col-span-8">
-          <div className="h-full rounded-[18px] bg-white p-4 shadow-sm2">
+          <div className="h-full rounded-2xl bg-white p-4 shadow-sm2">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-1.5 text-base font-bold text-ink-900"><IconChart className="h-4 w-4" /> Tren Pemasukan SPP (6 Bulan Terakhir)</div>
@@ -304,7 +307,7 @@ export default function DashboardPage() {
 
         {/* Pie Chart: Distribusi Status Pembayaran */}
         <div className="col-span-12 lg:col-span-4">
-          <div className="h-full rounded-[18px] bg-white p-4 shadow-sm2">
+          <div className="h-full rounded-2xl bg-white p-4 shadow-sm2">
             <div className="flex items-center gap-1.5 text-base font-bold text-ink-900"><IconChart className="h-4 w-4" /> Rasio Status SPP</div>
             <div className="mb-3 text-sm text-ink-500">Bulan {BULAN_LABEL[bulan]} {tahun}</div>
             <div style={{ width: "100%", height: 220 }}>
@@ -332,10 +335,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Row: Transaksi Terbaru & Pengumuman */}
-      <div className="grid grid-cols-12 gap-3">
+      <div className="grid grid-cols-12 gap-4">
         {/* Transaksi Lunas Terbaru */}
         <div className="col-span-12 lg:col-span-7">
-          <div className="rounded-[18px] bg-white p-4 shadow-sm2">
+          <div className="rounded-2xl bg-white p-4 shadow-sm2">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-base font-bold text-ink-900"><IconZap className="h-4 w-4" /> Pembayaran Lunas Terbaru</div>
               <Link href="/admin/tagihan?status=lunas" className="text-sm font-bold text-accent no-underline">
@@ -379,7 +382,7 @@ export default function DashboardPage() {
 
         {/* Pengumuman Terbaru */}
         <div className="col-span-12 lg:col-span-5">
-          <div className="rounded-[18px] bg-white p-4 shadow-sm2">
+          <div className="rounded-2xl bg-white p-4 shadow-sm2">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-base font-bold text-ink-900"><IconMegaphone className="h-4 w-4" /> Pengumuman Sekolah</div>
               <Link href="/admin/pengumuman" className="text-sm font-bold text-accent no-underline">
