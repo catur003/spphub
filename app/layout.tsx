@@ -14,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body>{children}
-      <script defer src="https://zenin.my.id/track.js?v=2" data-site="cmsugskcv000lem1hdc7s873p"></script>
+      <script defer src="https://zenin.my.id/track.js?v=3" data-site="cmsugskcv000lem1hdc7s873p"></script>
       </body>
     </html>
   );
